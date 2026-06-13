@@ -1,9 +1,9 @@
 import { portfolioData } from '../../data/portfolioData'
 import { win98Icons } from '../../data/icons'
-import type { AppId } from '../../types'
+import type { AppId, WindowPayload } from '../../types'
 
 type ProjectsAppProps = {
-  openApp: (appId: AppId, payload?: { projectId?: string }) => void
+  openApp: (appId: AppId, payload?: WindowPayload) => void
 }
 
 export function ProjectsApp({ openApp }: ProjectsAppProps) {

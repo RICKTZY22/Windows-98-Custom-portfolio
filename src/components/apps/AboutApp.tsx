@@ -7,7 +7,7 @@ export function AboutApp() {
   return (
     <div className="app-content about-app">
       <div className="identity-row">
-        <img src={win98Icons.about} alt="" />
+        <img src={win98Icons.student} alt="" />
         <div>
           <h2>{profile.name}</h2>
           <p>{profile.role}</p>

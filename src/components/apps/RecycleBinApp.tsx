@@ -1,13 +1,34 @@
 import { win98Icons } from '../../data/icons'
-import type { DeletedFileEntry } from '../../types'
+import { useOs } from '../../os/useOs'
 
-type RecycleBinAppProps = {
-  deletedItems: DeletedFileEntry[]
-  onRestore: (path: string) => void
-}
+export function RecycleBinApp() {
+  const { state, fsOps, showMessageBox } = useOs()
+  const entries = state.fs.recycle
 
-export function RecycleBinApp({ deletedItems, onRestore }: RecycleBinAppProps) {
-  if (deletedItems.length > 0) {
+  function restore(entryId: string) {
+    const error = fsOps.restoreEntry(entryId)
+    if (error) {
+      showMessageBox({ title: 'Recycle Bin', message: error, icon: 'error', buttons: ['ok'] })
+    }
+  }
+
+  function confirmEmpty() {
+    showMessageBox({
+      title: 'Confirm File Delete',
+      message: `Are you sure you want to permanently delete these ${entries.length} item(s)?`,
+      detail:
+        'After the Recycle Bin is emptied, these virtual files are removed from browser storage and cannot be restored from the Recycle Bin.',
+      icon: 'warning',
+      buttons: ['yes', 'no'],
+      onResult: (button) => {
+        if (button === 'yes') {
+          fsOps.emptyRecycleBin()
+        }
+      },
+    })
+  }
+
+  if (entries.length > 0) {
     return (
       <div className="app-content recycle-app recycle-list-app">
         <ul className="os-menu-bar" role="menubar">
@@ -16,24 +37,29 @@ export function RecycleBinApp({ deletedItems, onRestore }: RecycleBinAppProps) {
           <li>View</li>
           <li>Help</li>
         </ul>
+        <div className="toolbar">
+          <button type="button" onClick={confirmEmpty}>
+            Empty Recycle Bin
+          </button>
+        </div>
         <div className="sunken-panel recycle-list">
-          {deletedItems.map((item) => (
-            <div className="recycle-row" key={item.path}>
+          {entries.map((item) => (
+            <div className="recycle-row" key={item.id}>
               <span className="file-name-cell">
                 <img src={win98Icons[item.icon]} alt="" />
                 {item.name}
               </span>
-              <span>{item.fileType ?? (item.kind === 'folder' ? 'File Folder' : 'File')}</span>
+              <span>{item.fileType}</span>
               <span>{item.deletedAt}</span>
-              <button type="button" onClick={() => onRestore(item.path)}>
+              <button type="button" onClick={() => restore(item.id)}>
                 Restore
               </button>
             </div>
           ))}
         </div>
         <div className="status-bar">
-          <p className="status-bar-field">{deletedItems.length} object(s)</p>
-          <p className="status-bar-field">Deleted items are simulated</p>
+          <p className="status-bar-field">{entries.length} object(s)</p>
+          <p className="status-bar-field">Items are recoverable until the bin is emptied</p>
         </div>
       </div>
     )
@@ -44,7 +70,7 @@ export function RecycleBinApp({ deletedItems, onRestore }: RecycleBinAppProps) {
       <div className="empty-bin">
         <img src={win98Icons.recycleBin} alt="" />
         <h2>Recycle Bin is empty.</h2>
-        <p>No deleted projects. The good stuff is still on the desktop.</p>
+        <p>No deleted files.</p>
       </div>
     </div>
   )

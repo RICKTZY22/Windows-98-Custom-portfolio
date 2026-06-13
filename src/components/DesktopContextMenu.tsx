@@ -31,7 +31,7 @@ export function DesktopContextMenu({ x, y, openApp, onRefresh, onArrangeIcons }:
         <li><button type="button" onClick={onRefresh}>Refresh</button></li>
         <li className="context-separator" aria-hidden="true"></li>
         <li>
-          <button type="button" onClick={() => openApp('computer', { path: 'C:\\' })}>
+          <button type="button" onClick={() => openApp('explorer', { path: 'C:\\' })}>
             <img src={win98Icons.computer} alt="" />
             Open My Computer
           </button>
@@ -44,7 +44,7 @@ export function DesktopContextMenu({ x, y, openApp, onRefresh, onArrangeIcons }:
         </li>
         <li className="context-separator" aria-hidden="true"></li>
         <li>
-          <button type="button" onClick={() => openApp('themes')}>
+          <button type="button" onClick={() => openApp('controlPanel', { controlPanelSection: 'display' })}>
             <img src={win98Icons.desktop} alt="" />
             Properties
           </button>

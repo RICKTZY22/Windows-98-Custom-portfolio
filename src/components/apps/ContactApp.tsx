@@ -10,8 +10,12 @@ export function ContactApp() {
         <img src={win98Icons.contact} alt="" />
         <div>
           <h2>Contact</h2>
-          <p>Send a message or swap in your real links.</p>
+          <p>{portfolioData.contact.availability}</p>
         </div>
+      </div>
+      <div className="sunken-panel inset-copy">
+        <p>{portfolioData.contact.summary}</p>
+        <p>{portfolioData.contact.location}</p>
       </div>
       <fieldset>
         <legend>Email</legend>

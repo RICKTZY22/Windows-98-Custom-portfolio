@@ -1,30 +1,30 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import type { AppDefinition, AppId, DesktopIconPosition } from '../types'
+import type { DesktopIconDef, Point } from '../types'
 import { win98Icons } from '../data/icons'
 
 type DesktopIconProps = {
-  app: AppDefinition
-  position: DesktopIconPosition
+  iconDef: DesktopIconDef
+  position: Point
   selected: boolean
   onSelect: () => void
   onOpen: () => void
-  onMove: (appId: AppId, position: DesktopIconPosition) => void
+  onMove: (id: string, position: Point) => void
 }
 
 type DragState = {
   pointerId: number
   startX: number
   startY: number
-  startPosition: DesktopIconPosition
+  startPosition: Point
   moved: boolean
 }
 
 const dragThreshold = 4
 
-export function DesktopIcon({ app, position, selected, onSelect, onOpen, onMove }: DesktopIconProps) {
+export function DesktopIcon({ iconDef, position, selected, onSelect, onOpen, onMove }: DesktopIconProps) {
   const dragRef = useRef<DragState | null>(null)
   const frameRef = useRef<number | null>(null)
-  const pendingPositionRef = useRef<DesktopIconPosition | null>(null)
+  const pendingPositionRef = useRef<Point | null>(null)
   const suppressClickRef = useRef(false)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -33,7 +33,7 @@ export function DesktopIcon({ app, position, selected, onSelect, onOpen, onMove 
       if (!pendingPositionRef.current) {
         return
       }
-      onMove(app.id, pendingPositionRef.current)
+      onMove(iconDef.id, pendingPositionRef.current)
     }
 
     function handlePointerMove(event: PointerEvent) {
@@ -95,7 +95,7 @@ export function DesktopIcon({ app, position, selected, onSelect, onOpen, onMove 
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('pointercancel', handlePointerUp)
     }
-  }, [app.id, onMove])
+  }, [iconDef.id, onMove])
 
   function startDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) {
@@ -117,7 +117,7 @@ export function DesktopIcon({ app, position, selected, onSelect, onOpen, onMove 
       className={`desktop-icon ${selected ? 'selected' : ''} ${isDragging ? 'is-dragging' : ''}`}
       type="button"
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
-      aria-label={`${app.title}. Press Enter or double-click to open.`}
+      aria-label={`${iconDef.label}. Press Enter or double-click to open.`}
       onPointerDown={startDrag}
       onClick={(event) => {
         if (suppressClickRef.current) {
@@ -137,8 +137,8 @@ export function DesktopIcon({ app, position, selected, onSelect, onOpen, onMove 
         }
       }}
     >
-      <img src={win98Icons[app.icon]} alt="" />
-      <span>{app.title}</span>
+      <img src={win98Icons[iconDef.icon]} alt="" />
+      <span>{iconDef.label}</span>
     </button>
   )
 }

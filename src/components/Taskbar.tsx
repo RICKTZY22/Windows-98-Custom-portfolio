@@ -1,14 +1,18 @@
 import { win98Icons } from '../data/icons'
-import type { NetworkStatus, WindowState } from '../types'
+import type { NetworkState, WindowState } from '../types'
 
 type TaskbarProps = {
   windows: WindowState[]
   activeWindowId?: string
   startOpen: boolean
   timeLabel: string
-  network: NetworkStatus
+  network: NetworkState
+  audioEnabled: boolean
+  audioMuted: boolean
   onToggleStart: () => void
   onTaskClick: (instanceId: string) => void
+  onToggleNetwork: () => void
+  onToggleAudio: () => void
 }
 
 export function Taskbar({
@@ -17,8 +21,12 @@ export function Taskbar({
   startOpen,
   timeLabel,
   network,
+  audioEnabled,
+  audioMuted,
   onToggleStart,
   onTaskClick,
+  onToggleNetwork,
+  onToggleAudio,
 }: TaskbarProps) {
   return (
     <footer className="taskbar" onPointerDown={(event) => event.stopPropagation()}>
@@ -46,8 +54,17 @@ export function Taskbar({
         ))}
       </div>
       <div className="tray" aria-label="System tray">
-        <img className="tray-icon" src={win98Icons.network} alt="" />
-        <img className="tray-icon" src={win98Icons.soundRecorder} alt="" />
+        <button className="tray-button" type="button" title="Network" onClick={onToggleNetwork}>
+          <img className="tray-icon" src={win98Icons.network} alt="" />
+        </button>
+        <button
+          className={`tray-button ${audioEnabled && !audioMuted ? 'online' : ''}`}
+          type="button"
+          title={audioEnabled ? 'Mute sound' : 'Enable sound'}
+          onClick={onToggleAudio}
+        >
+          <img className="tray-icon" src={win98Icons.soundRecorder} alt="" />
+        </button>
         <span className={`network-led ${network.connected ? 'online' : ''}`}></span>
         <span className="tray-cell">{network.connected ? 'LAN' : 'OFF'}</span>
         <span className="tray-time">{timeLabel}</span>

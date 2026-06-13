@@ -1,200 +1,172 @@
-import { useMemo, useRef, useState } from 'react'
-import {
-  getFileContent,
-  getNode,
-  getParentPath,
-  isPathWithin,
-  listDirectory,
-  normalizePath,
-  resolvePath,
-} from '../../data/filesystem'
-import type { AppId, NetworkStatus, WindowPayload } from '../../types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { AppProps, CrashState } from '../../types'
+import { useOs } from '../../os/useOs'
+import { baseName, normalizePath, nowStamp } from '../../os/filesystem'
+import { autoCompletePath, executeCommand, type CommandEffect } from '../../os/commands'
+import { osCreditName, osProductName, osCreditYear } from '../../data/system'
 
-type TerminalAppProps = {
-  path?: string
-  network: NetworkStatus
-  setNetwork: (updater: (current: NetworkStatus) => NetworkStatus) => void
-  openApp: (appId: AppId, payload?: WindowPayload) => void
-  deletedPaths: Set<string>
+const banner = [osProductName, `(C)Copyright ${osCreditName} ${osCreditYear}`, '']
+
+function crashFor(path: string): CrashState {
+  return {
+    title: 'Windows protection error',
+    message: 'A required system component has been deleted from Windows.',
+    detail: `While initializing device ${baseName(path).toUpperCase()}: ${path} is missing or damaged.`,
+    stopCode: '0E : 0028 : C0011E36',
+    crashedAt: nowStamp(),
+  }
 }
 
-const banner = ['Microsoft(R) Windows 98', '(C)Copyright Microsoft Corp 1981-1998.', '']
-
-function isDeletedPath(path: string, deletedPaths: Set<string>) {
-  return [...deletedPaths].some((deletedPath) => isPathWithin(path, deletedPath))
-}
-
-export function TerminalApp({ path = 'C:\\', network, setNetwork, openApp, deletedPaths }: TerminalAppProps) {
-  const [currentPath, setCurrentPath] = useState(() => normalizePath(path))
+export function TerminalApp({ windowId, payload }: AppProps) {
+  const { state, openApp, closeWindow, fsOps, networkOps, restart, crashSystem } = useOs()
+  const [cwd, setCwd] = useState(() => normalizePath(payload?.path ?? 'C:\\'))
   const [lines, setLines] = useState<string[]>(banner)
   const [input, setInput] = useState('')
+  const [history, setHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const timersRef = useRef<number[]>([])
 
-  const prompt = useMemo(() => `${currentPath}>`, [currentPath])
+  const dosOnly = state.phase === 'dosOnly'
+  const prompt = useMemo(() => `${cwd}>`, [cwd])
 
-  function print(output: string[]) {
-    setLines((current) => [...current, `${prompt}${input}`, ...output])
+  useEffect(() => {
+    const timers = timersRef.current
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer))
+    }
+  }, [])
+
+  function append(nextLines: string[]) {
+    setLines((current) => [...current, ...nextLines])
+  }
+
+  function applyEffects(effects: CommandEffect[] | undefined) {
+    effects?.forEach((effect) => {
+      switch (effect.type) {
+        case 'openApp':
+          openApp(effect.appId, effect.payload)
+          break
+        case 'setFs':
+          fsOps.replaceFs(effect.fs)
+          break
+        case 'crash':
+          crashSystem(crashFor(effect.criticalPath))
+          break
+        case 'restart':
+          restart(effect.target)
+          break
+        case 'networkPing':
+          networkOps.recordTraffic(effect.sent, effect.received)
+          break
+        case 'setNetwork':
+          networkOps.applyConfig(effect.network)
+          break
+        case 'exitWindow':
+          if (dosOnly) {
+            restart('bootMenu')
+          } else {
+            closeWindow(windowId)
+          }
+          break
+      }
+    })
   }
 
   function runCommand(command: string) {
-    const trimmed = command.trim()
-    const [rawCommand = '', ...args] = trimmed.split(/\s+/)
-    const verb = rawCommand.toLowerCase()
+    const shownPrompt = `${prompt}${command}`
+    const output = executeCommand(command, {
+      cwd,
+      fs: state.fs,
+      network: state.network,
+      bootMode: state.bootMode,
+      dosOnly,
+    })
 
-    if (!trimmed) {
-      print([''])
-      return
-    }
-
-    if (verb === 'cls') {
+    if (output.clear) {
       setLines([])
-      return
+    } else {
+      append([shownPrompt, ...output.lines])
     }
 
-    if (verb === 'help') {
-      print(['Supported commands:', 'DIR, CD, CLS, TYPE, VER, IPCONFIG, PING, START, HELP'])
-      return
+    if (output.newCwd) {
+      setCwd(output.newCwd)
     }
+    applyEffects(output.effects)
 
-    if (verb === 'ver') {
-      print(['Windows 98 Portfolio Edition [Version 4.10.1998]'])
-      return
+    let totalDelay = 0
+    output.stream?.forEach((chunk) => {
+      totalDelay += chunk.delayMs
+      const timer = window.setTimeout(() => {
+        append(chunk.lines)
+        applyEffects(chunk.effects)
+      }, totalDelay)
+      timersRef.current.push(timer)
+    })
+  }
+
+  function submit() {
+    runCommand(input)
+    if (input.trim()) {
+      setHistory((current) => [...current, input])
     }
-
-    if (verb === 'dir') {
-      const targetPath = args.length ? resolvePath(currentPath, args.join(' ')) : currentPath
-      const node = getNode(targetPath)
-      if (!node || node.kind !== 'folder' || isDeletedPath(targetPath, deletedPaths)) {
-        print(['File Not Found'])
-        return
-      }
-      const items = listDirectory(targetPath).filter((item) => !isDeletedPath(item.path, deletedPaths))
-      print([
-        ` Directory of ${targetPath}`,
-        '',
-        ...items.map((item) =>
-          `${item.kind === 'folder' ? '<DIR>' : '     '} ${item.modified.padEnd(20, ' ')} ${String(item.size ?? '').padStart(8, ' ')} ${item.name}`,
-        ),
-        '',
-        `${items.length} file(s)`,
-      ])
-      return
-    }
-
-    if (verb === 'cd') {
-      const targetPath = args.length ? resolvePath(currentPath, args.join(' ')) : 'C:\\'
-      const node = getNode(targetPath)
-      if (node?.kind === 'folder' && !isDeletedPath(targetPath, deletedPaths)) {
-        print([''])
-        setCurrentPath(targetPath)
-      } else {
-        print(['Invalid directory'])
-      }
-      return
-    }
-
-    if (verb === 'type') {
-      const targetPath = resolvePath(currentPath, args.join(' '))
-      const node = getNode(targetPath)
-      if (!node || node.kind === 'folder' || isDeletedPath(targetPath, deletedPaths)) {
-        print(['File Not Found'])
-      } else {
-        print(getFileContent(targetPath).split('\n'))
-      }
-      return
-    }
-
-    if (verb === 'ipconfig') {
-      print([
-        'Windows 98 IP Configuration',
-        '',
-        `Ethernet adapter ${network.adapterName}:`,
-        `   Connection status . . . . . . . : ${network.connected ? 'Connected' : 'Media disconnected'}`,
-        `   IP Address. . . . . . . . . . . : ${network.connected ? network.ipAddress : '0.0.0.0'}`,
-        `   Subnet Mask . . . . . . . . . . : ${network.subnetMask}`,
-        `   Default Gateway . . . . . . . . : ${network.gateway}`,
-      ])
-      return
-    }
-
-    if (verb === 'ping') {
-      const host = args[0] || 'portfolio.local'
-      if (!network.connected) {
-        print([`Pinging ${host} with 32 bytes of data:`, 'Request timed out.', 'Request timed out.'])
-        return
-      }
-      setNetwork((current) => ({
-        ...current,
-        packetsSent: current.packetsSent + 4,
-        packetsReceived: current.packetsReceived + 4,
-        lastPing: host,
-      }))
-      print([
-        `Pinging ${host} [192.168.98.80] with 32 bytes of data:`,
-        'Reply from 192.168.98.80: bytes=32 time<10ms TTL=128',
-        'Reply from 192.168.98.80: bytes=32 time<10ms TTL=128',
-        '',
-        'Ping statistics: Sent = 2, Received = 2, Lost = 0 (0% loss)',
-      ])
-      return
-    }
-
-    if (verb === 'start') {
-      const target = args.join(' ').toLowerCase()
-      const known: Record<string, AppId> = {
-        paint: 'paint',
-        mspaint: 'paint',
-        calc: 'calculator',
-        calculator: 'calculator',
-        notepad: 'notepad',
-        sndrec32: 'soundRecorder',
-        iexplore: 'internetExplorer',
-        control: 'controlPanel',
-        cmd: 'terminal',
-        command: 'terminal',
-        resume: 'resume',
-        network: 'network',
-        explorer: 'computer',
-        themes: 'themes',
-      }
-      if (known[target]) {
-        openApp(known[target], { path: currentPath })
-        print([''])
-        return
-      }
-      const targetPath = resolvePath(currentPath, args.join(' '))
-      const node = isDeletedPath(targetPath, deletedPaths) ? undefined : getNode(targetPath)
-      if (node?.appId) {
-        openApp(
-          node.appId,
-          node.fileType === 'Application' ? { path: getParentPath(node.path) } : { filePath: node.path, path: currentPath },
-        )
-        print([''])
-        return
-      }
-      print(['Bad command or file name'])
-      return
-    }
-
-    print(['Bad command or file name'])
+    setHistoryIndex(null)
+    setInput('')
   }
 
   return (
-    <div className="terminal-app" onClick={() => inputRef.current?.focus()}>
+    <div className={`terminal-app ${dosOnly ? 'dos-only-terminal' : ''}`} onClick={() => inputRef.current?.focus()}>
       <div className="terminal-output">
         {lines.map((line, index) => (
-          <div key={`${line}-${index}`}>{line || '\u00a0'}</div>
+          <div key={`${index}-${line}`}>{line || '\u00a0'}</div>
         ))}
         <form
           className="terminal-input-line"
           onSubmit={(event) => {
             event.preventDefault()
-            runCommand(input)
-            setInput('')
+            submit()
           }}
         >
           <span>{prompt}</span>
-          <input ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} autoFocus />
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowUp') {
+                event.preventDefault()
+                const nextIndex = historyIndex === null ? history.length - 1 : Math.max(0, historyIndex - 1)
+                if (nextIndex >= 0) {
+                  setHistoryIndex(nextIndex)
+                  setInput(history[nextIndex])
+                }
+              }
+              if (event.key === 'ArrowDown') {
+                event.preventDefault()
+                if (historyIndex === null) return
+                const nextIndex = historyIndex + 1
+                if (nextIndex >= history.length) {
+                  setHistoryIndex(null)
+                  setInput('')
+                } else {
+                  setHistoryIndex(nextIndex)
+                  setInput(history[nextIndex])
+                }
+              }
+              if (event.key === 'Tab') {
+                event.preventDefault()
+                const completed = autoCompletePath(input, {
+                  cwd,
+                  fs: state.fs,
+                  network: state.network,
+                  bootMode: state.bootMode,
+                  dosOnly,
+                })
+                if (completed) setInput(completed)
+              }
+            }}
+            autoFocus
+          />
         </form>
       </div>
     </div>
