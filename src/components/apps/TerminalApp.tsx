@@ -54,7 +54,7 @@ export function TerminalApp({ windowId, payload }: AppProps) {
           crashSystem(crashFor(effect.criticalPath))
           break
         case 'restart':
-          restart(effect.target)
+          restart(effect.target, { bootProfile: 'warm' })
           break
         case 'networkPing':
           networkOps.recordTraffic(effect.sent, effect.received)

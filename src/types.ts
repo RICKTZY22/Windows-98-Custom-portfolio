@@ -47,6 +47,7 @@ export type IconKey =
   | 'desktop'
   | 'textFile'
   | 'imageFile'
+  | 'gallery'
   | 'audioFile'
   | 'videoFile'
   | 'urlFile'
@@ -62,8 +63,11 @@ export type AppId =
   | 'notepad'
   | 'wordpad'
   | 'paint'
+  | 'imageViewer'
   | 'internetExplorer'
   | 'mediaPlayer'
+  | 'videoPlayer'
+  | 'gallery'
   | 'soundRecorder'
   | 'controlPanel'
   | 'network'
@@ -75,6 +79,7 @@ export type AppId =
   | 'projects'
   | 'projectDetails'
   | 'credits'
+  | 'help'
 
 export type WindowRect = { x: number; y: number; width: number; height: number }
 export type Point = { x: number; y: number }
@@ -179,7 +184,28 @@ export type NetworkState = {
 }
 
 // ---------- system / boot ----------
-export type OsPhase = 'boot' | 'bootMenu' | 'desktop' | 'dosOnly' | 'recovery' | 'crashed' | 'shutdown'
+export type BootDeviceId = 'hardDisk' | 'cdrom' | 'floppy' | 'network'
+export type BiosSettings = {
+  quickPost: boolean
+  floppyEnabled: boolean
+  cdromEnabled: boolean
+  networkBootEnabled: boolean
+  soundEnabled: boolean
+  virusWarning: boolean
+  haltOn: 'allErrors' | 'noErrors' | 'allButKeyboard'
+  bootOrder: BootDeviceId[]
+}
+
+export type OsPhase =
+  | 'boot'
+  | 'biosSetup'
+  | 'bootDeviceMenu'
+  | 'bootMenu'
+  | 'desktop'
+  | 'dosOnly'
+  | 'recovery'
+  | 'crashed'
+  | 'shutdown'
 export type BootMode = 'normal' | 'safe'
 export type BootProfile = 'cold' | 'warm'
 
@@ -250,6 +276,7 @@ export type OsState = {
   bootMode: BootMode
   bootProfile: BootProfile
   bootTarget: 'normal' | 'safe' | 'dos' | 'recovery' // what the next/current boot loads
+  bios: BiosSettings
   fs: FsState
   windows: WindowState[]
   activeWindowId?: string

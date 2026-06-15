@@ -18,6 +18,10 @@ export const biosLines: string[] = [
   'L2 Cache        : 512K Pipeline Burst',
   'Memory Test     :  65536K OK',
   'Extended Memory :  64512K OK',
+  'Keyboard Detected: 101/102-Key PS/2',
+  'CMOS Checksum    : OK',
+  'System BIOS Shadowed',
+  'Video BIOS Shadowed',
   '',
   'Award Plug and Play BIOS Extension v1.0A',
   'Detecting Primary Master   ... VIRTUAL_DISK_98 2.1GB',
@@ -28,8 +32,10 @@ export const biosLines: string[] = [
   'Detecting Display Adapter  ... S3 Trio64V+ PCI',
   'Detecting Sound Adapter    ... Sound Blaster 16',
   'Detecting Network Adapter  ... PCI Ethernet DEC 21140',
+  'Checking NVRAM             ... Update OK',
   '',
   'Verifying DMI Pool Data ........',
+  'Press DEL to enter SETUP, F8 for Startup Menu, F12 for Boot Menu',
 ]
 
 export const bootDeviceOptions = [
@@ -107,8 +113,13 @@ export const bootLinesNormal: string[] = [
   '',
   'HIMEM is testing extended memory... done.',
   'HIMEM.SYS: Extended memory driver installed',
+  'SET BLASTER=A220 I5 D1 H5 P330 T6',
+  'Loading C:\\WINDOWS\\COMMAND\\MSCDEX.EXE /D:OEMCD001',
   'Loading C:\\WINDOWS\\SYSTEM\\VMM32.VXD',
+  'Loading C:\\WINDOWS\\SYSTEM\\IOSUBSYS\\ESDI_506.PDR',
   'Loading network drivers: NDIS.VXD TCPIP.SYS',
+  'Checking registry: rb000.cab',
+  'Loading fonts and color schemes',
   'Initializing display driver: DISPLAY.DRV',
   'Starting Portfolio Explorer shell',
 ]
@@ -120,6 +131,7 @@ export const bootLinesSafe: string[] = [
   'HIMEM.SYS: Extended memory driver installed',
   'Loading minimal VxD set: VMM32.VXD',
   'Skipping AUTOEXEC.BAT and CONFIG.SYS processing',
+  'Bypassing startup group and network logon',
   'Loading standard VGA display driver (640x480, 16 colors)',
   'Network support is disabled in Safe Mode',
   'Starting Portfolio Explorer shell (Safe Mode)',

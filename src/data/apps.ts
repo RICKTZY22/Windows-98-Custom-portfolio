@@ -41,6 +41,13 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'paint',
     defaultRect: { x: 170, y: 80, width: 680, height: 500 },
   },
+  imageViewer: {
+    id: 'imageViewer',
+    title: 'Imaging Preview',
+    icon: 'imageFile',
+    defaultRect: { x: 230, y: 76, width: 620, height: 480 },
+    singleton: false,
+  },
   internetExplorer: {
     id: 'internetExplorer',
     title: 'Internet Explorer',
@@ -55,6 +62,20 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     defaultRect: { x: 320, y: 110, width: 470, height: 440 },
     singleton: false,
     safeModeAvailable: false,
+  },
+  videoPlayer: {
+    id: 'videoPlayer',
+    title: 'Video Player',
+    icon: 'videoFile',
+    defaultRect: { x: 240, y: 86, width: 640, height: 470 },
+    singleton: false,
+    safeModeAvailable: false,
+  },
+  gallery: {
+    id: 'gallery',
+    title: 'My Pictures',
+    icon: 'gallery',
+    defaultRect: { x: 250, y: 100, width: 560, height: 430 },
   },
   soundRecorder: {
     id: 'soundRecorder',
@@ -125,6 +146,12 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'help',
     defaultRect: { x: 280, y: 110, width: 470, height: 320 },
   },
+  help: {
+    id: 'help',
+    title: 'Help',
+    icon: 'help',
+    defaultRect: { x: 200, y: 76, width: 640, height: 470 },
+  },
 }
 
 export const desktopIconDefs: DesktopIconDef[] = [
@@ -137,11 +164,12 @@ export const desktopIconDefs: DesktopIconDef[] = [
     payload: { path: 'C:\\My Documents' },
   },
   { id: 'recycleBin', label: 'Recycle Bin', icon: 'recycleBin', appId: 'recycleBin' },
+  { id: 'gallery', label: 'My Pictures', icon: 'gallery', appId: 'gallery' },
   { id: 'networkNeighborhood', label: 'Network Neighborhood', icon: 'network', appId: 'network' },
   { id: 'internetExplorer', label: 'Internet Explorer', icon: 'internet', appId: 'internetExplorer' },
-  { id: 'msDosPrompt', label: 'MS-DOS Prompt', icon: 'terminal', appId: 'terminal' },
   { id: 'paint', label: 'Paint', icon: 'paint', appId: 'paint' },
   { id: 'mediaPlayer', label: 'Media Player', icon: 'mediaPlayer', appId: 'mediaPlayer' },
+  { id: 'videoPlayer', label: 'Video Player', icon: 'videoFile', appId: 'videoPlayer' },
 ]
 
 export type StartMenuModel = Array<
@@ -168,6 +196,9 @@ export const startMenuModel: StartMenuModel = [
           { kind: 'item', id: 'paint', label: 'Paint', icon: 'paint', appId: 'paint' },
           { kind: 'item', id: 'calculator', label: 'Calculator', icon: 'calculator', appId: 'calculator' },
           { kind: 'item', id: 'mediaPlayer', label: 'Media Player', icon: 'mediaPlayer', appId: 'mediaPlayer' },
+          { kind: 'item', id: 'imageViewer', label: 'Imaging Preview', icon: 'imageFile', appId: 'imageViewer' },
+          { kind: 'item', id: 'videoPlayer', label: 'Video Player', icon: 'videoFile', appId: 'videoPlayer' },
+          { kind: 'item', id: 'gallery', label: 'My Pictures', icon: 'gallery', appId: 'gallery' },
           {
             kind: 'item',
             id: 'soundRecorder',

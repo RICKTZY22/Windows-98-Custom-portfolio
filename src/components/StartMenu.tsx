@@ -67,7 +67,7 @@ export function StartMenu({ openApp, onRestart, onShutdown, network }: StartMenu
           </button>
         </li>
         <li>
-          <button className="start-row-button" type="button" onClick={() => openApp('credits')}>
+          <button className="start-row-button" type="button" onClick={() => openApp('help')}>
             <img src={win98Icons.help} alt="" />
             Help
           </button>

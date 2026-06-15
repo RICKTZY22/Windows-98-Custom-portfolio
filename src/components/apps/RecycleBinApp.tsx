@@ -1,4 +1,5 @@
 import { win98Icons } from '../../data/icons'
+import { parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 
 export function RecycleBinApp() {
@@ -43,12 +44,20 @@ export function RecycleBinApp() {
           </button>
         </div>
         <div className="sunken-panel recycle-list">
+          <div className="recycle-row recycle-header">
+            <span>Name</span>
+            <span>Original Location</span>
+            <span>Type</span>
+            <span>Date Deleted</span>
+            <span>Action</span>
+          </div>
           {entries.map((item) => (
             <div className="recycle-row" key={item.id}>
               <span className="file-name-cell">
                 <img src={win98Icons[item.icon]} alt="" />
                 {item.name}
               </span>
+              <span title={parentPath(item.rootPath)}>{parentPath(item.rootPath)}</span>
               <span>{item.fileType}</span>
               <span>{item.deletedAt}</span>
               <button type="button" onClick={() => restore(item.id)}>
@@ -59,7 +68,7 @@ export function RecycleBinApp() {
         </div>
         <div className="status-bar">
           <p className="status-bar-field">{entries.length} object(s)</p>
-          <p className="status-bar-field">Items are recoverable until the bin is emptied</p>
+          <p className="status-bar-field">Deleted files stay here until restored or permanently emptied</p>
         </div>
       </div>
     )

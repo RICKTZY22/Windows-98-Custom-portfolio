@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { BootDeviceId } from '../../types'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../../data/initialFilesystem'
 import { executeCommand } from '../commands'
 import {
@@ -13,8 +14,23 @@ import {
   writeFile,
 } from '../filesystem'
 import { defaultNetworkState, pingReport, releasedNetworkState } from '../network'
-import { isSystemHealthy, restoreSystemFiles } from '../recovery'
+import { isSystemHealthy, shouldSafeModeBlueScreen, restoreSystemFiles } from '../recovery'
 import { scheduleSound, soundCatalog } from '../audio'
+import {
+  bootSequenceLabel,
+  defaultBiosSettings,
+  enabledBootDevices,
+  moveBootDevice,
+} from '../../data/bios'
+import {
+  EMPTY_WORDPAD_PAGE_HTML,
+  WORDPAD_PAGE_BREAK_TOKEN,
+  applyWordPadInlineStyle,
+  cleanWordPadHtml,
+  WORDPAD_FORMAT_MARKER,
+  wordPadContentToPages,
+  wordPadPagesToDocumentHtml,
+} from '../wordpadFormatting'
 
 // A minimal fake of the Web Audio scheduling surface that records every absolute
 // time the synth schedules an event at. Lets us assert nothing is scheduled in
@@ -81,15 +97,47 @@ describe('virtual filesystem', () => {
     expect(isSystemHealthy(restored.fs)).toBe(true)
   })
 
-  it('associates common file types with apps', () => {
+  it('lets one missing boot file attempt Safe Mode but blue-screens after severe damage', () => {
     const fs = createInitialFsState()
+    const oneMissing = deleteNode(fs, 'C:\\Windows\\System32\\kernel32.dll')
+    expect(shouldSafeModeBlueScreen(oneMissing.fs)).toBe(false)
+
+    const twoMissing = deleteNode(oneMissing.fs, 'C:\\Windows\\System32\\user32.dll')
+    expect(shouldSafeModeBlueScreen(twoMissing.fs)).toBe(true)
+  })
+
+  it('associates common file types with apps', () => {
+    let fs = createInitialFsState()
     expect(openTargetFor(getNode(fs, 'C:\\My Documents\\About Me.txt')!)?.appId).toBe('about')
     expect(openTargetFor(getNode(fs, 'C:\\My Documents\\Resume.doc')!)?.appId).toBe('wordpad')
-    expect(openTargetFor(getNode(fs, 'C:\\My Pictures\\Welcome.bmp')!)?.appId).toBe('paint')
+    fs = writeFile(fs, 'C:\\My Pictures\\Photo.bmp', { dataUrl: 'data:image/bmp;base64,Qk0=' }).fs
+    const bitmap = getNode(fs, 'C:\\My Pictures\\Photo.bmp')!
+    expect(bitmap.icon).toBe('paint')
+    expect(openTargetFor(bitmap)?.appId).toBe('imageViewer')
+    fs = writeFile(fs, 'C:\\My Videos\\Demo.mp4', { dataUrl: '/media/user/demo.mp4' }).fs
+    expect(openTargetFor(getNode(fs, 'C:\\My Videos\\Demo.mp4')!)?.appId).toBe('videoPlayer')
     expect(openTargetFor(getNode(fs, 'C:\\Windows\\Media\\Startup.wav')!)?.appId).toBe('mediaPlayer')
   })
 
-  it('opens a newly saved Paint PNG through the Paint association', () => {
+  it('purges legacy seed artifacts and restores My Videos when topping up a migrated disk', () => {
+    let fs = createInitialFsState()
+    // Simulate an older disk: a demo image that used to ship in My Pictures, plus
+    // a user file that must be preserved, and a disk missing the My Videos folder.
+    fs = createFile(fs, 'C:\\My Pictures', 'Welcome.bmp', { content: 'old demo' }).fs
+    fs = createFile(fs, 'C:\\My Pictures', 'MyPhoto.png', { content: 'mine' }).fs
+    fs = createFile(fs, 'C:\\My Pictures', 'media.bmp', { content: 'saved bitmap', icon: 'imageFile' }).fs
+    const withoutVideos = { ...fs.nodes }
+    delete withoutVideos['C:\\My Videos']
+    fs = { ...fs, nodes: withoutVideos }
+
+    const cleaned = ensurePortfolioSeedFiles(fs)
+    expect(getNode(cleaned, 'C:\\My Pictures\\Welcome.bmp')).toBeUndefined() // legacy artifact removed
+    expect(getNode(cleaned, 'C:\\My Pictures\\MyPhoto.png')).toBeDefined() // user file kept
+    expect(getNode(cleaned, 'C:\\My Pictures\\media.bmp')?.icon).toBe('paint')
+    expect(getNode(cleaned, 'C:\\My Videos')?.kind).toBe('folder') // folder restored
+  })
+
+  it('opens a newly saved Paint PNG through the image viewer association', () => {
     const written = writeFile(createInitialFsState(), 'C:\\My Pictures\\Sketch.png', {
       dataUrl: 'data:image/png;base64,iVBORw0KGgo=',
     })
@@ -97,7 +145,7 @@ describe('virtual filesystem', () => {
     const node = getNode(written.fs, 'C:\\My Pictures\\Sketch.png')
     expect(node?.fileType).toBe('PNG Image')
     expect(node?.icon).toBe('imageFile')
-    expect(openTargetFor(node!)?.appId).toBe('paint')
+    expect(openTargetFor(node!)?.appId).toBe('imageViewer')
   })
 
   it('seeds portfolio resume documents into an existing persisted disk', () => {
@@ -116,6 +164,13 @@ describe('virtual filesystem', () => {
     const seeded = ensurePortfolioSeedFiles(fs)
     expect(getNode(seeded, 'C:\\My Documents\\Resume.doc')?.appId).toBe('wordpad')
     expect(getNode(seeded, 'C:\\Projects')).toBeDefined()
+    expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web\\src\\App.tsx')).toBeDefined()
+    expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web\\public\\cover-art.png')?.appId).toBe(
+      'imageViewer',
+    )
+    expect(getNode(seeded, 'C:\\My Pictures')?.kind).toBe('folder')
+    expect(getNode(seeded, 'C:\\Program Files\\Accessories\\KODAKIMG.EXE')?.appId).toBe('imageViewer')
+    expect(getNode(seeded, 'C:\\Program Files\\Accessories\\VIDPLAY.EXE')?.appId).toBe('videoPlayer')
     expect(getNode(seeded, 'C:\\My Pictures\\KeepMe.png')).toBeDefined()
   })
 
@@ -131,6 +186,28 @@ describe('virtual filesystem', () => {
   })
 })
 
+describe('BIOS settings helpers', () => {
+  it('filters disabled boot devices and formats the boot sequence', () => {
+    const settings = {
+      ...defaultBiosSettings,
+      cdromEnabled: false,
+      bootOrder: ['cdrom', 'floppy', 'hardDisk', 'network'] as BootDeviceId[],
+    }
+
+    expect(enabledBootDevices(settings)).toEqual(['floppy', 'hardDisk'])
+    expect(bootSequenceLabel(settings)).toBe('CDROM, A, C, LAN')
+  })
+
+  it('moves boot devices without dropping the remaining sequence', () => {
+    expect(moveBootDevice(defaultBiosSettings.bootOrder, 'floppy', -1)).toEqual([
+      'hardDisk',
+      'floppy',
+      'cdrom',
+      'network',
+    ])
+  })
+})
+
 describe('command processor', () => {
   it('runs dir, cd, type, and scanreg against the shared filesystem model', () => {
     const fs = createInitialFsState()
@@ -142,6 +219,15 @@ describe('command processor', () => {
     const deleted = deleteNode(fs, 'C:\\Windows\\System32\\kernel32.dll')
     const restored = executeCommand('scanreg /restore', { ...ctx, fs: deleted.fs })
     expect(restored.stream?.at(-1)?.effects?.[0]?.type).toBe('setFs')
+  })
+
+  it('reports classic disk utilities without mutating the virtual disk', () => {
+    const fs = createInitialFsState()
+    const ctx = { cwd: 'C:\\Windows\\System32', fs, network: defaultNetworkState, bootMode: 'normal' as const, dosOnly: false }
+    expect(executeCommand('attrib kernel32.dll', ctx).lines.join('\n')).toContain('kernel32.dll')
+    expect(executeCommand('chkdsk', ctx).lines.join('\n')).toContain('FAT16')
+    expect(executeCommand('format c:', ctx).lines.join('\n')).toContain('disabled')
+    expect(executeCommand('winver', ctx).lines.join('\n')).toContain('Portfolio Shell')
   })
 })
 
@@ -178,5 +264,58 @@ describe('audio synth scheduling', () => {
     const { ctx, times } = makeFakeAudioContext(50)
     scheduleSound(ctx as unknown as BaseAudioContext, ctx.destination as unknown as AudioNode, 'click', 0.8)
     expect(Math.min(...times)).toBeLessThan(50 + 0.1)
+  })
+})
+
+describe('wordpad formatting helpers', () => {
+  it('serializes and reloads multi-page WordPad documents', () => {
+    const pages = ['<div>Page one</div>', '<div>Page two</div>']
+    const saved = wordPadPagesToDocumentHtml(pages)
+
+    expect(saved).toContain(WORDPAD_PAGE_BREAK_TOKEN)
+    expect(wordPadContentToPages(saved)).toEqual(pages)
+    expect(wordPadContentToPages(undefined)).toEqual([EMPTY_WORDPAD_PAGE_HTML])
+    expect(wordPadContentToPages('Plain\nText')).toEqual(['Plain<br>Text'])
+  })
+
+  it('wraps selected text with real inline font, size, and color styles', async () => {
+    const { JSDOM } = await import('jsdom')
+    const dom = new JSDOM('<div id="editor">Hello world</div>')
+    const document = dom.window.document
+    const editor = document.getElementById('editor') as HTMLElement
+    const range = document.createRange()
+    range.setStart(editor.firstChild as Text, 0)
+    range.setEnd(editor.firstChild as Text, 5)
+
+    const nextRange = applyWordPadInlineStyle(editor, range, {
+      color: '#ff0000',
+      fontFamily: 'Georgia',
+      fontSize: '18pt',
+    })
+    const span = editor.querySelector('span') as HTMLSpanElement
+
+    expect(nextRange).not.toBeNull()
+    expect(span.textContent).toBe('Hello')
+    expect(span.style.color).toBe('rgb(255, 0, 0)')
+    expect(span.style.fontFamily).toBe('Georgia')
+    expect(span.style.fontSize).toBe('18pt')
+  })
+
+  it('creates a styled caret marker for future typing and strips it from saved html', async () => {
+    const { JSDOM } = await import('jsdom')
+    const dom = new JSDOM('<div id="editor">Hello</div>')
+    const document = dom.window.document
+    const editor = document.getElementById('editor') as HTMLElement
+    const range = document.createRange()
+    range.setStart(editor.firstChild as Text, 5)
+    range.collapse(true)
+
+    const nextRange = applyWordPadInlineStyle(editor, range, { fontFamily: 'Courier New' })
+    const span = editor.querySelector('span') as HTMLSpanElement
+
+    expect(nextRange).not.toBeNull()
+    expect(span.textContent).toBe(WORDPAD_FORMAT_MARKER)
+    expect(span.style.fontFamily.replaceAll('"', '')).toBe('Courier New')
+    expect(cleanWordPadHtml(editor.innerHTML)).not.toContain(WORDPAD_FORMAT_MARKER)
   })
 })

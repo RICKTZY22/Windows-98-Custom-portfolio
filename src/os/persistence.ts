@@ -1,7 +1,8 @@
-﻿import type { AudioState, CursorSchemeId, FsState, NetworkState, OsState, Point } from '../types'
+import type { AudioState, BiosSettings, CursorSchemeId, FsState, NetworkState, OsState, Point } from '../types'
+import { defaultBiosSettings, normalizeBootOrder } from '../data/bios'
 
 export type PersistedState = {
-  version: 3
+  version: 4
   fs: FsState
   themeId: string
   wallpaperId: string
@@ -9,17 +10,44 @@ export type PersistedState = {
   audio: AudioState
   network: NetworkState
   desktopIcons: Record<string, Point>
+  bios: BiosSettings
 }
 
-const STORAGE_KEY = 'win98-portfolio.v3'
+const STORAGE_KEY = 'win98-portfolio.v4'
+const LEGACY_STORAGE_KEY = 'win98-portfolio.v3'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function isValidPersistedState(value: unknown): value is PersistedState {
+function coerceBiosSettings(value: unknown): BiosSettings {
+  if (!isRecord(value)) return defaultBiosSettings
+  const haltOn =
+    value.haltOn === 'allErrors' || value.haltOn === 'noErrors' || value.haltOn === 'allButKeyboard'
+      ? value.haltOn
+      : defaultBiosSettings.haltOn
+
+  return {
+    quickPost: typeof value.quickPost === 'boolean' ? value.quickPost : defaultBiosSettings.quickPost,
+    floppyEnabled: typeof value.floppyEnabled === 'boolean' ? value.floppyEnabled : defaultBiosSettings.floppyEnabled,
+    cdromEnabled: typeof value.cdromEnabled === 'boolean' ? value.cdromEnabled : defaultBiosSettings.cdromEnabled,
+    networkBootEnabled:
+      typeof value.networkBootEnabled === 'boolean'
+        ? value.networkBootEnabled
+        : defaultBiosSettings.networkBootEnabled,
+    soundEnabled: typeof value.soundEnabled === 'boolean' ? value.soundEnabled : defaultBiosSettings.soundEnabled,
+    virusWarning: typeof value.virusWarning === 'boolean' ? value.virusWarning : defaultBiosSettings.virusWarning,
+    haltOn,
+    bootOrder: normalizeBootOrder(Array.isArray(value.bootOrder) ? value.bootOrder : defaultBiosSettings.bootOrder),
+  }
+}
+
+function isValidPersistedShape(value: unknown): value is Omit<PersistedState, 'version' | 'bios'> & {
+  version: 3 | 4
+  bios?: BiosSettings
+} {
   if (!isRecord(value)) return false
-  if (value.version !== 3) return false
+  if (value.version !== 3 && value.version !== 4) return false
   if (!isRecord(value.fs)) return false
   const fs = value.fs
   if (!isRecord(fs.nodes) || !Array.isArray(fs.recycle)) return false
@@ -39,15 +67,19 @@ export function loadPersistedState(): PersistedState | null {
     if (typeof localStorage === 'undefined') {
       return null
     }
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!raw) {
       return null
     }
     const parsed: unknown = JSON.parse(raw)
-    if (!isValidPersistedState(parsed)) {
+    if (!isValidPersistedShape(parsed)) {
       return null
     }
-    return parsed
+    return {
+      ...parsed,
+      version: 4,
+      bios: coerceBiosSettings(parsed.bios),
+    }
   } catch {
     return null
   }
@@ -59,10 +91,10 @@ export function persistState(state: OsState): void {
       return
     }
     const snapshot: PersistedState = {
-      version: 3,
+      version: 4,
       fs: {
         nodes: state.fs.nodes,
-        // onResult callbacks etc. never live in fs, so it serializes cleanly â€”
+        // onResult callbacks etc. never live in fs, so it serializes cleanly -
         // but strip functions defensively by relying on JSON semantics.
         recycle: state.fs.recycle,
       },
@@ -72,6 +104,7 @@ export function persistState(state: OsState): void {
       audio: state.audio,
       network: state.network,
       desktopIcons: state.desktopIcons,
+      bios: state.bios,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch {
@@ -85,6 +118,7 @@ export function clearPersistedState(): void {
       return
     }
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     // ignore
   }

@@ -18,6 +18,10 @@ dist-ssr
 build
 *.local
 
+# Local user media
+public/media/user/*
+!public/media/user/.gitkeep
+
 # Test / coverage
 coverage
 *.lcov

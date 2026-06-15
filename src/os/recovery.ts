@@ -26,6 +26,14 @@ export function isSystemHealthy(fs: FsState): boolean {
   return REQUIRED_SYSTEM_FILES.every((path) => Boolean(fs.nodes[normalizePath(path)]))
 }
 
+export function missingRequiredSystemFiles(fs: FsState): string[] {
+  return REQUIRED_SYSTEM_FILES.filter((path) => !fs.nodes[normalizePath(path)])
+}
+
+export function shouldSafeModeBlueScreen(fs: FsState): boolean {
+  return missingRequiredSystemFiles(fs).length >= 2
+}
+
 /**
  * Re-inserts every missing initial C:\Windows node and drops recycle entries
  * that pointed at the now-restored system files.

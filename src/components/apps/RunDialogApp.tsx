@@ -10,6 +10,8 @@ const commands: Record<string, { appId: AppId; path?: string; url?: string; file
   control: { appId: 'controlPanel' },
   mspaint: { appId: 'paint' },
   paint: { appId: 'paint' },
+  kodakimg: { appId: 'imageViewer' },
+  imaging: { appId: 'imageViewer' },
   calc: { appId: 'calculator' },
   calculator: { appId: 'calculator' },
   notepad: { appId: 'notepad' },
@@ -23,6 +25,8 @@ const commands: Record<string, { appId: AppId; path?: string; url?: string; file
   taskmgr: { appId: 'taskManager' },
   wmplayer: { appId: 'mediaPlayer' },
   mplayer: { appId: 'mediaPlayer' },
+  vidplay: { appId: 'videoPlayer' },
+  videoplayer: { appId: 'videoPlayer' },
 }
 
 export function RunDialogApp() {

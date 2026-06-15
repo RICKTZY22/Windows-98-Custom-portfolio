@@ -15,8 +15,9 @@ import {
   renameNode,
   resolvePath,
 } from './filesystem'
+import { osProductName } from '../data/system'
 import { pingReport, randomDhcpLease, releasedNetworkState, resolveHostIp } from './network'
-import { restoreSystemFiles, scanregLines, sfcLines } from './recovery'
+import { missingSystemFiles, restoreSystemFiles, scanregLines, sfcLines } from './recovery'
 
 export type CommandEffect =
   | { type: 'openApp'; appId: AppId; payload?: WindowPayload }
@@ -208,8 +209,8 @@ function treeCommand(args: string[], ctx: CommandContext): CommandOutput {
     }
     folders.forEach((folder, index) => {
       const last = index === folders.length - 1
-      lines.push(`${prefix}${last ? '└───' : '├───'}${folder.name}`)
-      walk(folder.path, `${prefix}${last ? '    ' : '│   '}`)
+      lines.push(`${prefix}+---${folder.name}`)
+      walk(folder.path, `${prefix}${last ? '    ' : '|   '}`)
     })
   }
 
@@ -219,7 +220,9 @@ function treeCommand(args: string[], ctx: CommandContext): CommandOutput {
 
 function helpCommand(): CommandOutput {
   const rows: Array<[string, string]> = [
+    ['ATTRIB', 'Displays file attributes.'],
     ['CD', 'Displays the name of or changes the current directory.'],
+    ['CHKDSK', 'Checks a disk and displays a status report.'],
     ['CLS', 'Clears the screen.'],
     ['COPY', 'Copies one or more files to another location.'],
     ['DATE', 'Displays the date.'],
@@ -236,12 +239,14 @@ function helpCommand(): CommandOutput {
     ['RD', 'Removes (deletes) a directory.'],
     ['REN', 'Renames a file or files.'],
     ['SCANREG', 'Scans and restores the system registry (/restore).'],
+    ['SCANDISK', 'Checks the virtual hard disk for errors.'],
     ['SFC', 'Scans protected system files (/scannow).'],
     ['START', 'Starts a program, document, or folder window.'],
     ['TIME', 'Displays the time.'],
     ['TREE', 'Graphically displays the folder structure of a drive or path.'],
     ['TYPE', 'Displays the contents of a text file.'],
     ['VER', 'Displays the Windows version.'],
+    ['WINVER', 'Displays Windows version information.'],
     ['WIN', 'Starts Windows from the MS-DOS prompt.'],
     ['SHUTDOWN', 'Shuts down and restarts the computer.'],
   ]
@@ -271,6 +276,107 @@ function memCommand(): CommandOutput {
       'Largest executable program size       602K (616,448 bytes)',
       'Largest free upper memory block         0K       (0 bytes)',
       'MS-DOS is resident in the high memory area.',
+    ],
+  }
+}
+
+function attributeFlags(nodePath: string, ctx: CommandContext): string {
+  const node = getNode(ctx.fs, nodePath)
+  if (!node) return '    '
+  return [
+    node.attributes?.readOnly ? 'R' : ' ',
+    node.attributes?.hidden ? 'H' : ' ',
+    node.attributes?.system ? 'S' : ' ',
+    node.kind === 'folder' ? ' ' : 'A',
+  ].join('')
+}
+
+function attribCommand(args: string[], ctx: CommandContext): CommandOutput {
+  const pathArg = args.find((arg) => !arg.startsWith('+') && !arg.startsWith('-'))
+  const target = resolvePath(ctx.cwd, pathArg ?? '.')
+  const node = getNode(ctx.fs, target)
+  if (!node) {
+    return { lines: ['File not found'] }
+  }
+  const targets = node.kind === 'folder' ? listDirectory(ctx.fs, node.path) : [node]
+  return {
+    lines: targets.map((entry) => `${attributeFlags(entry.path, ctx)}     ${entry.path}`),
+  }
+}
+
+function diskStats(ctx: CommandContext): { files: number; folders: number; bytes: number } {
+  return Object.values(ctx.fs.nodes).reduce(
+    (total, node) => ({
+      files: total.files + (node.kind === 'file' ? 1 : 0),
+      folders: total.folders + (node.kind === 'folder' ? 1 : 0),
+      bytes: total.bytes + (node.kind === 'file' ? node.size : 0),
+    }),
+    { files: 0, folders: 0, bytes: 0 },
+  )
+}
+
+function chkdskCommand(ctx: CommandContext): CommandOutput {
+  const stats = diskStats(ctx)
+  return {
+    lines: [
+      'The type of the file system is FAT16.',
+      `Volume ${VOLUME_LABEL} created 06-13-2026`,
+      `Volume Serial Number is ${VOLUME_SERIAL}`,
+      '',
+      'Windows is verifying files and folders...',
+      `${stats.files.toLocaleString()} file(s) checked.`,
+      `${stats.folders.toLocaleString()} folder(s) checked.`,
+      '',
+      `${num(stats.bytes).padStart(12)} bytes in user files`,
+      `${num(FREE_BYTES).padStart(12)} bytes available on disk`,
+      '',
+      'No lost allocation units found.',
+    ],
+  }
+}
+
+function scandiskCommand(ctx: CommandContext): CommandOutput {
+  const missing = missingSystemFiles(ctx.fs)
+  return {
+    lines: ['ScanDisk is now checking drive C:', ''],
+    stream: [
+      { delayMs: 500, lines: ['Checking file allocation tables... OK'] },
+      { delayMs: 650, lines: ['Checking folders... OK'] },
+      { delayMs: 700, lines: ['Checking free space... OK'] },
+      {
+        delayMs: 700,
+        lines: missing.length
+          ? ['ScanDisk found Windows system file problems.', ...missing.map((path) => `  Missing: ${path}`)]
+          : ['ScanDisk did not find any problems on drive C:.'],
+      },
+    ],
+  }
+}
+
+function formatCommand(args: string[]): CommandOutput {
+  const drive = (args[0] ?? '').toUpperCase()
+  if (!drive) {
+    return { lines: ['Required parameter missing', 'Usage: FORMAT drive:'] }
+  }
+  return {
+    lines: [
+      `WARNING, ALL DATA ON NON-REMOVABLE DISK DRIVE ${drive}`,
+      'WILL BE LOST!',
+      '',
+      'Format is disabled in this portfolio simulation.',
+      'Use Explorer or the Recycle Bin to manage virtual files safely.',
+    ],
+  }
+}
+
+function winverCommand(): CommandOutput {
+  return {
+    lines: [
+      '',
+      osProductName,
+      'Version 4.10.1998 Portfolio Shell',
+      'Copyright (C) John Erick Mendoza 2026',
+      '',
     ],
   }
 }
@@ -399,6 +505,9 @@ const START_TARGETS: Record<string, AppId> = {
   mspaint: 'paint',
   'mspaint.exe': 'paint',
   paint: 'paint',
+  kodakimg: 'imageViewer',
+  'kodakimg.exe': 'imageViewer',
+  imaging: 'imageViewer',
   iexplore: 'internetExplorer',
   'iexplore.exe': 'internetExplorer',
   calc: 'calculator',
@@ -407,6 +516,9 @@ const START_TARGETS: Record<string, AppId> = {
   'explorer.exe': 'explorer',
   mediaplayer: 'mediaPlayer',
   'mplayer.exe': 'mediaPlayer',
+  vidplay: 'videoPlayer',
+  'vidplay.exe': 'videoPlayer',
+  videoplayer: 'videoPlayer',
   sndrec32: 'soundRecorder',
   'sndrec32.exe': 'soundRecorder',
 }
@@ -631,12 +743,18 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
   const args = tokens.slice(1)
 
   switch (command) {
+    case 'attrib':
+      return attribCommand(args, ctx)
     case 'cls':
       return { lines: [], clear: true }
+    case 'chkdsk':
+      return chkdskCommand(ctx)
     case 'help':
       return helpCommand()
     case 'ver':
       return { lines: ['', 'Windows 98 [Version 4.10.1998]', ''] }
+    case 'winver':
+      return winverCommand()
     case 'date': {
       const now = new Date()
       const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()]
@@ -681,6 +799,10 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
       return typeCommand(args[0], ctx)
     case 'tree':
       return treeCommand(args, ctx)
+    case 'scandisk':
+      return scandiskCommand(ctx)
+    case 'format':
+      return formatCommand(args)
     case 'echo':
       return { lines: [args.length ? args.join(' ') : 'ECHO is on.'] }
     case 'start':
@@ -689,6 +811,10 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
       return appCommand('notepad', args[0], ctx)
     case 'mspaint':
       return appCommand('paint', args[0], ctx)
+    case 'kodakimg':
+      return appCommand('imageViewer', args[0], ctx)
+    case 'vidplay':
+      return appCommand('videoPlayer', args[0], ctx)
     case 'iexplore': {
       const blocked = dosModeBlocked(ctx)
       if (blocked) return blocked

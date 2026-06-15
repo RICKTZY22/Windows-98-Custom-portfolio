@@ -7,9 +7,17 @@ type DesktopContextMenuProps = {
   openApp: (appId: AppId, payload?: WindowPayload) => void
   onRefresh: () => void
   onArrangeIcons: () => void
+  onLineUpIcons: () => void
 }
 
-export function DesktopContextMenu({ x, y, openApp, onRefresh, onArrangeIcons }: DesktopContextMenuProps) {
+export function DesktopContextMenu({
+  x,
+  y,
+  openApp,
+  onRefresh,
+  onArrangeIcons,
+  onLineUpIcons,
+}: DesktopContextMenuProps) {
   return (
     <nav
       className="desktop-context-menu"
@@ -24,10 +32,11 @@ export function DesktopContextMenu({ x, y, openApp, onRefresh, onArrangeIcons }:
           <ul className="context-submenu">
             <li><button type="button">Large Icons</button></li>
             <li><button type="button" onClick={onArrangeIcons}>Auto Arrange</button></li>
-            <li><button type="button" onClick={onArrangeIcons}>Align to Grid</button></li>
+            <li><button type="button" onClick={onLineUpIcons}>Align to Grid</button></li>
           </ul>
         </li>
         <li><button type="button" onClick={onArrangeIcons}>Arrange Icons</button></li>
+        <li><button type="button" onClick={onLineUpIcons}>Line Up Icons</button></li>
         <li><button type="button" onClick={onRefresh}>Refresh</button></li>
         <li className="context-separator" aria-hidden="true"></li>
         <li>

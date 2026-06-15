@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type {
   AppId,
   AudioState,
+  BiosSettings,
   BootProfile,
   ClipboardState,
   CrashState,
@@ -19,6 +20,7 @@ import type {
   WindowState,
 } from '../types'
 import { appDefinitions, desktopIconDefs } from '../data/apps'
+import { defaultBiosSettings } from '../data/bios'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../data/initialFilesystem'
 import { portfolioData } from '../data/portfolioData'
 import { controlPanelSections } from '../data/system'
@@ -40,7 +42,7 @@ import {
   writeFile as fsWriteFile,
 } from './filesystem'
 import { defaultNetworkState, randomDhcpLease, releasedNetworkState } from './network'
-import { isSystemHealthy } from './recovery'
+import { isSystemHealthy, missingRequiredSystemFiles, shouldSafeModeBlueScreen } from './recovery'
 import { applyCursorScheme, applyTheme, applyWallpaper } from './themes'
 import { isAudioUnlocked, playSound as synthPlaySound, preloadSoundFiles, unlockAudio } from './audio'
 import { clearPersistedState, loadPersistedState, persistState } from './persistence'
@@ -134,6 +136,12 @@ function instanceIdFor(appId: AppId, payload?: WindowPayload): string {
   if (appId === 'wordpad' && payload?.filePath) {
     return `wordpad:${normalizePath(payload.filePath).toLowerCase()}`
   }
+  if (appId === 'imageViewer' && payload?.filePath) {
+    return `imageViewer:${normalizePath(payload.filePath).toLowerCase()}`
+  }
+  if (appId === 'videoPlayer' && payload?.filePath) {
+    return `videoPlayer:${normalizePath(payload.filePath).toLowerCase()}`
+  }
   if (singleton) {
     return appId
   }
@@ -156,8 +164,12 @@ function titleFor(appId: AppId, fs: FsState, payload?: WindowPayload): string {
       return payload?.filePath ? `${baseName(payload.filePath)} - WordPad` : 'Document - WordPad'
     case 'paint':
       return payload?.filePath ? `${baseName(payload.filePath)} - Paint` : 'untitled - Paint'
+    case 'imageViewer':
+      return payload?.filePath ? `${baseName(payload.filePath)} - Imaging Preview` : def.title
     case 'mediaPlayer':
       return payload?.filePath ? `${baseName(payload.filePath)} - Media Player` : def.title
+    case 'videoPlayer':
+      return payload?.filePath ? `${baseName(payload.filePath)} - Video Player` : def.title
     case 'projectDetails':
       return portfolioData.projects.find((project) => project.id === payload?.projectId)?.name ?? def.title
     case 'controlPanel': {
@@ -188,6 +200,17 @@ function protectionCrash(path: string): CrashState {
   }
 }
 
+function safeModeCrash(missing: string[]): CrashState {
+  const drivers = missing.slice(0, 3).map((path) => baseName(path).toUpperCase()).join(', ')
+  return {
+    title: 'Windows protection error',
+    message: 'Windows cannot start in Safe Mode because multiple protected system files are missing.',
+    detail: `Safe Mode requires the core VxD, shell, and display stack. Missing files: ${drivers || 'unknown system files'}. Use Command Prompt Only or Recovery to run SCANREG /RESTORE or SFC /SCANNOW.`,
+    stopCode: '0E : 0028 : C0005338',
+    crashedAt: nowStamp(),
+  }
+}
+
 function createDefaultState(): OsState {
   const persisted = loadPersistedState()
   const themeId = persisted?.themeId ?? defaultThemeId
@@ -197,6 +220,7 @@ function createDefaultState(): OsState {
     bootMode: 'normal',
     bootProfile: 'cold',
     bootTarget: 'normal',
+    bios: persisted?.bios ?? defaultBiosSettings,
     fs,
     windows: [],
     activeWindowId: undefined,
@@ -205,7 +229,7 @@ function createDefaultState(): OsState {
     themeId,
     wallpaperId: persisted?.wallpaperId ?? getTheme(themeId).wallpaperId ?? defaultWallpaperId,
     cursorScheme: persisted?.cursorScheme ?? 'win98',
-    audio: { enabled: false, muted: false, volume: persisted?.audio.volume ?? 0.7 },
+    audio: { enabled: true, muted: false, volume: persisted?.audio.volume ?? 0.7 },
     crash: null,
     desktopIcons:
       persisted?.desktopIcons && Object.keys(persisted.desktopIcons).length
@@ -244,6 +268,9 @@ type Action =
   | { type: 'SET_WALLPAPER'; wallpaperId: string }
   | { type: 'SET_CURSOR_SCHEME'; scheme: CursorSchemeId }
   | { type: 'SET_AUDIO'; audio: AudioState }
+  | { type: 'ENTER_BIOS_SETUP' }
+  | { type: 'ENTER_BOOT_DEVICE_MENU' }
+  | { type: 'SET_BIOS'; bios: BiosSettings }
   | { type: 'CRASH'; crash: CrashState }
   | {
       type: 'RESTART'
@@ -378,6 +405,26 @@ function reducer(state: OsState, action: Action): OsState {
       return { ...state, cursorScheme: action.scheme }
     case 'SET_AUDIO':
       return { ...state, audio: action.audio }
+    case 'ENTER_BIOS_SETUP':
+      return {
+        ...state,
+        phase: 'biosSetup',
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
+    case 'ENTER_BOOT_DEVICE_MENU':
+      return {
+        ...state,
+        phase: 'bootDeviceMenu',
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
+    case 'SET_BIOS':
+      return { ...state, bios: action.bios }
     case 'CRASH':
       return {
         ...state,
@@ -421,6 +468,14 @@ function reducer(state: OsState, action: Action): OsState {
           }
           return { ...state, phase: 'desktop', bootMode: 'normal' }
         case 'safe':
+          if (shouldSafeModeBlueScreen(state.fs)) {
+            return {
+              ...state,
+              phase: 'crashed',
+              bootMode: 'safe',
+              crash: safeModeCrash(missingRequiredSystemFiles(state.fs)),
+            }
+          }
           return {
             ...state,
             phase: 'desktop',
@@ -480,12 +535,15 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     synthPlaySound('startup', current.audio.volume)
   }, [])
 
-  // Browsers block all audio until the first user gesture. Unlock as soon as
-  // the user touches anything, then play the startup chime if boot already
-  // reached the desktop while Chrome was still blocking audio.
+  // Browsers block audio until a user gesture, and the AudioContext can later be
+  // auto-suspended (tab backgrounded) or its module state reset by dev HMR. So
+  // keep a PERSISTENT listener that re-ensures audio is ready on every gesture —
+  // every call here is idempotent (unlockAudio resumes a suspended context;
+  // playStartupSound is guarded by a ref). This is what makes sound self-heal
+  // instead of silently dying until a full reload.
   useEffect(() => {
     preloadSoundFiles()
-    function unlockOnce() {
+    function ensureAudioReady() {
       unlockAudio()
       const current = stateRef.current
       if (!current.audio.enabled) {
@@ -494,14 +552,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         dispatch({ type: 'SET_AUDIO', audio })
       }
       playStartupSound()
-      window.removeEventListener('pointerdown', unlockOnce)
-      window.removeEventListener('keydown', unlockOnce)
     }
-    window.addEventListener('pointerdown', unlockOnce)
-    window.addEventListener('keydown', unlockOnce)
+    window.addEventListener('pointerdown', ensureAudioReady)
+    window.addEventListener('keydown', ensureAudioReady)
     return () => {
-      window.removeEventListener('pointerdown', unlockOnce)
-      window.removeEventListener('keydown', unlockOnce)
+      window.removeEventListener('pointerdown', ensureAudioReady)
+      window.removeEventListener('keydown', ensureAudioReady)
     }
   }, [playStartupSound])
 
@@ -665,6 +721,19 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     },
     [playSound],
   )
+
+  const enterBiosSetup = useCallback(() => {
+    dispatch({ type: 'ENTER_BIOS_SETUP' })
+  }, [])
+
+  const enterBootDeviceMenu = useCallback(() => {
+    dispatch({ type: 'ENTER_BOOT_DEVICE_MENU' })
+  }, [])
+
+  const setBiosSettings = useCallback((bios: BiosSettings) => {
+    stateRef.current = { ...stateRef.current, bios }
+    dispatch({ type: 'SET_BIOS', bios })
+  }, [])
 
   const restart = useCallback((
     target: 'normal' | 'safe' | 'dos' | 'recovery' | 'bootMenu' = 'normal',
@@ -919,6 +988,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     state.audio,
     state.network,
     state.desktopIcons,
+    state.bios,
   ])
 
   const value = useMemo<OsContextValue>(
@@ -948,6 +1018,9 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       setAudioVolume,
       playSound,
       crashSystem,
+      enterBiosSetup,
+      enterBootDeviceMenu,
+      setBiosSettings,
       restart,
       shutDown,
       finishBoot,
@@ -979,6 +1052,9 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       setAudioVolume,
       playSound,
       crashSystem,
+      enterBiosSetup,
+      enterBootDeviceMenu,
+      setBiosSettings,
       restart,
       shutDown,
       finishBoot,

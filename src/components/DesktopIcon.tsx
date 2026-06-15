@@ -6,7 +6,7 @@ type DesktopIconProps = {
   iconDef: DesktopIconDef
   position: Point
   selected: boolean
-  onSelect: () => void
+  onSelect: (extend?: boolean) => void
   onOpen: () => void
   onMove: (id: string, position: Point) => void
 }
@@ -102,7 +102,9 @@ export function DesktopIcon({ iconDef, position, selected, onSelect, onOpen, onM
       return
     }
 
-    onSelect()
+    if (!event.ctrlKey && !event.shiftKey) {
+      onSelect(false)
+    }
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -116,6 +118,7 @@ export function DesktopIcon({ iconDef, position, selected, onSelect, onOpen, onM
     <button
       className={`desktop-icon ${selected ? 'selected' : ''} ${isDragging ? 'is-dragging' : ''}`}
       type="button"
+      data-desktop-icon-id={iconDef.id}
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
       aria-label={`${iconDef.label}. Press Enter or double-click to open.`}
       onPointerDown={startDrag}
@@ -125,7 +128,7 @@ export function DesktopIcon({ iconDef, position, selected, onSelect, onOpen, onM
           event.preventDefault()
           return
         }
-        onSelect()
+        onSelect(event.ctrlKey || event.shiftKey)
         if (event.detail >= 2) {
           onOpen()
         }

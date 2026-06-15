@@ -1,8 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import type { AppProps } from '../../types'
 import { baseName, getNode, joinPath, nowStamp } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
+import {
+  EMPTY_WORDPAD_PAGE_HTML,
+  applyWordPadInlineStyle,
+  cleanWordPadHtml,
+  rangeBelongsToElement,
+  wordPadContentToPages,
+  wordPadPagesToDocumentHtml,
+  type WordPadInlineStyle,
+} from '../../os/wordpadFormatting'
 
 const FONT_FAMILIES = [
   'Arial',
@@ -39,7 +48,7 @@ const COLORS: Array<{ name: string; value: string }> = [
 
 const DEFAULT_HTML =
   '<div>Start typing here. Use the toolbar to change the <b>font</b>, <i>size</i>, and ' +
-  '<span style="color:#0000ff">colour</span> — all formatting is saved with the document.</div>'
+  '<span style="color:#0000ff">colour</span> - all formatting is saved with the document.</div>'
 
 function normalizeDocumentName(name: string): string {
   const trimmed = name.trim() || 'Document.doc'
@@ -49,27 +58,21 @@ function normalizeDocumentName(name: string): string {
   return `${trimmed.replace(/\.+$/, '') || 'Document'}.doc`
 }
 
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-/** Documents saved by this editor are HTML; legacy seeds are plain text. */
-function looksLikeHtml(content: string): boolean {
-  return /<[a-z!/][\s\S]*>/i.test(content)
-}
-
-function contentToHtml(content: string): string {
-  if (looksLikeHtml(content)) {
-    return content
-  }
-  return escapeHtml(content).replace(/\r?\n/g, '<br>') || '<br>'
-}
-
-function initialHtmlFor(path: string | undefined, content: string | undefined): string {
+function initialPagesFor(path: string | undefined, content: string | undefined): string[] {
   if (!path) {
-    return DEFAULT_HTML
+    return [DEFAULT_HTML]
   }
-  return content ? contentToHtml(content) : '<br>'
+  return wordPadContentToPages(content)
+}
+
+function textFromPages(pages: string[]): string {
+  const cleanPages = pages.map(cleanWordPadHtml)
+  if (typeof document === 'undefined') {
+    return cleanPages.join(' ').replace(/<[^>]*>/g, ' ')
+  }
+  const scratch = document.createElement('div')
+  scratch.innerHTML = cleanPages.join(' ')
+  return scratch.textContent ?? ''
 }
 
 /** execCommand reports the active font name wrapped in quotes; map it back to a known option. */
@@ -78,16 +81,42 @@ function matchFamily(reported: string): string {
   return FONT_FAMILIES.find((family) => family.toLowerCase() === clean) ?? FONT_FAMILIES[0]
 }
 
+function elementFromNode(node: Node | null): HTMLElement | null {
+  if (!node) return null
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
+  return element instanceof HTMLElement ? element : null
+}
+
+function colorToHex(value: string): string | null {
+  const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(value)
+  if (!rgb) return null
+  return `#${rgb
+    .slice(1, 4)
+    .map((part) => Number(part).toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
+function closestFontSize(pxValue: string): string | null {
+  const px = Number.parseFloat(pxValue)
+  if (!Number.isFinite(px)) return null
+  const pt = px * 0.75
+  return FONT_SIZES.reduce((best, size) =>
+    Math.abs(Number(size) - pt) < Math.abs(Number(best) - pt) ? size : best,
+  )
+}
+
 export function WordPadApp({ windowId, payload }: AppProps) {
   const { state, fsOps, setWindowTitle, showMessageBox, openApp, closeWindow } = useOs()
   const payloadPath = payload?.filePath
   const file = payloadPath ? getNode(state.fs, payloadPath) : undefined
 
-  const editorRef = useRef<HTMLDivElement | null>(null)
+  const pageRefs = useRef<Array<HTMLDivElement | null>>([])
   const savedRangeRef = useRef<Range | null>(null)
 
   const [documentPath, setDocumentPath] = useState<string | undefined>(() => payloadPath)
   const [saveAsName, setSaveAsName] = useState(() => file?.name ?? 'Document.doc')
+  const [pageHtmls, setPageHtmls] = useState(() => initialPagesFor(payloadPath, file?.content))
+  const [activePage, setActivePage] = useState(0)
   const [dirty, setDirty] = useState(false)
   const [status, setStatus] = useState(() => (payloadPath ? `Opened ${baseName(payloadPath)}` : 'Ready'))
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -99,26 +128,51 @@ export function WordPadApp({ windowId, payload }: AppProps) {
   const [active, setActive] = useState({ bold: false, italic: false, underline: false })
   const [stats, setStats] = useState({ words: 0, chars: 0 })
 
-  function recomputeStats() {
-    const text = editorRef.current?.textContent ?? ''
+  function readPagesFromDom(): string[] {
+    const source = pageHtmls.length ? pageHtmls : [EMPTY_WORDPAD_PAGE_HTML]
+    return source.map((fallback, index) =>
+      wordPadContentToPages(cleanWordPadHtml(pageRefs.current[index]?.innerHTML ?? fallback))[0],
+    )
+  }
+
+  function currentRange(): Range | null {
+    const sel = window.getSelection()
+    if (sel?.rangeCount) {
+      const liveRange = sel.getRangeAt(0)
+      const activeEditor = pageRefs.current.find((page) => page && rangeBelongsToElement(liveRange, page))
+      if (activeEditor) return liveRange
+    }
+    return savedRangeRef.current
+  }
+
+  function recomputeStats(nextPages = readPagesFromDom()) {
+    const text = textFromPages(nextPages)
     const trimmed = text.trim()
     setStats({ words: trimmed ? trimmed.split(/\s+/).length : 0, chars: text.length })
   }
 
-  // Load the document into the editable surface exactly once per opened file.
-  // Keying on the path (not on content) keeps the caret stable while typing.
+  // Load the document exactly when a different file is opened. Kept path-based
+  // para hindi nagja-jump ang caret habang nagta-type sa same document.
   const loadKey = payloadPath ?? '__new__'
   useEffect(() => {
-    const el = editorRef.current
-    if (!el) return
     try {
       document.execCommand('styleWithCSS', false, 'true')
     } catch {
       /* not supported in non-browser test envs */
     }
-    el.innerHTML = initialHtmlFor(payloadPath, file?.content)
-    setDirty(false)
-    recomputeStats()
+    const nextPages = initialPagesFor(payloadPath, file?.content)
+    const timer = window.setTimeout(() => {
+      pageRefs.current = []
+      savedRangeRef.current = null
+      setDocumentPath(payloadPath)
+      setSaveAsName(file?.name ?? 'Document.doc')
+      setPageHtmls(nextPages)
+      setActivePage(0)
+      setDirty(false)
+      setStatus(payloadPath ? `Opened ${baseName(payloadPath)}` : 'Ready')
+      recomputeStats(nextPages)
+    }, 0)
+    return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadKey])
 
@@ -127,13 +181,22 @@ export function WordPadApp({ windowId, payload }: AppProps) {
     setWindowTitle(windowId, `${dirty ? '*' : ''}${titleName} - WordPad`)
   }, [dirty, documentPath, saveAsName, setWindowTitle, windowId])
 
-  // Remember the most recent selection that lived inside the editor so toolbar
-  // controls (which steal focus) can restore it before running a command.
+  useLayoutEffect(() => {
+    pageHtmls.forEach((html, index) => {
+      const page = pageRefs.current[index]
+      if (page && page.innerHTML !== html) {
+        page.innerHTML = html
+      }
+    })
+  }, [pageHtmls])
+
   const saveSelection = useCallback(() => {
     const sel = window.getSelection()
-    const el = editorRef.current
-    if (sel && sel.rangeCount && el && el.contains(sel.anchorNode)) {
+    if (!sel || !sel.rangeCount) return
+    const pageIndex = pageRefs.current.findIndex((page) => Boolean(page && page.contains(sel.anchorNode)))
+    if (pageIndex >= 0) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+      setActivePage(pageIndex)
     }
   }, [])
 
@@ -146,6 +209,20 @@ export function WordPadApp({ windowId, payload }: AppProps) {
       })
       const reported = document.queryCommandValue('fontName')
       if (reported) setFontName(matchFamily(reported))
+
+      const sel = window.getSelection()
+      const activeElement = elementFromNode(sel?.anchorNode ?? null)
+      if (activeElement) {
+        const computed = window.getComputedStyle(activeElement)
+        const computedFamily = FONT_FAMILIES.find((family) =>
+          computed.fontFamily.toLowerCase().includes(family.toLowerCase()),
+        )
+        const computedSize = closestFontSize(computed.fontSize)
+        const computedColor = colorToHex(computed.color)
+        if (computedFamily) setFontName(computedFamily)
+        if (computedSize) setFontSize(computedSize)
+        if (computedColor) setColorValue(computedColor)
+      }
     } catch {
       /* queryCommand* unavailable */
     }
@@ -153,9 +230,10 @@ export function WordPadApp({ windowId, payload }: AppProps) {
 
   useEffect(() => {
     function onSelectionChange() {
-      const el = editorRef.current
       const sel = window.getSelection()
-      if (sel && sel.rangeCount && el && el.contains(sel.anchorNode)) {
+      if (!sel || !sel.rangeCount) return
+      const insideWordPad = pageRefs.current.some((page) => Boolean(page && page.contains(sel.anchorNode)))
+      if (insideWordPad) {
         saveSelection()
         syncActive()
       }
@@ -164,106 +242,183 @@ export function WordPadApp({ windowId, payload }: AppProps) {
     return () => document.removeEventListener('selectionchange', onSelectionChange)
   }, [saveSelection, syncActive])
 
-  const focusEditor = useCallback(() => {
-    const el = editorRef.current
-    if (!el) return
-    el.focus()
-    const sel = window.getSelection()
-    if (sel && savedRangeRef.current) {
+  const focusEditor = useCallback(
+    (pageIndex = activePage) => {
+      const el = pageRefs.current[pageIndex] ?? pageRefs.current[0] ?? null
+      if (!el) return null
+      el.focus()
+      const sel = window.getSelection()
+      if (!sel) return el
+      if (rangeBelongsToElement(savedRangeRef.current, el)) {
+        sel.removeAllRanges()
+        sel.addRange(savedRangeRef.current as Range)
+        return el
+      }
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
       sel.removeAllRanges()
-      sel.addRange(savedRangeRef.current)
-    }
-  }, [])
+      sel.addRange(range)
+      savedRangeRef.current = range.cloneRange()
+      return el
+    },
+    [activePage],
+  )
 
   const markDirty = useCallback(() => {
     setDirty(true)
     setStatus('Modified')
   }, [])
 
-  const exec = useCallback(
-    (command: string, value?: string) => {
+  function exec(command: string, value?: string) {
+    focusEditor()
+    document.execCommand(command, false, value)
+    saveSelection()
+    syncActive()
+    markDirty()
+    recomputeStats()
+  }
+
+  function runNativeEditCommand(command: string, value?: string): boolean {
+    try {
       focusEditor()
-      document.execCommand(command, false, value)
-      saveSelection()
-      syncActive()
-      markDirty()
-      recomputeStats()
-    },
-    [focusEditor, saveSelection, syncActive, markDirty],
-  )
+      return document.execCommand(command, false, value)
+    } catch {
+      return false
+    }
+  }
+
+  function applyInlineStyle(style: WordPadInlineStyle) {
+    const el = focusEditor()
+    if (!el) return
+    const range = currentRange()
+    if (!range) return
+    const nextRange = applyWordPadInlineStyle(el, range, style)
+    if (!nextRange) return
+
+    const sel = window.getSelection()
+    if (!sel) return
+    sel.removeAllRanges()
+    sel.addRange(nextRange)
+    savedRangeRef.current = nextRange.cloneRange()
+
+    // Taglish note: dito sinisigurado na real inline styles ang nasa document,
+    // hindi browser-dependent execCommand output lang.
+    syncActive()
+    markDirty()
+    recomputeStats()
+  }
 
   function applyFont(family: string) {
     setFontName(family)
-    exec('fontName', family)
+    runNativeEditCommand('fontName', family)
+    applyInlineStyle({ fontFamily: family })
   }
 
-  // execCommand('fontSize') only understands the 1–7 scale, so we tag the
-  // selection with a sentinel size and rewrite it to a real point value.
   function applyFontSize(pt: string) {
     setFontSize(pt)
-    focusEditor()
-    document.execCommand('fontSize', false, '7')
-    const el = editorRef.current
-    if (el) {
-      el.querySelectorAll('font[size="7"]').forEach((node) => {
-        node.removeAttribute('size')
-        ;(node as HTMLElement).style.fontSize = `${pt}pt`
-      })
-    }
-    saveSelection()
-    markDirty()
+    const legacySize = Math.max(1, Math.min(7, Math.round(Number(pt) / 5)))
+    runNativeEditCommand('fontSize', String(legacySize))
+    applyInlineStyle({ fontSize: `${pt}pt` })
   }
 
   function applyColor(value: string) {
     setColorValue(value)
     setColorOpen(false)
-    exec('foreColor', value)
+    runNativeEditCommand('foreColor', value)
+    applyInlineStyle({ color: value })
   }
 
-  const showError = useCallback((message: string) => {
-    showMessageBox({ title: 'WordPad', message, icon: 'error', buttons: ['ok'] })
-  }, [showMessageBox])
-
-  const save = useCallback(
-    (path = documentPath) => {
-      const target = path ?? joinPath('C:\\My Documents', normalizeDocumentName(saveAsName))
-      const html = editorRef.current?.innerHTML ?? ''
-      const error = fsOps.writeFile(target, { content: html })
-      if (error) {
-        showError(error)
-        return
-      }
-      setDocumentPath(target)
-      setSaveAsName(baseName(target))
-      setDirty(false)
-      setStatus(`Saved ${target}`)
+  const showError = useCallback(
+    (message: string) => {
+      showMessageBox({ title: 'WordPad', message, icon: 'error', buttons: ['ok'] })
     },
-    [documentPath, saveAsName, fsOps, showError],
+    [showMessageBox],
   )
+
+  function save(path = documentPath) {
+    const target = path ?? joinPath('C:\\My Documents', normalizeDocumentName(saveAsName))
+    const pages = readPagesFromDom()
+    const error = fsOps.writeFile(target, { content: wordPadPagesToDocumentHtml(pages) })
+    if (error) {
+      showError(error)
+      return
+    }
+    setPageHtmls(pages)
+    setDocumentPath(target)
+    setSaveAsName(baseName(target))
+    setDirty(false)
+    setStatus(`Saved ${target}`)
+  }
 
   function saveAs() {
     save(joinPath('C:\\My Documents', normalizeDocumentName(saveAsName)))
   }
 
   function newDocument() {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = '<br>'
-    }
+    const nextPages = [EMPTY_WORDPAD_PAGE_HTML]
+    pageRefs.current = []
     savedRangeRef.current = null
     setDocumentPath(undefined)
     setSaveAsName('Document.doc')
+    setPageHtmls(nextPages)
+    setActivePage(0)
     setDirty(true)
     setStatus('New document')
-    recomputeStats()
+    recomputeStats(nextPages)
+    window.setTimeout(() => focusEditor(0), 0)
   }
 
   function insertDateTime() {
     exec('insertText', nowStamp())
   }
 
+  function insertPageBreak() {
+    const snapshot = readPagesFromDom()
+    const insertAt = Math.min(activePage + 1, snapshot.length)
+    snapshot.splice(insertAt, 0, EMPTY_WORDPAD_PAGE_HTML)
+    pageRefs.current = []
+    savedRangeRef.current = null
+    setPageHtmls(snapshot)
+    setActivePage(insertAt)
+    setStatus(`Inserted page ${insertAt + 1}`)
+    markDirty()
+    recomputeStats(snapshot)
+    window.setTimeout(() => focusEditor(insertAt), 0)
+  }
+
+  function deleteCurrentPage() {
+    const snapshot = readPagesFromDom()
+    if (snapshot.length <= 1) {
+      snapshot[0] = EMPTY_WORDPAD_PAGE_HTML
+      setPageHtmls([...snapshot])
+      setStatus('Cleared page 1')
+      markDirty()
+      recomputeStats(snapshot)
+      window.setTimeout(() => focusEditor(0), 0)
+      return
+    }
+    const removeAt = Math.min(activePage, snapshot.length - 1)
+    snapshot.splice(removeAt, 1)
+    const nextPage = Math.max(0, removeAt - 1)
+    pageRefs.current = []
+    savedRangeRef.current = null
+    setPageHtmls(snapshot)
+    setActivePage(nextPage)
+    setStatus(`Deleted page ${removeAt + 1}`)
+    markDirty()
+    recomputeStats(snapshot)
+    window.setTimeout(() => focusEditor(nextPage), 0)
+  }
+
   function preserveFocus(event: ReactMouseEvent) {
     // Keep the document selection alive when a toolbar button is pressed.
     event.preventDefault()
+    saveSelection()
+  }
+
+  function rememberSelection() {
+    saveSelection()
   }
 
   function runMenu(action: () => void) {
@@ -275,6 +430,14 @@ export function WordPadApp({ windowId, payload }: AppProps) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
       event.preventDefault()
       save()
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'n') {
+      event.preventDefault()
+      newDocument()
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault()
+      insertPageBreak()
     }
   }
 
@@ -306,6 +469,17 @@ export function WordPadApp({ windowId, payload }: AppProps) {
               buttons: ['ok'],
             }),
         },
+        {
+          label: 'Page Setup...',
+          action: () =>
+            showMessageBox({
+              title: 'Page Setup',
+              message: 'Paper size: Letter',
+              detail: 'Margins are simulated in the page view. Printing is not available in the browser OS.',
+              icon: 'info',
+              buttons: ['ok'],
+            }),
+        },
         { kind: 'sep' },
         { label: 'Exit', action: () => closeWindow(windowId) },
       ],
@@ -332,7 +506,11 @@ export function WordPadApp({ windowId, payload }: AppProps) {
     {
       id: 'insert',
       label: 'Insert',
-      items: [{ label: 'Date and Time', action: insertDateTime }],
+      items: [
+        { label: 'Date and Time', action: insertDateTime },
+        { kind: 'sep' },
+        { label: 'Page Break', shortcut: 'Ctrl+Enter', action: insertPageBreak },
+      ],
     },
     {
       id: 'format',
@@ -359,7 +537,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
             showMessageBox({
               title: 'About WordPad',
               message: 'WordPad for Portfolio 98',
-              detail: 'A rich-text editor. Fonts, sizes, and colours are saved with each document.',
+              detail: 'A rich-text editor. Fonts, sizes, colours, and page breaks are saved with each document.',
               icon: 'info',
               buttons: ['ok'],
             }),
@@ -394,7 +572,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
                         onMouseDown={preserveFocus}
                         onClick={() => runMenu(item.action)}
                       >
-                        <span className="wp-menu-check">{item.checked ? '✓' : ''}</span>
+                        <span className="wp-menu-check">{item.checked ? '*' : ''}</span>
                         <span className="wp-menu-text">{item.label}</span>
                         {item.shortcut && <span className="wp-menu-shortcut">{item.shortcut}</span>}
                       </button>
@@ -426,17 +604,34 @@ export function WordPadApp({ windowId, payload }: AppProps) {
         <button type="button" onClick={saveAs}>
           Save As
         </button>
+        <span className="wp-toolbar-sep" aria-hidden="true" />
+        <button type="button" onMouseDown={preserveFocus} onClick={insertPageBreak}>
+          New Page
+        </button>
+        <button type="button" onMouseDown={preserveFocus} onClick={deleteCurrentPage}>
+          Delete Page
+        </button>
       </div>
 
       <div className="wordpad-formatbar">
-        <select aria-label="Font" value={fontName} onChange={(event) => applyFont(event.target.value)}>
+        <select
+          aria-label="Font"
+          value={fontName}
+          onMouseDown={rememberSelection}
+          onChange={(event) => applyFont(event.target.value)}
+        >
           {FONT_FAMILIES.map((family) => (
             <option key={family} value={family}>
               {family}
             </option>
           ))}
         </select>
-        <select aria-label="Font size" value={fontSize} onChange={(event) => applyFontSize(event.target.value)}>
+        <select
+          aria-label="Font size"
+          value={fontSize}
+          onMouseDown={rememberSelection}
+          onChange={(event) => applyFontSize(event.target.value)}
+        >
           {FONT_SIZES.map((size) => (
             <option key={size} value={size}>
               {size}
@@ -485,7 +680,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
           >
             <span className="wp-color-glyph">A</span>
             <span className="wp-color-bar" style={{ background: colorValue }} />
-            <span className="wp-color-caret">▾</span>
+            <span className="wp-color-caret">v</span>
           </button>
           {colorOpen && (
             <ul className="wp-color-menu" role="menu">
@@ -507,13 +702,13 @@ export function WordPadApp({ windowId, payload }: AppProps) {
         </div>
         <span className="wp-toolbar-sep" aria-hidden="true" />
         <button type="button" onMouseDown={preserveFocus} onClick={() => exec('justifyLeft')} title="Align left">
-          ≡
+          L
         </button>
         <button type="button" onMouseDown={preserveFocus} onClick={() => exec('justifyCenter')} title="Center">
-          ☰
+          C
         </button>
         <button type="button" onMouseDown={preserveFocus} onClick={() => exec('justifyRight')} title="Align right">
-          ≡
+          R
         </button>
         <button
           type="button"
@@ -521,7 +716,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
           onClick={() => exec('insertUnorderedList')}
           title="Bullets"
         >
-          •
+          Bul
         </button>
       </div>
 
@@ -537,33 +732,52 @@ export function WordPadApp({ windowId, payload }: AppProps) {
       )}
 
       <div className="sunken-panel wordpad-workspace">
-        <div
-          ref={editorRef}
-          className="wordpad-page"
-          contentEditable
-          suppressContentEditableWarning
-          role="textbox"
-          aria-multiline="true"
-          aria-label="WordPad document"
-          spellCheck={false}
-          onInput={() => {
-            markDirty()
-            recomputeStats()
-          }}
-          onMouseUp={() => {
-            saveSelection()
-            syncActive()
-          }}
-          onKeyUp={() => {
-            saveSelection()
-            syncActive()
-          }}
-          onBlur={saveSelection}
-        />
+        <div className="wordpad-pages" role="document" aria-label="WordPad pages">
+          {pageHtmls.map((_, index) => (
+            <section
+              key={`${loadKey}-${pageHtmls.length}-${index}`}
+              className={`wordpad-page-shell ${activePage === index ? 'active' : ''}`}
+            >
+              <p className="wordpad-page-label">Page {index + 1}</p>
+              <div
+                ref={(node) => {
+                  pageRefs.current[index] = node
+                }}
+                className="wordpad-page"
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-multiline="true"
+                aria-label={`WordPad document page ${index + 1}`}
+                spellCheck={false}
+                tabIndex={0}
+                onPointerDown={() => setActivePage(index)}
+                onFocus={() => setActivePage(index)}
+                onInput={() => {
+                  markDirty()
+                  saveSelection()
+                  recomputeStats()
+                }}
+                onMouseUp={() => {
+                  saveSelection()
+                  syncActive()
+                }}
+                onKeyUp={() => {
+                  saveSelection()
+                  syncActive()
+                }}
+                onBlur={saveSelection}
+              />
+            </section>
+          ))}
+        </div>
       </div>
 
       <div className="status-bar">
         <p className="status-bar-field">{documentPath ?? 'C:\\My Documents\\Document.doc'}</p>
+        <p className="status-bar-field">
+          Page {activePage + 1} of {pageHtmls.length}
+        </p>
         <p className="status-bar-field">{stats.words} word(s)</p>
         <p className="status-bar-field">{stats.chars} char(s)</p>
         <p className="status-bar-field">{dirty ? 'Modified' : status}</p>

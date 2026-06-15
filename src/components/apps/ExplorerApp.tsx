@@ -22,10 +22,10 @@ const quickPaths = [
   ['C:\\', 'Portfolio (C:)'],
   ['C:\\My Documents', 'My Documents'],
   ['C:\\My Pictures', 'My Pictures'],
+  ['C:\\My Videos', 'My Videos'],
   ['C:\\Projects', 'Projects'],
   ['C:\\Program Files', 'Program Files'],
   ['C:\\Windows', 'Windows'],
-  ['C:\\Windows\\System32', 'System32'],
   ['C:\\Network', 'Network'],
 ] as const
 
@@ -89,6 +89,15 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
     setRenamingPath(undefined)
   }
 
+  function openExplorerNode(path: string) {
+    const node = getNode(state.fs, path)
+    if (node?.kind === 'folder') {
+      navigate(node.path)
+      return
+    }
+    openNode(path)
+  }
+
   function confirmDelete(node: FsNode) {
     const isSystem = Boolean(node.attributes?.system) || isProtectedPath(node.path)
     showMessageBox({
@@ -122,7 +131,7 @@ Location: ${parentPath(node.path)}
 Size: ${
         node.kind === 'folder' ? `${listDirectory(state.fs, node.path).length} item(s)` : `${formatSize(node.size)} (${node.size.toLocaleString()} bytes)`
       }`,
-      detail: `Modified: ${node.modified}${attributes ? ` — Attributes: ${attributes}` : ''}`,
+      detail: `Modified: ${node.modified}${attributes ? ` - Attributes: ${attributes}` : ''}`,
       icon: 'info',
       buttons: ['ok'],
     })
@@ -302,13 +311,13 @@ Size: ${
               tabIndex={0}
               aria-pressed={selectedPath === node.path}
               onClick={() => setSelectedPath(node.path)}
-              onDoubleClick={() => openNode(node.path)}
+              onDoubleClick={() => openExplorerNode(node.path)}
               onContextMenu={(event) => openContextMenu(event, node.path)}
               onKeyDown={(event) => {
                 if (renamingPath === node.path) return
                 if (event.key === 'Enter') {
                   event.preventDefault()
-                  openNode(node.path)
+                  openExplorerNode(node.path)
                 }
                 if (event.key === 'Delete') {
                   event.preventDefault()
@@ -370,7 +379,7 @@ Size: ${
           {contextNode ? (
             <>
               <li>
-                <button type="button" className="context-default" onClick={() => { setContextMenu(null); openNode(contextNode.path) }}>
+                <button type="button" className="context-default" onClick={() => { setContextMenu(null); openExplorerNode(contextNode.path) }}>
                   Open
                 </button>
               </li>
@@ -457,7 +466,7 @@ Size: ${
 
   function openSelectedButton() {
     if (selectedNode) {
-      openNode(selectedNode.path)
+      openExplorerNode(selectedNode.path)
     }
   }
 }

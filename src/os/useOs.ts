@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type {
   AppId,
+  BiosSettings,
   BootProfile,
   ClipboardState,
   CrashState,
@@ -68,6 +69,9 @@ export type OsContextValue = {
   playSound(id: SoundId): void
   // system
   crashSystem(crash: CrashState): void
+  enterBiosSetup(): void
+  enterBootDeviceMenu(): void
+  setBiosSettings(settings: BiosSettings): void
   restart(target?: 'normal' | 'safe' | 'dos' | 'recovery' | 'bootMenu', opts?: { bootProfile?: BootProfile }): void
   shutDown(): void
   finishBoot(): void

@@ -583,7 +583,8 @@ export function emptyRecycleBin(fs: FsState): FsState {
 const TEXT_EXTENSIONS = new Set(['txt', 'ini', 'log', 'inf', 'bat', 'md'])
 const DOCUMENT_EXTENSIONS = new Set(['doc', 'docx', 'rtf'])
 const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif'])
-const MEDIA_EXTENSIONS = new Set(['wav', 'mp3', 'mp4', 'avi', 'mid', 'webm', 'ogg'])
+const AUDIO_EXTENSIONS = new Set(['wav', 'mp3', 'mid'])
+const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'webm', 'mov', 'mkv', 'ogg'])
 const WEB_EXTENSIONS = new Set(['url', 'htm', 'html'])
 
 export function openTargetFor(node: FsNode): { appId: AppId; payload: WindowPayload } | null {
@@ -601,10 +602,13 @@ export function openTargetFor(node: FsNode): { appId: AppId; payload: WindowPayl
     return { appId: 'wordpad', payload: { filePath: node.path } }
   }
   if (IMAGE_EXTENSIONS.has(ext)) {
-    return { appId: 'paint', payload: { filePath: node.path } }
+    return { appId: 'imageViewer', payload: { filePath: node.path } }
   }
-  if (MEDIA_EXTENSIONS.has(ext)) {
+  if (AUDIO_EXTENSIONS.has(ext)) {
     return { appId: 'mediaPlayer', payload: { filePath: node.path } }
+  }
+  if (VIDEO_EXTENSIONS.has(ext)) {
+    return { appId: 'videoPlayer', payload: { filePath: node.path } }
   }
   if (WEB_EXTENSIONS.has(ext)) {
     return { appId: 'internetExplorer', payload: { url: node.content ?? 'about:home' } }
@@ -617,9 +621,10 @@ export function iconForFileName(name: string): IconKey {
   if (ext === 'bat') return 'batchFile'
   if (DOCUMENT_EXTENSIONS.has(ext)) return 'wordpad'
   if (TEXT_EXTENSIONS.has(ext)) return 'textFile'
+  if (ext === 'bmp') return 'paint'
   if (IMAGE_EXTENSIONS.has(ext)) return 'imageFile'
-  if (ext === 'wav' || ext === 'mp3' || ext === 'mid' || ext === 'ogg') return 'audioFile'
-  if (ext === 'mp4' || ext === 'avi' || ext === 'webm') return 'videoFile'
+  if (ext === 'wav' || ext === 'mp3' || ext === 'mid') return 'audioFile'
+  if (VIDEO_EXTENSIONS.has(ext)) return 'videoFile'
   if (ext === 'url') return 'urlFile'
   if (ext === 'htm' || ext === 'html') return 'html'
   if (ext === 'exe' || ext === 'com') return 'windowsFile'
@@ -665,6 +670,8 @@ export function fileTypeForName(name: string): string {
     case 'mp4':
     case 'avi':
     case 'webm':
+    case 'mov':
+    case 'mkv':
       return 'Video Clip'
     case 'ogg':
       return 'Media File'

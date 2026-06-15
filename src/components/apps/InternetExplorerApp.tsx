@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps } from '../../types'
 import { portfolioData } from '../../data/portfolioData'
 import { fakeSites, youtubeVideos, type FakeVideo } from '../../data/websites'
+import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 
 const HOME = 'http://portfolio.local/'
@@ -19,6 +20,7 @@ function normalizeUrl(raw: string): string {
   if (!trimmed) return HOME
   if (looksLikeSearchQuery(trimmed)) return `http://google.com/search?q=${encodeURIComponent(trimmed)}`
   if (trimmed.startsWith('about:')) return trimmed
+  if (/^[a-z]+:/i.test(trimmed) && !/^[a-z]+:\/\//i.test(trimmed)) return trimmed
   if (/^[a-z]+:\/\//i.test(trimmed)) return trimmed
   return `http://${trimmed.replace(/^www\./i, '')}`
 }
@@ -83,18 +85,55 @@ function resolvePage(url: string): Page {
   return { kind: 'notfound', host: host || url }
 }
 
-export function InternetExplorerApp({ payload }: AppProps) {
-  const { state, openApp, networkOps } = useOs()
+export function InternetExplorerApp({ windowId, payload }: AppProps) {
+  const { state, openApp, networkOps, showMessageBox, setWindowTitle } = useOs()
   const initial = normalizeUrl(payload?.url ?? HOME)
   const [address, setAddress] = useState(initial)
   const [history, setHistory] = useState([initial])
   const [index, setIndex] = useState(0)
   const [searchDraft, setSearchDraft] = useState('')
+  const [loading, setLoading] = useState(false)
+  const loadTimerRef = useRef<number | null>(null)
 
   const current = history[index] ?? initial
   const page = useMemo(() => resolvePage(current), [current])
   const online = state.network.connected
   const currentHost = hostOf(current) || current
+
+  useEffect(() => {
+    const title =
+      page.kind === 'home'
+        ? 'Microsoft Internet Explorer Home Page'
+        : page.kind === 'youtubeWatch'
+          ? page.video.title
+          : page.kind === 'google'
+            ? `Search: ${page.query || 'Google'}`
+            : currentHost
+    setWindowTitle(windowId, `${title} - Microsoft Internet Explorer`)
+  }, [currentHost, page, setWindowTitle, windowId])
+
+  useEffect(
+    () => () => {
+      if (loadTimerRef.current !== null) window.clearTimeout(loadTimerRef.current)
+    },
+    [],
+  )
+
+  // Brief simulated page load so the globe throbber spins and the status bar fills.
+  function beginLoading() {
+    if (loadTimerRef.current !== null) window.clearTimeout(loadTimerRef.current)
+    setLoading(true)
+    loadTimerRef.current = window.setTimeout(() => {
+      setLoading(false)
+      loadTimerRef.current = null
+    }, 650)
+  }
+
+  function stopLoading() {
+    if (loadTimerRef.current !== null) window.clearTimeout(loadTimerRef.current)
+    loadTimerRef.current = null
+    setLoading(false)
+  }
 
   function navigate(nextRaw = address) {
     const next = normalizeUrl(nextRaw)
@@ -104,12 +143,14 @@ export function InternetExplorerApp({ payload }: AppProps) {
       setIndex((value) => value + 1)
     }
     networkOps.recordTraffic(2, online ? 4 : 0)
+    beginLoading()
   }
 
   function go(delta: -1 | 1) {
     const next = Math.max(0, Math.min(history.length - 1, index + delta))
     setIndex(next)
     setAddress(history[next] ?? HOME)
+    beginLoading()
   }
 
   function searchResults(query: string) {
@@ -139,12 +180,29 @@ export function InternetExplorerApp({ payload }: AppProps) {
 
   function renderHome() {
     return (
-      <div className="web-page web-home">
-        <div className="web-banner">
-          <h2>{portfolioData.profile.name}'s Home Page</h2>
-          <p>Best viewed in 800x600 — {portfolioData.profile.role}</p>
+      <div className="web-page ie-classic-home">
+        <div className="ie-home-mark">
+          <img src={win98Icons.internet} alt="" />
+          <div>
+            <span>Portfolio</span>
+            <strong>Internet Explorer</strong>
+          </div>
         </div>
-        <p>{portfolioData.profile.headline}</p>
+        <h2>Thank you for using Portfolio Internet Explorer on Windows 98 Portfolio Edition</h2>
+        <p>
+          You can use Portfolio Internet Explorer to browse Web pages on your local portfolio network and
+          on the simulated Internet.
+        </p>
+        <hr />
+        <p>
+          To browse Web pages on your local network, type the page name in the address box at the top of
+          this browser. For example, type:{' '}
+          <button type="button" className="web-result-link" onClick={() => navigate('portfolio.local')}>
+            portfolio.local
+          </button>
+        </p>
+        <hr />
+        <p className="web-muted">Quick links from {portfolioData.profile.name}'s portfolio desktop:</p>
         <div className="web-link-grid">
           <button type="button" onClick={() => navigate('plmunnexus.com')}>
             <strong>PLMUN Nexus</strong>
@@ -355,35 +413,93 @@ export function InternetExplorerApp({ payload }: AppProps) {
         <li>Tools</li>
         <li>Help</li>
       </ul>
-      <div className="toolbar browser-toolbar">
-        <button type="button" onClick={() => go(-1)} disabled={index <= 0}>
-          Back
+      <div className="ie-toolbar">
+        <button type="button" className="ie-tool" onClick={() => go(-1)} disabled={index <= 0}>
+          <span className="ie-tool-glyph ie-back">←</span>
+          <span>Back</span>
         </button>
-        <button type="button" onClick={() => go(1)} disabled={index >= history.length - 1}>
-          Forward
+        <button type="button" className="ie-tool" onClick={() => go(1)} disabled={index >= history.length - 1}>
+          <span className="ie-tool-glyph ie-fwd">→</span>
+          <span>Forward</span>
         </button>
-        <button type="button" onClick={() => navigate(current)}>
-          Refresh
+        <button type="button" className="ie-tool ie-tool-mini" onClick={stopLoading} disabled={!loading} title="Stop">
+          <span className="ie-tool-glyph ie-stop">✕</span>
+          <span>Stop</span>
         </button>
-        <button type="button" onClick={() => navigate(HOME)}>
-          Home
+        <button type="button" className="ie-tool ie-tool-mini" onClick={() => navigate(current)} title="Refresh">
+          <span className="ie-tool-glyph ie-refresh">⟳</span>
+          <span>Refresh</span>
         </button>
+        <button type="button" className="ie-tool ie-tool-mini" onClick={() => navigate(HOME)} title="Home">
+          <span className="ie-tool-glyph ie-home">⌂</span>
+          <span>Home</span>
+        </button>
+        <span className="ie-tool-sep" aria-hidden="true" />
+        <button type="button" className="ie-tool" onClick={() => navigate('google.com')} title="Search">
+          <img src={win98Icons.search} alt="" />
+          <span>Search</span>
+        </button>
+        <button type="button" className="ie-tool" onClick={() => navigate(HOME)} title="Favorites">
+          <img src={win98Icons.favorites} alt="" />
+          <span>Favorites</span>
+        </button>
+        <button type="button" className="ie-tool" onClick={() => navigate('portfolio.local/credits')} title="History">
+          <img src={win98Icons.world} alt="" />
+          <span>History</span>
+        </button>
+        <span className="ie-tool-sep" aria-hidden="true" />
+        <button
+          type="button"
+          className="ie-tool"
+          onClick={() =>
+            showMessageBox({
+              title: 'Internet Explorer',
+              message: 'There is no printer installed.',
+              detail: 'Printing is not available in this simulated environment.',
+              icon: 'info',
+              buttons: ['ok'],
+            })
+          }
+          title="Print"
+        >
+          <img src={win98Icons.printer} alt="" />
+          <span>Print</span>
+        </button>
+      </div>
+      <div className="ie-address-row">
+        <label htmlFor="ie-address">Address</label>
         <form
-          className="address-form"
+          className="ie-address-form"
           onSubmit={(event) => {
             event.preventDefault()
             navigate()
           }}
         >
-          <label htmlFor="ie-address">Address</label>
+          <img className="ie-address-icon" src={win98Icons.html} alt="" />
           <input id="ie-address" value={address} onChange={(event) => setAddress(event.target.value)} />
         </form>
+        <button type="button" className="ie-go" onClick={() => navigate()}>
+          <img src={win98Icons.internet} alt="" />
+          Go
+        </button>
+        <div className={`ie-throbber ${loading ? 'is-loading' : ''}`} aria-hidden="true" title="Internet Explorer">
+          <img src={win98Icons.internet} alt="" />
+        </div>
       </div>
       <div className="sunken-panel browser-page">{renderPage()}</div>
-      <div className="status-bar">
-        <p className="status-bar-field">{statusText}</p>
-        <p className="status-bar-field">{currentHost}</p>
-        <p className="status-bar-field">{online ? 'Portfolio Ethernet' : 'Offline'}</p>
+      <div className="status-bar ie-status">
+        <p className="status-bar-field ie-status-msg">
+          {loading ? `Opening ${currentHost}…` : statusText}
+          {loading && (
+            <span className="ie-progress" aria-hidden="true">
+              <span />
+            </span>
+          )}
+        </p>
+        <p className="status-bar-field ie-status-zone">
+          <img src={win98Icons.world} alt="" />
+          {online ? 'Internet zone' : 'Offline'}
+        </p>
       </div>
     </div>
   )

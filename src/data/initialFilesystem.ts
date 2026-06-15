@@ -82,6 +82,39 @@ const SYSTEM_INI = [
   'ConservativeSwapfileUsage=1',
 ].join('\n')
 
+function escapeResumeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * Render the plain-text resume into formatted WordPad HTML so Resume.doc opens
+ * with a real heading, bold navy section titles, bold role lines, and bullets
+ * (WordPad stores rich text as HTML — see wordpadFormatting.ts).
+ */
+function resumeToHtml(content: string): string {
+  return content
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const text = line.trim()
+      if (index === 0) {
+        return `<div><span style="font-family:Arial; font-size:18pt; font-weight:bold">${escapeResumeHtml(text)}</span></div>`
+      }
+      if (text === '') return '<div><br></div>'
+      const isSectionHeader = text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 40
+      if (isSectionHeader) {
+        return `<div><span style="font-family:Arial; font-size:13pt; font-weight:bold; color:#000080">${escapeResumeHtml(text)}</span></div>`
+      }
+      if (text.startsWith('- ')) {
+        return `<div style="font-family:Arial; margin-left:18px">&bull; ${escapeResumeHtml(text.slice(2))}</div>`
+      }
+      if (/ - /.test(text) && text.length < 80) {
+        return `<div style="font-family:Arial; font-weight:bold">${escapeResumeHtml(text)}</div>`
+      }
+      return `<div style="font-family:Arial">${escapeResumeHtml(text)}</div>`
+    })
+    .join('')
+}
+
 type FileOpts = {
   size?: number
   content?: string
@@ -93,6 +126,556 @@ type FileOpts = {
   attributes?: FsAttributes
   modified?: string
 }
+
+const BETWEEN_TWO_RUINS_WEB_ROOT = 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web'
+const BETWEEN_TWO_RUINS_WEB_STAMP = '06/15/2026 12:00 AM'
+const COVER_ART_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+
+type ScaffoldFile = FileOpts & { path: string }
+
+const SAMPLE_PICTURE_FILES: ScaffoldFile[] = []
+
+function btrPath(...parts: string[]): string {
+  return `${BETWEEN_TWO_RUINS_WEB_ROOT}\\${parts.join('\\')}`
+}
+
+const BETWEEN_TWO_RUINS_WEB_FOLDERS = [
+  btrPath('.claude'),
+  btrPath('public'),
+  btrPath('src'),
+  btrPath('src', 'components'),
+  btrPath('src', 'components', 'pages'),
+  btrPath('src', 'components', 'reader'),
+  btrPath('src', 'components', 'ui'),
+  btrPath('src', 'content'),
+  btrPath('src', 'content', 'chapters'),
+  btrPath('src', 'hooks'),
+  btrPath('src', 'store'),
+  btrPath('src', 'styles'),
+  btrPath('src', 'types'),
+]
+
+function chapterFile(chapter: number): ScaffoldFile {
+  const id = String(chapter).padStart(2, '0')
+  const title = `Chapter ${chapter}: Josef`
+  return {
+    path: btrPath('src', 'content', 'chapters', `ch${id}-josef.tsx`),
+    content: [
+      "import type { Chapter } from '../../types'",
+      "import { ProseReveal } from '../../components/reader/ProseReveal'",
+      "import { BloodWord } from '../../components/reader/BloodWord'",
+      '',
+      `export const ch${id}Josef: Chapter = {`,
+      `  id: 'ch${id}-josef',`,
+      `  title: '${title}',`,
+      `  slug: 'ch${id}-josef',`,
+      "  narrator: 'Josef',",
+      `  summary: 'Josef follows another trace through the ruined city in scene ${chapter}.',`,
+      '  render: () => (',
+      '    <ProseReveal>',
+      `      <p>Josef marks ruin ${chapter} on the map and listens for the hallway to answer.</p>`,
+      `      <p>The city remembers in fragments, each one colder than the last <BloodWord>signal</BloodWord>.</p>`,
+      '    </ProseReveal>',
+      '  ),',
+      '}',
+    ].join('\n'),
+  }
+}
+
+const BETWEEN_TWO_RUINS_WEB_FILES: ScaffoldFile[] = [
+  {
+    path: btrPath('public', 'cover-art.png'),
+    dataUrl: COVER_ART_DATA_URL,
+    icon: 'imageFile',
+    fileType: 'PNG Image',
+    appId: 'imageViewer',
+    appPayload: { filePath: btrPath('public', 'cover-art.png') },
+  },
+  {
+    path: btrPath('src', 'components', 'pages', 'CoverPage.tsx'),
+    content: [
+      "import { PhotoCover } from './PhotoCover'",
+      "import { WoundCover } from './WoundCover'",
+      '',
+      'export function CoverPage() {',
+      '  return (',
+      '    <main className="cover-page">',
+      '      <PhotoCover />',
+      '      <WoundCover />',
+      '    </main>',
+      '  )',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'pages', 'PhotoCover.tsx'),
+    content: [
+      'export function PhotoCover() {',
+      '  return (',
+      '    <section className="photo-cover" aria-label="Between Two Ruins cover photograph">',
+      '      <img src="/cover-art.png" alt="Between Two Ruins cover art" />',
+      '      <p>Between Two Ruins</p>',
+      '    </section>',
+      '  )',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'pages', 'WoundCover.tsx'),
+    content: [
+      'export function WoundCover() {',
+      '  return <div className="wound-cover" aria-hidden="true" />',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'Anchor.tsx'),
+    content: [
+      "import type { PropsWithChildren } from 'react'",
+      '',
+      'export function Anchor({ children }: PropsWithChildren) {',
+      '  return <span className="reader-anchor">{children}</span>',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'BloodWord.tsx'),
+    content: [
+      "import type { PropsWithChildren } from 'react'",
+      '',
+      'export function BloodWord({ children }: PropsWithChildren) {',
+      '  return <span className="blood-word">{children}</span>',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'ChapterNav.tsx'),
+    content: [
+      "import type { Chapter } from '../../types'",
+      '',
+      'type Props = {',
+      '  chapters: Chapter[]',
+      '  activeId: string',
+      '  onSelect: (id: string) => void',
+      '}',
+      '',
+      'export function ChapterNav({ chapters, activeId, onSelect }: Props) {',
+      '  return (',
+      '    <nav className="chapter-nav" aria-label="Chapters">',
+      '      {chapters.map((chapter) => (',
+      '        <button key={chapter.id} className={chapter.id === activeId ? "active" : ""} onClick={() => onSelect(chapter.id)}>',
+      '          {chapter.title}',
+      '        </button>',
+      '      ))}',
+      '    </nav>',
+      '  )',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'ChapterReader.tsx'),
+    content: [
+      "import type { Chapter } from '../../types'",
+      "import { ProgressBar } from '../ui/ProgressBar'",
+      '',
+      'type Props = { chapter: Chapter; progress: number }',
+      '',
+      'export function ChapterReader({ chapter, progress }: Props) {',
+      '  return (',
+      '    <article className="chapter-reader">',
+      '      <ProgressBar value={progress} />',
+      '      <p className="chapter-kicker">{chapter.narrator}</p>',
+      '      <h1>{chapter.title}</h1>',
+      '      {chapter.render()}',
+      '    </article>',
+      '  )',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'DecayEngine.tsx'),
+    content: [
+      "import type { PropsWithChildren } from 'react'",
+      '',
+      'type Props = PropsWithChildren<{ amount: number }>',
+      '',
+      'export function DecayEngine({ amount, children }: Props) {',
+      '  return <div className="decay-engine" style={{ "--decay": amount } as React.CSSProperties}>{children}</div>',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'FogCanvas.tsx'),
+    content: [
+      "import { useEffect, useRef } from 'react'",
+      '',
+      'export function FogCanvas() {',
+      '  const ref = useRef<HTMLCanvasElement>(null)',
+      '',
+      '  useEffect(() => {',
+      '    const canvas = ref.current',
+      '    const ctx = canvas?.getContext("2d")',
+      '    if (!canvas || !ctx) return',
+      '    ctx.fillStyle = "rgba(218, 225, 229, 0.15)"',
+      '    ctx.fillRect(0, 0, canvas.width, canvas.height)',
+      '  }, [])',
+      '',
+      '  return <canvas ref={ref} className="fog-canvas" width={960} height={540} aria-hidden="true" />',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'GlitchLine.tsx'),
+    content: [
+      "import type { PropsWithChildren } from 'react'",
+      '',
+      'export function GlitchLine({ children }: PropsWithChildren) {',
+      '  return <p className="glitch-line">{children}</p>',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'reader', 'ProseReveal.tsx'),
+    content: [
+      "import type { PropsWithChildren } from 'react'",
+      '',
+      'export function ProseReveal({ children }: PropsWithChildren) {',
+      '  return <div className="prose-reveal">{children}</div>',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'components', 'ui', 'ProgressBar.tsx'),
+    content: [
+      'type Props = { value: number }',
+      '',
+      'export function ProgressBar({ value }: Props) {',
+      '  const width = `${Math.max(0, Math.min(100, value))}%`',
+      '  return <div className="progress-bar"><span style={{ width }} /></div>',
+      '}',
+    ].join('\n'),
+  },
+  ...Array.from({ length: 10 }, (_, index) => chapterFile(index + 1)),
+  {
+    path: btrPath('src', 'content', 'chapters', 'index.ts'),
+    content: [
+      "import { ch01Josef } from './ch01-josef'",
+      "import { ch02Josef } from './ch02-josef'",
+      "import { ch03Josef } from './ch03-josef'",
+      "import { ch04Josef } from './ch04-josef'",
+      "import { ch05Josef } from './ch05-josef'",
+      "import { ch06Josef } from './ch06-josef'",
+      "import { ch07Josef } from './ch07-josef'",
+      "import { ch08Josef } from './ch08-josef'",
+      "import { ch09Josef } from './ch09-josef'",
+      "import { ch10Josef } from './ch10-josef'",
+      '',
+      'export const chapters = [',
+      '  ch01Josef,',
+      '  ch02Josef,',
+      '  ch03Josef,',
+      '  ch04Josef,',
+      '  ch05Josef,',
+      '  ch06Josef,',
+      '  ch07Josef,',
+      '  ch08Josef,',
+      '  ch09Josef,',
+      '  ch10Josef,',
+      ']',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'hooks', 'useChapter.ts'),
+    content: [
+      "import { useMemo } from 'react'",
+      "import { chapters } from '../content/chapters'",
+      '',
+      'export function useChapter(id: string) {',
+      '  return useMemo(() => chapters.find((chapter) => chapter.id === id) ?? chapters[0], [id])',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'hooks', 'useScrollDecayModifier.ts'),
+    content: [
+      "import { useEffect, useState } from 'react'",
+      '',
+      'export function useScrollDecayModifier() {',
+      '  const [decay, setDecay] = useState(0)',
+      '',
+      '  useEffect(() => {',
+      '    function update() {',
+      '      const max = document.body.scrollHeight - window.innerHeight',
+      '      setDecay(max > 0 ? Math.min(1, window.scrollY / max) : 0)',
+      '    }',
+      '    update()',
+      '    window.addEventListener("scroll", update, { passive: true })',
+      '    return () => window.removeEventListener("scroll", update)',
+      '  }, [])',
+      '',
+      '  return decay',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'store', 'readerStore.ts'),
+    content: [
+      "import { create } from 'zustand'",
+      '',
+      'type ReaderStore = {',
+      '  activeChapterId: string',
+      '  progress: number',
+      '  setActiveChapterId: (id: string) => void',
+      '  setProgress: (progress: number) => void',
+      '}',
+      '',
+      'export const useReaderStore = create<ReaderStore>((set) => ({',
+      "  activeChapterId: 'ch01-josef',",
+      '  progress: 0,',
+      '  setActiveChapterId: (activeChapterId) => set({ activeChapterId }),',
+      '  setProgress: (progress) => set({ progress }),',
+      '}))',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'styles', 'globals.css'),
+    content: [
+      '@tailwind base;',
+      '@tailwind components;',
+      '@tailwind utilities;',
+      '',
+      ':root {',
+      '  color: #ece7df;',
+      '  background: #090807;',
+      '  font-family: Georgia, "Times New Roman", serif;',
+      '}',
+      '',
+      '.cover-page, .chapter-reader {',
+      '  min-height: 100svh;',
+      '  padding: clamp(24px, 6vw, 88px);',
+      '}',
+      '',
+      '.photo-cover img {',
+      '  width: min(420px, 70vw);',
+      '  image-rendering: auto;',
+      '}',
+      '',
+      '.blood-word { color: #b91c1c; }',
+      '.glitch-line { filter: blur(calc(var(--decay, 0) * 1px)); }',
+      '.progress-bar { height: 4px; background: #2a2522; }',
+      '.progress-bar span { display: block; height: 100%; background: #b91c1c; }',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'types', 'index.ts'),
+    content: [
+      'export type Chapter = {',
+      '  id: string',
+      '  title: string',
+      '  slug: string',
+      '  narrator: string',
+      '  summary: string',
+      '  render: () => JSX.Element',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'App.tsx'),
+    content: [
+      "import { CoverPage } from './components/pages/CoverPage'",
+      "import { ChapterNav } from './components/reader/ChapterNav'",
+      "import { ChapterReader } from './components/reader/ChapterReader'",
+      "import { DecayEngine } from './components/reader/DecayEngine'",
+      "import { FogCanvas } from './components/reader/FogCanvas'",
+      "import { chapters } from './content/chapters'",
+      "import { useScrollDecayModifier } from './hooks/useScrollDecayModifier'",
+      "import { useReaderStore } from './store/readerStore'",
+      '',
+      'export function App() {',
+      '  const decay = useScrollDecayModifier()',
+      '  const { activeChapterId, setActiveChapterId, progress } = useReaderStore()',
+      '  const chapter = chapters.find((item) => item.id === activeChapterId) ?? chapters[0]',
+      '',
+      '  return (',
+      '    <DecayEngine amount={decay}>',
+      '      <FogCanvas />',
+      '      <CoverPage />',
+      '      <ChapterNav chapters={chapters} activeId={chapter.id} onSelect={setActiveChapterId} />',
+      '      <ChapterReader chapter={chapter} progress={progress} />',
+      '    </DecayEngine>',
+      '  )',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('src', 'main.tsx'),
+    content: [
+      "import React from 'react'",
+      "import ReactDOM from 'react-dom/client'",
+      "import { App } from './App'",
+      "import './styles/globals.css'",
+      '',
+      "ReactDOM.createRoot(document.getElementById('root')!).render(",
+      '  <React.StrictMode>',
+      '    <App />',
+      '  </React.StrictMode>,',
+      ')',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('.gitignore'),
+    content: ['node_modules', 'dist', '.env', 'vite-dev.log'].join('\n'),
+  },
+  {
+    path: btrPath('index.html'),
+    content: [
+      '<!doctype html>',
+      '<html lang="en">',
+      '  <head>',
+      '    <meta charset="UTF-8" />',
+      '    <meta name="viewport" content="width=device-width, initial-scale=1.0" />',
+      '    <title>Between Two Ruins</title>',
+      '  </head>',
+      '  <body>',
+      '    <div id="root"></div>',
+      '    <script type="module" src="/src/main.tsx"></script>',
+      '  </body>',
+      '</html>',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('package.json'),
+    content: [
+      '{',
+      '  "name": "between-two-ruins-web",',
+      '  "private": true,',
+      '  "version": "0.0.0",',
+      '  "type": "module",',
+      '  "scripts": {',
+      '    "dev": "vite",',
+      '    "build": "tsc -b && vite build",',
+      '    "preview": "vite preview"',
+      '  },',
+      '  "dependencies": {',
+      '    "@vitejs/plugin-react": "^6.0.1",',
+      '    "gsap": "^3.13.0",',
+      '    "react": "^19.2.6",',
+      '    "react-dom": "^19.2.6",',
+      '    "zustand": "^5.0.9"',
+      '  },',
+      '  "devDependencies": {',
+      '    "typescript": "~6.0.2",',
+      '    "vite": "^8.0.12"',
+      '  }',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('package-lock.json'),
+    content: [
+      '{',
+      '  "name": "between-two-ruins-web",',
+      '  "version": "0.0.0",',
+      '  "lockfileVersion": 3,',
+      '  "requires": true,',
+      '  "packages": {',
+      '    "": {',
+      '      "name": "between-two-ruins-web",',
+      '      "version": "0.0.0"',
+      '    }',
+      '  }',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('postcss.config.js'),
+    content: [
+      'export default {',
+      '  plugins: {',
+      '    tailwindcss: {},',
+      '    autoprefixer: {},',
+      '  },',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('README.md'),
+    content: [
+      '# Between Two Ruins Web',
+      '',
+      'Interactive visual novel / reader scaffold for Between Two Ruins.',
+      '',
+      '## Structure',
+      '',
+      '- `components/pages` contains cover scenes.',
+      '- `components/reader` contains reader effects and prose tools.',
+      '- `content/chapters` contains Josef chapter files.',
+      '- `store/readerStore.ts` keeps the active reader state.',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('tailwind.config.ts'),
+    content: [
+      "import type { Config } from 'tailwindcss'",
+      '',
+      'export default {',
+      "  content: ['./index.html', './src/**/*.{ts,tsx}'],",
+      '  theme: {',
+      '    extend: {},',
+      '  },',
+      '  plugins: [],',
+      '} satisfies Config',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('tsconfig.json'),
+    content: [
+      '{',
+      '  "files": [],',
+      '  "references": [',
+      '    { "path": "./tsconfig.node.json" }',
+      '  ]',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('tsconfig.node.json'),
+    content: [
+      '{',
+      '  "compilerOptions": {',
+      '    "composite": true,',
+      '    "module": "ESNext",',
+      '    "moduleResolution": "Bundler",',
+      '    "jsx": "react-jsx",',
+      '    "strict": true',
+      '  },',
+      '  "include": ["src", "vite.config.ts"]',
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('vite.config.ts'),
+    content: [
+      "import { defineConfig } from 'vite'",
+      "import react from '@vitejs/plugin-react'",
+      '',
+      'export default defineConfig({',
+      '  plugins: [react()],',
+      '})',
+    ].join('\n'),
+  },
+  {
+    path: btrPath('vite-dev.log'),
+    content: 'Vite dev log placeholder for the simulated project folder.\n',
+  },
+]
+
+const BETWEEN_TWO_RUINS_WEB_SEED_PATHS = [
+  BETWEEN_TWO_RUINS_WEB_ROOT,
+  ...BETWEEN_TWO_RUINS_WEB_FOLDERS,
+  ...BETWEEN_TWO_RUINS_WEB_FILES.map((file) => file.path),
+]
 
 export function createInitialFsState(): FsState {
   const nodes: Record<string, FsNode> = {}
@@ -176,7 +759,7 @@ export function createInitialFsState(): FsState {
     modified: '06/12/2026 12:05 AM',
   })
   file('C:\\My Documents\\Resume.doc', {
-    content: portfolioData.resume.documentContent,
+    content: resumeToHtml(portfolioData.resume.documentContent),
     icon: 'wordpad',
     appId: 'wordpad',
     appPayload: { filePath: 'C:\\My Documents\\Resume.doc' },
@@ -188,10 +771,12 @@ export function createInitialFsState(): FsState {
   })
   folder('C:\\My Documents\\Music', 'folder', '06/12/2026 12:07 AM')
 
-  // ----- Projects -----
+  // ----- Projects: one folder per project -----
   folder('C:\\Projects', 'projects', '06/13/2026 12:35 AM')
   for (const project of portfolioData.projects) {
-    file(`C:\\Projects\\${project.name}.txt`, {
+    const projectDir = `C:\\Projects\\${project.name}`
+    folder(projectDir, 'folder', '06/13/2026 12:35 AM')
+    file(`${projectDir}\\README.txt`, {
       content: [
         project.name,
         '',
@@ -203,7 +788,7 @@ export function createInitialFsState(): FsState {
       ].join('\n'),
       modified: '06/13/2026 12:35 AM',
     })
-    file(`C:\\Projects\\${project.fileName}`, {
+    file(`${projectDir}\\${project.fileName}`, {
       content: project.links.demo,
       icon: 'urlFile',
       fileType: 'Internet Shortcut',
@@ -214,16 +799,22 @@ export function createInitialFsState(): FsState {
     })
   }
 
-  // ----- My Pictures -----
+  folder(BETWEEN_TWO_RUINS_WEB_ROOT, 'folder', BETWEEN_TWO_RUINS_WEB_STAMP)
+  for (const path of BETWEEN_TWO_RUINS_WEB_FOLDERS) {
+    folder(path, 'folder', BETWEEN_TWO_RUINS_WEB_STAMP)
+  }
+  for (const { path, ...opts } of BETWEEN_TWO_RUINS_WEB_FILES) {
+    file(path, { ...opts, modified: opts.modified ?? BETWEEN_TWO_RUINS_WEB_STAMP })
+  }
+
+  // ----- My Pictures (cleaned out - drop your own images here) -----
   folder('C:\\My Pictures', 'folder', '06/12/2026 12:04 AM')
-  file('C:\\My Pictures\\Welcome.bmp', { size: 153718, modified: '06/12/2026 12:04 AM' })
-  file('C:\\My Pictures\\desktop-clouds.bmp', { size: 184320, modified: '06/12/2026 12:05 AM' })
-  file('C:\\My Pictures\\portfolio-sketch.bmp', { size: 98304, modified: '06/12/2026 12:05 AM' })
-  file('C:\\My Pictures\\project-preview.url', {
-    content: 'https://portfolio.local/projects',
-    size: 512,
-    modified: '06/12/2026 12:06 AM',
-  })
+  for (const { path, ...opts } of SAMPLE_PICTURE_FILES) {
+    file(path, opts)
+  }
+
+  // ----- My Videos (drop your own clips here) -----
+  folder('C:\\My Videos', 'folder', '06/12/2026 12:04 AM')
 
   // ----- Windows -----
   folder('C:\\Windows', 'windows', '05/11/1998 08:00 AM')
@@ -260,6 +851,41 @@ export function createInitialFsState(): FsState {
   sysFile('C:\\Windows\\System32\\keyboard.drv', 28672)
   sysFile('C:\\Windows\\System32\\mouse.drv', 24576)
   sysFile('C:\\Windows\\System32\\sound.drv', 53248)
+  // Core libraries
+  sysFile('C:\\Windows\\System32\\oleaut32.dll', 593920)
+  sysFile('C:\\Windows\\System32\\olepro32.dll', 90112)
+  sysFile('C:\\Windows\\System32\\shlwapi.dll', 286720)
+  sysFile('C:\\Windows\\System32\\shdocvw.dll', 1175552)
+  sysFile('C:\\Windows\\System32\\mshtml.dll', 2342912)
+  sysFile('C:\\Windows\\System32\\urlmon.dll', 446464)
+  sysFile('C:\\Windows\\System32\\version.dll', 49152)
+  sysFile('C:\\Windows\\System32\\imm32.dll', 110592)
+  sysFile('C:\\Windows\\System32\\lz32.dll', 20480)
+  sysFile('C:\\Windows\\System32\\mpr.dll', 53248)
+  sysFile('C:\\Windows\\System32\\netapi32.dll', 184320)
+  sysFile('C:\\Windows\\System32\\secur32.dll', 65536)
+  sysFile('C:\\Windows\\System32\\crypt32.dll', 372736)
+  sysFile('C:\\Windows\\System32\\msvcp60.dll', 401408)
+  sysFile('C:\\Windows\\System32\\msvcirt.dll', 274432)
+  sysFile('C:\\Windows\\System32\\riched20.dll', 434176)
+  sysFile('C:\\Windows\\System32\\riched32.dll', 245760)
+  sysFile('C:\\Windows\\System32\\mapi32.dll', 712704)
+  sysFile('C:\\Windows\\System32\\winmm.dll', 176128)
+  sysFile('C:\\Windows\\System32\\dsound.dll', 311296)
+  sysFile('C:\\Windows\\System32\\ddraw.dll', 282624)
+  sysFile('C:\\Windows\\System32\\dplayx.dll', 204800)
+  sysFile('C:\\Windows\\System32\\opengl32.dll', 696320)
+  sysFile('C:\\Windows\\System32\\glu32.dll', 122880)
+  sysFile('C:\\Windows\\System32\\twain32.dll', 86016)
+  sysFile('C:\\Windows\\System32\\msgsm32.acm', 24576)
+  sysFile('C:\\Windows\\System32\\wdmaud.drv', 28672)
+  sysFile('C:\\Windows\\System32\\msmixmgr.dll', 16384)
+  // 16-bit core (kept for legacy apps)
+  sysFile('C:\\Windows\\System32\\krnl386.exe', 126976)
+  sysFile('C:\\Windows\\System32\\gdi.exe', 342016)
+  sysFile('C:\\Windows\\System32\\user.exe', 503808)
+  sysFile('C:\\Windows\\System32\\mmtask.tsk', 1184)
+  sysFile('C:\\Windows\\System32\\ddhelp.exe', 53248)
 
   folder('C:\\Windows\\System32\\Drivers', 'adminTools', RETRO_STAMP)
   sysFile('C:\\Windows\\System32\\Drivers\\ndis.vxd', 159744)
@@ -387,6 +1013,12 @@ export function createInitialFsState(): FsState {
     appId: 'paint',
     modified: '06/12/2026 12:13 AM',
   })
+  file('C:\\Program Files\\Accessories\\KODAKIMG.EXE', {
+    size: 73728,
+    icon: 'imageFile',
+    appId: 'imageViewer',
+    modified: '06/12/2026 12:13 AM',
+  })
   file('C:\\Program Files\\Accessories\\CALC.EXE', {
     size: 65536,
     icon: 'calculator',
@@ -403,6 +1035,12 @@ export function createInitialFsState(): FsState {
     size: 65536,
     icon: 'mediaPlayer',
     appId: 'mediaPlayer',
+    modified: '06/12/2026 12:13 AM',
+  })
+  file('C:\\Program Files\\Accessories\\VIDPLAY.EXE', {
+    size: 65536,
+    icon: 'videoFile',
+    appId: 'videoPlayer',
     modified: '06/12/2026 12:13 AM',
   })
   folder('C:\\Program Files\\Internet Explorer', 'internet', '06/12/2026 12:11 AM')
@@ -443,19 +1081,70 @@ export function createInitialFsState(): FsState {
 }
 
 const PORTFOLIO_SEEDED_PATHS = [
+  'C:\\My Pictures',
+  ...SAMPLE_PICTURE_FILES.map((file) => file.path),
+  'C:\\My Videos',
   'C:\\My Documents\\Resume.doc',
   'C:\\My Documents\\Education.txt',
   'C:\\Projects',
   ...portfolioData.projects.flatMap((project) => [
+    `C:\\Projects\\${project.name}`,
+    `C:\\Projects\\${project.name}\\README.txt`,
+    `C:\\Projects\\${project.name}\\${project.fileName}`,
+  ]),
+  ...BETWEEN_TWO_RUINS_WEB_SEED_PATHS,
+  'C:\\Program Files\\Accessories\\WORDPAD.EXE',
+  'C:\\Program Files\\Accessories\\KODAKIMG.EXE',
+  'C:\\Program Files\\Accessories\\VIDPLAY.EXE',
+]
+
+// Seed artifacts from older disk layouts. A persisted disk migrated forward
+// keeps these stale files forever (the seed top-up only ADDS), so we explicitly
+// remove them: the demo images that used to fill My Pictures, the old duplicate
+// Resume.txt, and the flat C:\Projects files now organized into per-project folders.
+const LEGACY_ARTIFACT_PATHS = [
+  'C:\\My Pictures\\Welcome.bmp',
+  'C:\\My Pictures\\desktop-clouds.bmp',
+  'C:\\My Pictures\\portfolio-sketch.bmp',
+  'C:\\My Pictures\\project-preview.url',
+  'C:\\My Documents\\Resume.txt',
+  ...portfolioData.projects.flatMap((project) => [
     `C:\\Projects\\${project.name}.txt`,
     `C:\\Projects\\${project.fileName}`,
   ]),
-  'C:\\Program Files\\Accessories\\WORDPAD.EXE',
 ]
+
+function removeNodeByPath(fs: FsState, path: string): FsState {
+  if (!fs.nodes[path]) return fs
+  const nodes = { ...fs.nodes }
+  delete nodes[path]
+  const parent = parentPath(path)
+  const parentNode = nodes[parent]
+  if (parentNode?.children?.includes(path)) {
+    nodes[parent] = { ...parentNode, children: parentNode.children.filter((child) => child !== path) }
+  }
+  return { ...fs, nodes }
+}
+
+function normalizeBitmapIcons(fs: FsState): FsState {
+  let changed = false
+  const nodes = { ...fs.nodes }
+  for (const [path, node] of Object.entries(nodes)) {
+    if (node.kind === 'file' && path.toLowerCase().endsWith('.bmp') && node.icon !== 'paint') {
+      nodes[path] = { ...node, icon: 'paint' }
+      changed = true
+    }
+  }
+  return changed ? { ...fs, nodes } : fs
+}
 
 export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   const seed = createInitialFsState()
   let next = fs
+  // Purge stale artifacts from older disk layouts before topping up the seeds.
+  for (const path of LEGACY_ARTIFACT_PATHS) {
+    next = removeNodeByPath(next, path)
+  }
   for (const path of PORTFOLIO_SEEDED_PATHS) {
     const seedNode = getNode(seed, path)
     if (!seedNode) continue
@@ -466,5 +1155,5 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
       children: seedNode.kind === 'folder' ? seedNode.children ?? [] : undefined,
     })
   }
-  return next
+  return normalizeBitmapIcons(next)
 }

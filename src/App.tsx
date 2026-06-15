@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { desktopIconDefs } from './data/apps'
+import {
+  biosSetupSections,
+  bootDeviceDosNames,
+  bootDeviceLabels,
+  bootDeviceShortLabels,
+  bootSequenceLabel,
+  defaultBiosSettings,
+  enabledBootDevices,
+  haltOnLabels,
+  moveBootDevice,
+} from './data/bios'
 import {
   bootMenuOptions,
   bootMenuTitle,
@@ -12,7 +23,7 @@ import {
   shutdownLines,
 } from './data/system'
 import { win98Icons } from './data/icons'
-import type { AppId, WindowPayload, WindowState } from './types'
+import type { AppId, BiosSettings, BootDeviceId, Point, WindowPayload, WindowState } from './types'
 import { useOs } from './os/useOs'
 import { isSystemHealthy, missingSystemFiles, restoreSystemFiles } from './os/recovery'
 import { AboutApp } from './components/apps/AboutApp'
@@ -25,6 +36,9 @@ import { CreditsApp } from './components/apps/CreditsApp'
 import { DesktopContextMenu } from './components/DesktopContextMenu'
 import { DesktopIcon } from './components/DesktopIcon'
 import { ExplorerApp } from './components/apps/ExplorerApp'
+import { GalleryApp } from './components/apps/GalleryApp'
+import { HelpApp } from './components/apps/HelpApp'
+import { ImageViewerApp } from './components/apps/ImageViewerApp'
 import { InternetExplorerApp } from './components/apps/InternetExplorerApp'
 import { MediaPlayerApp } from './components/apps/MediaPlayerApp'
 import { NetworkApp } from './components/apps/NetworkApp'
@@ -39,13 +53,49 @@ import { StartMenu } from './components/StartMenu'
 import { Taskbar } from './components/Taskbar'
 import { TaskManagerApp } from './components/apps/TaskManagerApp'
 import { TerminalApp } from './components/apps/TerminalApp'
+import { VideoPlayerApp } from './components/apps/VideoPlayerApp'
 import { WindowFrame } from './components/WindowFrame'
 import { WordPadApp } from './components/apps/WordPadApp'
 
-const bootDurationMs = 18000
+const desktopIconWidth = 88
+const desktopIconHeight = 80
+const desktopIconGapX = 8
+const desktopIconGapY = 12
 
 function formatClock(date: Date) {
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+type SelectionBox = {
+  pointerId: number
+  startX: number
+  startY: number
+  currentX: number
+  currentY: number
+  moved: boolean
+}
+
+function normalizeRect(box: Pick<SelectionBox, 'startX' | 'startY' | 'currentX' | 'currentY'>) {
+  const left = Math.min(box.startX, box.currentX)
+  const top = Math.min(box.startY, box.currentY)
+  const right = Math.max(box.startX, box.currentX)
+  const bottom = Math.max(box.startY, box.currentY)
+  return { left, top, right, bottom, width: right - left, height: bottom - top }
+}
+
+function intersectsIcon(rect: ReturnType<typeof normalizeRect>, pos: Point): boolean {
+  return (
+    rect.left <= pos.x + desktopIconWidth &&
+    rect.right >= pos.x &&
+    rect.top <= pos.y + desktopIconHeight &&
+    rect.bottom >= pos.y
+  )
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
 }
 
 // Taglish note: App.tsx ang shell/router layer. Dito lang pinipili kung anong
@@ -65,10 +115,16 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <WordPadApp {...props} />
     case 'paint':
       return <PaintApp {...props} />
+    case 'imageViewer':
+      return <ImageViewerApp key={win.payload?.filePath ?? win.instanceId} {...props} />
     case 'internetExplorer':
       return <InternetExplorerApp {...props} />
     case 'mediaPlayer':
       return <MediaPlayerApp key={win.payload?.filePath ?? win.payload?.url ?? win.instanceId} {...props} />
+    case 'videoPlayer':
+      return <VideoPlayerApp key={win.payload?.filePath ?? win.payload?.url ?? win.instanceId} {...props} />
+    case 'gallery':
+      return <GalleryApp />
     case 'soundRecorder':
       return <SoundRecorderApp />
     case 'controlPanel':
@@ -91,6 +147,8 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <ProjectDetailsApp projectId={win.payload?.projectId} />
     case 'credits':
       return <CreditsApp />
+    case 'help':
+      return <HelpApp />
     default:
       return null
   }
@@ -145,7 +203,7 @@ function BootMenu() {
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        restart(bootMenuOptions[selected].id)
+        restart(bootMenuOptions[selected].id, { bootProfile: 'warm' })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -165,7 +223,7 @@ function BootMenu() {
                 type="button"
                 className={selected === index ? 'selected' : ''}
                 onMouseEnter={() => setSelected(index)}
-                onClick={() => restart(option.id)}
+                onClick={() => restart(option.id, { bootProfile: 'warm' })}
               >
                 {index + 1}. {option.label}
               </button>
@@ -173,6 +231,386 @@ function BootMenu() {
           ))}
         </ol>
         <p className="boot-muted">Enter a choice: {selected + 1}</p>
+      </section>
+    </main>
+  )
+}
+
+type BiosRow = {
+  label: string
+  value: string
+  hint?: string
+  onChange?: () => void
+  onPrevious?: () => void
+  onNext?: () => void
+}
+
+function yesNo(value: boolean): string {
+  return value ? 'Enabled' : 'Disabled'
+}
+
+function bootDeviceEnabled(settings: BiosSettings, device: BootDeviceId): boolean {
+  if (device === 'floppy') return settings.floppyEnabled
+  if (device === 'cdrom') return settings.cdromEnabled
+  if (device === 'network') return settings.networkBootEnabled
+  return true
+}
+
+function BiosSetupScreen() {
+  const { state, setBiosSettings, restart } = useOs()
+  const [draft, setDraft] = useState<BiosSettings>(state.bios)
+  const [sectionIndex, setSectionIndex] = useState(0)
+  const [rowIndex, setRowIndex] = useState(0)
+  const section = biosSetupSections[sectionIndex]
+
+  const rows = useMemo<BiosRow[]>(() => {
+    const toggle = (key: keyof Pick<
+      BiosSettings,
+      'quickPost' | 'floppyEnabled' | 'cdromEnabled' | 'networkBootEnabled' | 'soundEnabled' | 'virusWarning'
+    >) => {
+      setDraft((current) => ({ ...current, [key]: !current[key] }))
+    }
+    const cycleHaltOn = () => {
+      const order: BiosSettings['haltOn'][] = ['allErrors', 'allButKeyboard', 'noErrors']
+      setDraft((current) => ({
+        ...current,
+        haltOn: order[(order.indexOf(current.haltOn) + 1) % order.length],
+      }))
+    }
+    const moveDevice = (device: BootDeviceId, direction: -1 | 1) => {
+      setDraft((current) => ({ ...current, bootOrder: moveBootDevice(current.bootOrder, device, direction) }))
+    }
+
+    if (section.id === 'standard') {
+      return [
+        { label: 'Date (mm:dd:yy)', value: '06/14/26' },
+        { label: 'Time (hh:mm:ss)', value: new Date().toLocaleTimeString('en-US', { hour12: false }) },
+        { label: 'Primary Master', value: 'VIRTUAL_DISK_98 2.1GB' },
+        { label: 'Primary Slave', value: 'None' },
+        { label: 'Secondary Master', value: draft.cdromEnabled ? 'PORTFOLIO CD-ROM 24X' : 'None' },
+        { label: 'Drive A', value: draft.floppyEnabled ? '1.44M, 3.5 in.' : 'None' },
+        { label: 'Base Memory', value: '640K' },
+        { label: 'Extended Memory', value: '64512K' },
+        { label: 'Display', value: 'EGA/VGA' },
+      ]
+    }
+
+    if (section.id === 'features') {
+      return [
+        { label: 'Virus Warning', value: yesNo(draft.virusWarning), onChange: () => toggle('virusWarning') },
+        { label: 'CPU Internal Cache', value: 'Enabled' },
+        { label: 'External Cache', value: 'Enabled' },
+        { label: 'Quick Power On Self Test', value: yesNo(draft.quickPost), onChange: () => toggle('quickPost') },
+        { label: 'Boot Sequence', value: bootSequenceLabel(draft) },
+        { label: 'Swap Floppy Drive', value: 'Disabled' },
+        { label: 'Boot Up NumLock Status', value: 'On' },
+        { label: 'Halt On', value: haltOnLabels[draft.haltOn], onChange: cycleHaltOn },
+      ]
+    }
+
+    if (section.id === 'peripherals') {
+      return [
+        { label: 'Onboard IDE-1 Controller', value: 'Enabled' },
+        { label: 'Onboard IDE-2 Controller', value: yesNo(draft.cdromEnabled), onChange: () => toggle('cdromEnabled') },
+        { label: 'Onboard FDC Controller', value: yesNo(draft.floppyEnabled), onChange: () => toggle('floppyEnabled') },
+        { label: 'Onboard Serial Port 1', value: '3F8/IRQ4' },
+        { label: 'Onboard Parallel Port', value: '378/IRQ7' },
+        { label: 'Sound Blaster 16', value: yesNo(draft.soundEnabled), onChange: () => toggle('soundEnabled') },
+        { label: 'PCI Ethernet Boot ROM', value: yesNo(draft.networkBootEnabled), onChange: () => toggle('networkBootEnabled') },
+      ]
+    }
+
+    if (section.id === 'boot') {
+      return draft.bootOrder.map((device, index) => ({
+        label: `${index + 1}${index === 0 ? 'st' : index === 1 ? 'nd' : index === 2 ? 'rd' : 'th'} Boot Device`,
+        value: `${bootDeviceLabels[device]}${bootDeviceEnabled(draft, device) ? '' : ' (Disabled)'}`,
+        hint: bootDeviceEnabled(draft, device)
+          ? 'Only the hard disk contains a bootable Portfolio Windows installation.'
+          : 'Enable this device under Integrated Peripherals before using it.',
+        onPrevious: () => moveDevice(device, -1),
+        onNext: () => moveDevice(device, 1),
+      }))
+    }
+
+    if (section.id === 'power') {
+      return [
+        { label: 'Power Management', value: 'User Define' },
+        { label: 'PM Control by APM', value: 'Yes' },
+        { label: 'Video Off Method', value: 'V/H SYNC+Blank' },
+        { label: 'MODEM Use IRQ', value: '3' },
+        { label: 'Soft-Off by PWR-BTTN', value: 'Instant-Off' },
+        { label: 'Resume by LAN', value: draft.networkBootEnabled ? 'Enabled' : 'Disabled' },
+      ]
+    }
+
+    if (section.id === 'defaults') {
+      return [{ label: 'Load stable defaults', value: 'Press Enter or click Load Defaults', onChange: () => setDraft(defaultBiosSettings) }]
+    }
+
+    if (section.id === 'save') {
+      return [{ label: 'Save to CMOS and exit', value: 'Press Enter or F10', onChange: () => saveAndExit() }]
+    }
+
+    return [{ label: 'Exit setup', value: 'Press Enter or Esc', onChange: () => restart('normal', { bootProfile: 'warm' }) }]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, restart, section.id])
+
+  const safeRowIndex = Math.min(rowIndex, Math.max(0, rows.length - 1))
+
+  function saveAndExit() {
+    setBiosSettings(draft)
+    restart('normal', { bootProfile: 'warm' })
+  }
+
+  function changeCurrentRow(direction?: -1 | 1) {
+    const row = rows[safeRowIndex]
+    if (!row) return
+    if (direction === -1 && row.onPrevious) {
+      row.onPrevious()
+      return
+    }
+    if (direction === 1 && row.onNext) {
+      row.onNext()
+      return
+    }
+    row.onChange?.()
+  }
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'F10') {
+        event.preventDefault()
+        saveAndExit()
+        return
+      }
+      if (event.key === 'F5') {
+        event.preventDefault()
+        setDraft(defaultBiosSettings)
+        return
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        restart('normal', { bootProfile: 'warm' })
+        return
+      }
+      if (event.key === 'ArrowRight' || event.key === 'Tab') {
+        event.preventDefault()
+        setSectionIndex((current) => (current + 1) % biosSetupSections.length)
+        setRowIndex(0)
+        return
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        setSectionIndex((current) => (current - 1 + biosSetupSections.length) % biosSetupSections.length)
+        setRowIndex(0)
+        return
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setRowIndex((current) => (current + 1) % Math.max(1, rows.length))
+        return
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setRowIndex((current) => (current - 1 + Math.max(1, rows.length)) % Math.max(1, rows.length))
+        return
+      }
+      if (event.key === 'PageUp' || event.key === '+') {
+        event.preventDefault()
+        changeCurrentRow(-1)
+        return
+      }
+      if (event.key === 'PageDown' || event.key === '-') {
+        event.preventDefault()
+        changeCurrentRow(1)
+        return
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        if (section.id === 'save') {
+          saveAndExit()
+        } else if (section.id === 'exit') {
+          restart('normal', { bootProfile: 'warm' })
+        } else {
+          changeCurrentRow()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowIndex, rows, restart, section.id, draft])
+
+  const activeRow = rows[safeRowIndex]
+
+  return (
+    <main className="bios-setup-screen" aria-label="Award BIOS setup utility">
+      <section className="bios-frame">
+        <header className="bios-title">CMOS Setup Utility - Award Software</header>
+        <div className="bios-main">
+          <nav className="bios-section-list" aria-label="BIOS setup sections">
+            {biosSetupSections.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className={sectionIndex === index ? 'selected' : ''}
+                onClick={() => {
+                  setSectionIndex(index)
+                  setRowIndex(0)
+                }}
+              >
+                {item.title}
+              </button>
+            ))}
+          </nav>
+          <section className="bios-detail" aria-label={section.title}>
+            <h1>{section.title}</h1>
+            <div className="bios-table">
+              {rows.map((row, index) => (
+                <button
+                  key={`${row.label}-${index}`}
+                  type="button"
+                  className={`bios-row ${safeRowIndex === index ? 'selected' : ''}`}
+                  onClick={() => setRowIndex(index)}
+                  onDoubleClick={() => changeCurrentRow()}
+                >
+                  <span>{row.label}</span>
+                  <strong>{row.value}</strong>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+        <footer className="bios-help">
+          <p>{activeRow?.hint ?? section.help}</p>
+          <div className="bios-actions">
+            <button type="button" onClick={() => changeCurrentRow()} disabled={!activeRow?.onChange && !activeRow?.onNext}>
+              Enter: Select
+            </button>
+            <button type="button" onClick={() => changeCurrentRow(-1)} disabled={!activeRow?.onPrevious}>
+              PgUp
+            </button>
+            <button type="button" onClick={() => changeCurrentRow(1)} disabled={!activeRow?.onNext}>
+              PgDn
+            </button>
+            <button type="button" onClick={() => setDraft(defaultBiosSettings)}>
+              F5 Defaults
+            </button>
+            <button type="button" onClick={saveAndExit}>
+              F10 Save
+            </button>
+            <button type="button" onClick={() => restart('normal', { bootProfile: 'warm' })}>
+              Esc Exit
+            </button>
+          </div>
+        </footer>
+      </section>
+    </main>
+  )
+}
+
+function BootDeviceQuickMenu() {
+  const { state, restart } = useOs()
+  const [selected, setSelected] = useState(() => Math.max(0, state.bios.bootOrder.indexOf('hardDisk')))
+  const [attemptLines, setAttemptLines] = useState<string[]>([])
+  const enabledDevices = enabledBootDevices(state.bios)
+  const devices = state.bios.bootOrder
+
+  function chooseDevice(index: number) {
+    const device = devices[index]
+    if (!device) return
+    if (!enabledDevices.includes(device)) {
+      setAttemptLines([
+        `${bootDeviceLabels[device]} is disabled in CMOS Setup.`,
+        'Press Del during POST to enable this device.',
+      ])
+      return
+    }
+    if (device === 'hardDisk') {
+      restart('normal', { bootProfile: 'warm' })
+      return
+    }
+
+    const lines: Record<Exclude<BootDeviceId, 'hardDisk'>, string[]> = {
+      cdrom: [
+        'Boot from ATAPI CD-ROM...',
+        'No bootable El Torito image was found in drive D:.',
+        'Continuing startup from fixed disk C:.',
+      ],
+      floppy: [
+        'Searching for boot record from Floppy...',
+        'Drive A: does not contain a system diskette.',
+        'Continuing startup from fixed disk C:.',
+      ],
+      network: [
+        'PXE-M0F: Exiting PCI Ethernet Boot ROM.',
+        'PXE-E61: Media test failure, check cable.',
+        'Continuing startup from fixed disk C:.',
+      ],
+    }
+    setAttemptLines(lines[device])
+    window.setTimeout(() => restart('normal', { bootProfile: 'warm' }), 1900)
+  }
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        restart('normal', { bootProfile: 'warm' })
+        return
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setSelected((current) => (current + 1) % devices.length)
+        return
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setSelected((current) => (current - 1 + devices.length) % devices.length)
+        return
+      }
+      if (event.key >= '1' && event.key <= String(devices.length)) {
+        const next = Number(event.key) - 1
+        setSelected(next)
+        chooseDevice(next)
+        return
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        chooseDevice(selected)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devices, restart, selected])
+
+  return (
+    <main className="boot-device-quick-screen">
+      <section className="boot-device-quick-panel">
+        <h1>{osProductName} Boot Device Menu</h1>
+        <p>Use arrow keys to select a startup device, then press Enter.</p>
+        <ol>
+          {devices.map((device, index) => {
+            const available = enabledDevices.includes(device)
+            return (
+              <li key={device}>
+                <button
+                  type="button"
+                  className={selected === index ? 'selected' : ''}
+                  onMouseEnter={() => setSelected(index)}
+                  onClick={() => chooseDevice(index)}
+                >
+                  {index + 1}. {bootDeviceShortLabels[device]} ({bootDeviceDosNames[device]}){' '}
+                  <span>{available ? bootDeviceLabels[device] : 'Disabled in CMOS'}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+        <p className="boot-muted">Boot sequence: {bootSequenceLabel(state.bios)}</p>
+        {attemptLines.length > 0 && <pre>{attemptLines.join('\n')}</pre>}
+        <p className="boot-muted">Esc: normal startup from fixed disk</p>
       </section>
     </main>
   )
@@ -386,21 +824,154 @@ function Desktop() {
     setAudioMuted,
   } = useOs()
   const [selectedIcon, setSelectedIcon] = useState(desktopIconDefs[0]?.id ?? 'myComputer')
+  const [selectedIconIds, setSelectedIconIds] = useState<string[]>(() =>
+    desktopIconDefs[0]?.id ? [desktopIconDefs[0].id] : [],
+  )
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null)
   const [refreshingDesktop, setRefreshingDesktop] = useState(false)
   const [clock, setClock] = useState(() => formatClock(new Date()))
+  const desktopRef = useRef<HTMLDivElement>(null)
   const orderedWindows = useMemo(() => [...state.windows].sort((a, b) => a.zIndex - b.zIndex), [state.windows])
+  const primarySelectedIcon = selectedIconIds[0]
+  const keyboardAnchorIcon = primarySelectedIcon ?? selectedIcon ?? desktopIconDefs[0]?.id
 
   useEffect(() => {
     const interval = window.setInterval(() => setClock(formatClock(new Date())), 1000)
     return () => window.clearInterval(interval)
   }, [])
 
+  function focusDesktopIcon(id: string) {
+    window.requestAnimationFrame(() => {
+      const button = desktopRef.current?.querySelector<HTMLButtonElement>(`[data-desktop-icon-id="${id}"]`)
+      button?.focus()
+    })
+  }
+
+  function selectDesktopIcon(id: string, extend = false) {
+    setSelectedIcon(id)
+    setSelectedIconIds((current) => {
+      if (!extend) return [id]
+      return current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    })
+  }
+
+  const desktopPoint = useCallback((clientX: number, clientY: number): Point => {
+    const rect = desktopRef.current?.getBoundingClientRect()
+    return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
+  }, [])
+
+  const selectedIdsForBox = useCallback((box: SelectionBox): string[] => {
+    const rect = normalizeRect(box)
+    return desktopIconDefs
+      .filter((icon) => intersectsIcon(rect, state.desktopIcons[icon.id] ?? { x: 10, y: 12 }))
+      .map((icon) => icon.id)
+  }, [state.desktopIcons])
+
+  const findNextDesktopIcon = useCallback((currentId: string, key: string): string => {
+    const current = state.desktopIcons[currentId] ?? { x: 10, y: 12 }
+    const currentCenter = {
+      x: current.x + desktopIconWidth / 2,
+      y: current.y + desktopIconHeight / 2,
+    }
+    const scored = desktopIconDefs
+      .filter((icon) => icon.id !== currentId)
+      .map((icon) => {
+        const pos = state.desktopIcons[icon.id] ?? { x: 10, y: 12 }
+        const center = { x: pos.x + desktopIconWidth / 2, y: pos.y + desktopIconHeight / 2 }
+        return { id: icon.id, dx: center.x - currentCenter.x, dy: center.y - currentCenter.y }
+      })
+      .filter((item) => {
+        if (key === 'ArrowRight') return item.dx > 0
+        if (key === 'ArrowLeft') return item.dx < 0
+        if (key === 'ArrowDown') return item.dy > 0
+        return item.dy < 0
+      })
+      .sort((a, b) => {
+        const primaryA = key === 'ArrowLeft' || key === 'ArrowRight' ? Math.abs(a.dx) : Math.abs(a.dy)
+        const primaryB = key === 'ArrowLeft' || key === 'ArrowRight' ? Math.abs(b.dx) : Math.abs(b.dy)
+        const secondaryA = key === 'ArrowLeft' || key === 'ArrowRight' ? Math.abs(a.dy) : Math.abs(a.dx)
+        const secondaryB = key === 'ArrowLeft' || key === 'ArrowRight' ? Math.abs(b.dy) : Math.abs(b.dx)
+        return primaryA - primaryB || secondaryA - secondaryB
+      })
+    return scored[0]?.id ?? currentId
+  }, [state.desktopIcons])
+
+  function lineUpIcons() {
+    const targets = selectedIconIds.length ? selectedIconIds : desktopIconDefs.map((icon) => icon.id)
+    const orderedTargets = [...targets].sort((a, b) => {
+      const posA = state.desktopIcons[a] ?? { x: 10, y: 12 }
+      const posB = state.desktopIcons[b] ?? { x: 10, y: 12 }
+      return posA.y - posB.y || posA.x - posB.x
+    })
+    const desktopHeight = Math.max(160, window.innerHeight - 33)
+    const rowsPerColumn = Math.max(1, Math.floor((desktopHeight - 24) / (desktopIconHeight + desktopIconGapY)))
+    orderedTargets.forEach((id, index) => {
+      const column = Math.floor(index / rowsPerColumn)
+      const row = index % rowsPerColumn
+      moveDesktopIcon(id, {
+        x: 10 + column * (desktopIconWidth + desktopIconGapX),
+        y: 12 + row * (desktopIconHeight + desktopIconGapY),
+      })
+    })
+    setContextMenu(null)
+  }
+
+  useEffect(() => {
+    if (!selectionBox) return
+    const activeBox: SelectionBox = selectionBox
+
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerId !== activeBox.pointerId) return
+      const point = desktopPoint(event.clientX, event.clientY)
+      const moved =
+        activeBox.moved ||
+        Math.abs(point.x - activeBox.startX) > 4 ||
+        Math.abs(point.y - activeBox.startY) > 4
+      const nextBox: SelectionBox = { ...activeBox, currentX: point.x, currentY: point.y, moved }
+      setSelectionBox(nextBox)
+      if (moved) {
+        setSelectedIconIds(selectedIdsForBox(nextBox))
+      }
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      if (event.pointerId !== activeBox.pointerId) return
+      const point = desktopPoint(event.clientX, event.clientY)
+      const moved =
+        activeBox.moved ||
+        Math.abs(point.x - activeBox.startX) > 4 ||
+        Math.abs(point.y - activeBox.startY) > 4
+      if (!moved) {
+        setSelectedIconIds([])
+      }
+      setSelectionBox(null)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+    }
+  }, [desktopPoint, selectedIdsForBox, selectionBox])
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.ctrlKey && event.key === 'Escape') {
+        event.preventDefault()
+        setContextMenu(null)
+        setStartMenuOpen(!state.startMenuOpen)
+        return
+      }
       if (event.key === 'Escape') {
         setStartMenuOpen(false)
         setContextMenu(null)
+        if (selectedIconIds.length) {
+          setSelectedIconIds([])
+        }
       }
       if (event.altKey && event.key.toLowerCase() === 'tab') {
         event.preventDefault()
@@ -409,10 +980,42 @@ function Desktop() {
         const currentIndex = visible.findIndex((item) => item.instanceId === state.activeWindowId)
         focusWindow(visible[(currentIndex + 1) % visible.length].instanceId)
       }
+      if (event.key === 'F5') {
+        event.preventDefault()
+        refreshDesktop()
+      }
+      if (isEditableTarget(event.target)) {
+        return
+      }
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        event.preventDefault()
+        const nextId = findNextDesktopIcon(keyboardAnchorIcon, event.key)
+        selectDesktopIcon(nextId)
+        focusDesktopIcon(nextId)
+      }
+      if (event.key === 'Enter' && primarySelectedIcon) {
+        const icon = desktopIconDefs.find((item) => item.id === primarySelectedIcon)
+        if (icon) {
+          event.preventDefault()
+          openApp(icon.appId, icon.payload)
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [focusWindow, setStartMenuOpen, state.activeWindowId, state.windows])
+  }, [
+    focusWindow,
+    findNextDesktopIcon,
+    openApp,
+    keyboardAnchorIcon,
+    primarySelectedIcon,
+    selectedIconIds.length,
+    setStartMenuOpen,
+    state.activeWindowId,
+    state.desktopIcons,
+    state.startMenuOpen,
+    state.windows,
+  ])
 
   function taskClick(instanceId: string) {
     const target = state.windows.find((item) => item.instanceId === instanceId)
@@ -439,10 +1042,38 @@ function Desktop() {
       }}
     >
       <div
+        ref={desktopRef}
         className={`desktop ${refreshingDesktop ? 'is-refreshing' : ''}`}
         aria-label="Windows 98 portfolio desktop"
+        onPointerDown={(event) => {
+          const target = event.target as HTMLElement
+          setStartMenuOpen(false)
+          setContextMenu(null)
+          if (
+            event.button !== 0 ||
+            target.closest('.desktop-icon, .window, .desktop-context-menu')
+          ) {
+            return
+          }
+          const point = desktopPoint(event.clientX, event.clientY)
+          setSelectionBox({
+            pointerId: event.pointerId,
+            startX: point.x,
+            startY: point.y,
+            currentX: point.x,
+            currentY: point.y,
+            moved: false,
+          })
+        }}
         onContextMenu={(event) => {
           event.preventDefault()
+          const target = event.target as HTMLElement
+          const iconButton = target.closest<HTMLButtonElement>('.desktop-icon')
+          if (iconButton?.dataset.desktopIconId) {
+            selectDesktopIcon(iconButton.dataset.desktopIconId)
+          } else {
+            setSelectedIconIds([])
+          }
           const menuWidth = 210
           const menuHeight = 190
           setStartMenuOpen(false)
@@ -459,13 +1090,25 @@ function Desktop() {
               key={iconDef.id}
               iconDef={iconDef}
               position={state.desktopIcons[iconDef.id] ?? { x: 10, y: 12 }}
-              selected={selectedIcon === iconDef.id}
-              onSelect={() => setSelectedIcon(iconDef.id)}
+              selected={selectedIconIds.includes(iconDef.id)}
+              onSelect={(extend) => selectDesktopIcon(iconDef.id, extend)}
               onOpen={() => openApp(iconDef.appId, iconDef.payload)}
               onMove={moveDesktopIcon}
             />
           ))}
         </div>
+        {selectionBox?.moved && (
+          <div
+            className="desktop-selection-box"
+            style={{
+              left: normalizeRect(selectionBox).left,
+              top: normalizeRect(selectionBox).top,
+              width: normalizeRect(selectionBox).width,
+              height: normalizeRect(selectionBox).height,
+            }}
+            aria-hidden="true"
+          />
+        )}
         {orderedWindows.map((windowState) =>
           windowState.minimized ? null : (
             <WindowFrame
@@ -502,6 +1145,7 @@ function Desktop() {
               arrangeDesktopIcons()
               setContextMenu(null)
             }}
+            onLineUpIcons={lineUpIcons}
           />
         )}
         <MessageBoxHost />
@@ -534,7 +1178,11 @@ function App() {
 
   switch (state.phase) {
     case 'boot':
-      return <BootScreen durationMs={state.bootProfile === 'warm' ? 6000 : bootDurationMs} />
+      return <BootScreen />
+    case 'biosSetup':
+      return <BiosSetupScreen />
+    case 'bootDeviceMenu':
+      return <BootDeviceQuickMenu />
     case 'bootMenu':
       return <BootMenu />
     case 'desktop':
