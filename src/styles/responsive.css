@@ -1,0 +1,152 @@
+
+@media (max-width: 720px) {
+  .desktop {
+    inset-bottom: 38px;
+  }
+
+  .desktop-grid {
+    inset: 0;
+  }
+
+  .win-window:not(.is-maximized) {
+    width: calc(100vw - 16px) !important;
+    height: calc(100svh - 170px) !important;
+    min-width: 0;
+    transform: translate3d(8px, 118px, 0) !important;
+  }
+
+  .file-row {
+    grid-template-columns: 22px minmax(100px, 1fr);
+  }
+
+  .file-manager-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .file-tree,
+  .file-webinfo {
+    display: none;
+  }
+
+  .file-header,
+  .file-row.file-manager-row {
+    grid-template-columns: minmax(120px, 1fr) minmax(90px, 0.8fr);
+  }
+
+  .file-header button:nth-child(3),
+  .file-header button:nth-child(4),
+  .file-row.file-manager-row span:nth-of-type(3),
+  .file-row.file-manager-row span:nth-of-type(4) {
+    display: none;
+  }
+
+  .paint-layout {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .paint-toolbox button {
+    font-size: 10px;
+    padding: 3px 1px;
+  }
+
+  .wordpad-ruler {
+    display: none;
+  }
+
+  .wordpad-toolbar input {
+    flex-basis: 132px;
+  }
+
+  .wordpad-workspace {
+    padding: 6px 0 10px;
+  }
+
+  .wordpad-page-shell {
+    padding: 0 6px;
+  }
+
+  .wordpad-page {
+    min-height: 520px;
+    padding: 20px 14px;
+  }
+
+  .recycle-row {
+    grid-template-columns: minmax(130px, 1fr) auto;
+  }
+
+  .recycle-row span:nth-of-type(2),
+  .recycle-row span:nth-of-type(3),
+  .recycle-row span:nth-of-type(4) {
+    display: none;
+  }
+
+  .file-row:not(.file-manager-row) span:nth-of-type(2),
+  .file-row:not(.file-manager-row) span:nth-of-type(3) {
+    display: none;
+  }
+
+  .start-menu {
+    grid-template-columns: 30px minmax(190px, 1fr);
+    width: calc(100vw - 4px);
+  }
+
+  .submenu {
+    left: 34px;
+    top: auto;
+    bottom: 0;
+    width: calc(100vw - 44px);
+  }
+
+  .nested-submenu {
+    top: auto;
+  }
+
+  .taskbar {
+    height: 38px;
+    grid-template-columns: auto 1fr;
+  }
+
+  .tray {
+    display: none;
+  }
+
+  .task-button {
+    min-width: 54px;
+    padding-inline: 5px;
+  }
+
+  .task-button span {
+    display: none;
+  }
+
+  .bios-frame {
+    inset: 6px;
+    font-size: 11px;
+  }
+
+  .bios-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 6px;
+  }
+
+  .bios-section-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 126px;
+    overflow: auto;
+  }
+
+  .bios-section-list button {
+    white-space: normal;
+  }
+
+  .bios-row {
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+
+  .boot-device-quick-panel button {
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+}

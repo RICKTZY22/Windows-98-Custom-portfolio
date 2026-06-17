@@ -1,0 +1,124 @@
+
+/* ----- Gallery / My Pictures ----- */
+.gallery-app {
+  grid-template-rows: auto auto 1fr auto;
+}
+
+.gallery-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 3px 10px;
+}
+
+.gallery-toolbar button img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.gallery-toolbar .pressed {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
+}
+
+.gallery-grid-wrap {
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  background: #fff;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.gallery-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+
+.gallery-tile:hover {
+  border-color: #99b4d1;
+  background: #eef3fb;
+}
+
+.gallery-tile.selected {
+  border-color: #000080;
+  background: #cdd9ec;
+}
+
+.gallery-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 84px;
+  overflow: hidden;
+  background: #c0c0c0;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+}
+
+.gallery-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.gallery-thumb-icon {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.gallery-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  color: #fff;
+  text-shadow: 0 0 4px #000;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.gallery-name {
+  max-width: 112px;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  word-break: break-word;
+}
+
+.gallery-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  height: 100%;
+  text-align: center;
+  color: #404040;
+}
+
+.gallery-empty img {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.gallery-hint {
+  max-width: 320px;
+  font-size: 11px;
+  color: #808080;
+}

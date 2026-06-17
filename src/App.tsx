@@ -1,5 +1,4 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import './App.css'
 import { desktopIconDefs } from './data/apps'
 import {
   biosSetupSections,

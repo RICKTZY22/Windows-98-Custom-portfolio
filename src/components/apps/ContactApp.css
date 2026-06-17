@@ -1,0 +1,21 @@
+
+.contact-field {
+  align-items: start;
+}
+
+.contact-field input {
+  width: min(260px, 100%);
+}
+
+.contact-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+}
+
+.contact-links img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}

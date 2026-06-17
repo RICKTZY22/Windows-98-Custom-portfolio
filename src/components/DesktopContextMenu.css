@@ -1,0 +1,72 @@
+
+.desktop-context-menu {
+  position: absolute;
+  z-index: 10001;
+  width: 210px;
+  background: silver;
+  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff;
+  padding: 3px;
+}
+
+.desktop-context-menu ul,
+.context-submenu {
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+}
+
+.desktop-context-menu li {
+  position: relative;
+}
+
+.desktop-context-menu button,
+.context-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 24px;
+  gap: 7px;
+  padding: 3px 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #111;
+  text-align: left;
+}
+
+.desktop-context-menu img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.desktop-context-menu button:hover,
+.desktop-context-menu button:focus,
+.context-row:hover,
+.context-row:focus {
+  color: #fff;
+  background: #000080;
+  outline: none;
+}
+
+.context-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  display: none;
+  width: 150px;
+  background: silver;
+  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff;
+}
+
+.has-submenu:hover > .context-submenu,
+.has-submenu:focus-within > .context-submenu {
+  display: block;
+}
+
+.context-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: grey;
+  border-bottom: 1px solid #fff;
+}

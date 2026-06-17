@@ -1,0 +1,124 @@
+
+/* ----- Minesweeper ----- */
+.minesweeper-app {
+  grid-template-rows: auto auto auto;
+  gap: 6px;
+  justify-items: start;
+  align-content: start;
+}
+
+.ms-menu {
+  position: relative;
+}
+
+.ms-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 6;
+  display: none;
+  min-width: 154px;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #fff, 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.ms-menu:hover .ms-menu-dropdown,
+.ms-menu:focus-within .ms-menu-dropdown {
+  display: block;
+}
+
+.ms-menu-dropdown button {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 10px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  white-space: pre;
+  cursor: default;
+}
+
+.ms-menu-dropdown button:hover {
+  color: #fff;
+  background: #000080;
+}
+
+.ms-menu-sep {
+  height: 0;
+  margin: 3px 2px;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #fff;
+}
+
+.ms-frame {
+  display: inline-grid;
+  gap: 8px;
+  padding: 8px;
+  background: #c0c0c0;
+}
+
+.ms-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+}
+
+.ms-counter {
+  min-width: 58px;
+  padding: 3px 6px;
+  background: #000;
+  color: #ff2d2d;
+  font-family: "Courier New", monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.ms-face {
+  width: 38px;
+  height: 38px;
+  min-width: 0;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.ms-grid {
+  display: grid;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+}
+
+.ms-cell {
+  width: 26px;
+  height: 26px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: #c0c0c0;
+  box-shadow: inset -2px -2px #808080, inset 2px 2px #fff;
+  font-family: "Courier New", monospace;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+}
+
+.ms-cell.is-revealed {
+  background: #c0c0c0;
+  box-shadow: inset 0 0 0 1px #9a9a9a;
+}
+
+.ms-cell.is-mine {
+  background: #ff0000;
+  box-shadow: inset 0 0 0 1px #9a9a9a;
+}

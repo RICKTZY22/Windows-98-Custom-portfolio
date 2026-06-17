@@ -1,0 +1,55 @@
+
+.tree-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 20px;
+  padding: 1px 4px;
+  background: transparent;
+  box-shadow: none;
+  color: #111;
+}
+
+.tree-button:focus,
+.tree-button:hover {
+  background: #000080;
+  color: #fff;
+}
+
+.tree-button img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.explorer-context-menu {
+  width: 190px;
+}
+
+.explorer-context-menu .context-default {
+  font-weight: 700;
+}
+
+.explorer-context-menu button:disabled {
+  color: grey;
+  text-shadow: 1px 1px #fff;
+}
+
+.explorer-context-menu button:disabled:hover {
+  background: transparent;
+  color: grey;
+}
+
+.rename-input {
+  flex: 1;
+  min-width: 60px;
+  height: 18px;
+  padding: 0 2px;
+  font-size: 12px;
+}
+
+.file-list-empty {
+  margin: 10px;
+  color: #555;
+}

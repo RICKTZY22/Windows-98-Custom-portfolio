@@ -1,3 +1,4 @@
+import './RunDialogApp.css'
 import { useState } from 'react'
 import type { AppId } from '../../types'
 import { win98Icons } from '../../data/icons'

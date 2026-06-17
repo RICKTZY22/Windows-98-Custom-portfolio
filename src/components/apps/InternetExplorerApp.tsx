@@ -1,3 +1,4 @@
+import './InternetExplorerApp.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps } from '../../types'
 import { win98Icons } from '../../data/icons'

@@ -1,3 +1,4 @@
+import './VideoPlayerApp.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps, FsNode } from '../../types'
 import { win98Icons } from '../../data/icons'

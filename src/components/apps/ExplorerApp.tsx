@@ -1,3 +1,4 @@
+import './ExplorerApp.css'
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { win98Icons } from '../../data/icons'
 import type { AppProps, FsNode } from '../../types'

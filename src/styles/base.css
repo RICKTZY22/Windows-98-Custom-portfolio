@@ -1,0 +1,57 @@
+.boot-screen,
+.os-shell {
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  color: #111;
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+}
+
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: progress;
+}
+
+.app-content h2,
+.app-content h3 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.title-bar-controls,
+button,
+a {
+  cursor: pointer;
+}
+
+input,
+textarea,
+.terminal-output {
+  cursor: text;
+}
+
+.app-window-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overflow-x: hidden;
+}
+
+.app-content {
+  display: grid;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.compact-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.compact-list li + li {
+  margin-top: 4px;
+}

@@ -1,0 +1,134 @@
+
+/* ----- Help / guidelines ----- */
+.help-app {
+  grid-template-rows: auto 1fr auto;
+}
+
+.help-layout {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.help-nav {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  background: #fff;
+}
+
+.help-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.help-nav-title img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.help-nav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.help-nav-btn {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 2px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: default;
+}
+
+.help-nav-btn:hover {
+  background: #d4d0c8;
+}
+
+.help-nav-btn.selected {
+  color: #fff;
+  background: #000080;
+}
+
+.help-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.help-article h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.help-article h3 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+  color: #000080;
+}
+
+.help-article p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.help-list {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.help-list li {
+  margin-bottom: 3px;
+  line-height: 1.4;
+}
+
+.help-defs {
+  margin: 0;
+}
+
+.help-defs dt {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.help-defs dd {
+  margin: 0 0 2px;
+  padding-left: 14px;
+  line-height: 1.4;
+}
+
+.help-commands {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+}
+
+.help-commands th,
+.help-commands td {
+  padding: 3px 8px;
+  border: 1px solid #c0c0c0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.help-commands th {
+  background: #c0c0c0;
+  font-weight: 700;
+}
+
+.help-commands td code,
+.help-article code {
+  padding: 0 2px;
+  background: #f0f0f0;
+  font-family: "Courier New", monospace;
+}

@@ -1,0 +1,73 @@
+
+.sound-recorder-app {
+  grid-template-rows: auto auto 1fr auto auto;
+}
+
+.sound-recorder-panel {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.sound-recorder-panel img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.sound-recorder-panel h2,
+.sound-recorder-panel p {
+  margin: 0;
+}
+
+.sound-display {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  min-height: 54px;
+  padding: 8px;
+  background: #000;
+  color: #00ff00;
+  font-family: "Courier New", monospace;
+}
+
+.sound-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 34px;
+}
+
+.sound-wave i {
+  display: block;
+  width: 4px;
+  background: #008000;
+}
+
+.sound-wave.recording i,
+.sound-wave.playing i {
+  background: #00ff00;
+  animation: sound-bars 700ms steps(3, end) infinite;
+}
+
+.sound-wave i:nth-child(2n) {
+  animation-delay: 120ms;
+}
+
+.sound-wave i:nth-child(3n) {
+  animation-delay: 220ms;
+}
+
+@keyframes sound-bars {
+  50% {
+    transform: scaleY(0.35);
+  }
+}
+
+.sound-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}

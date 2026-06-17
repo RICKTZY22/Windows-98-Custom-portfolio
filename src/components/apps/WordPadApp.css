@@ -1,0 +1,313 @@
+
+.wordpad-app {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wordpad-toolbar,
+.wordpad-formatbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+/* ----- functional menu bar (File / Edit / View / ...) ----- */
+.wordpad-app .os-menu-bar {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+}
+
+.wordpad-app .os-menu-bar .wp-menu {
+  position: relative;
+  cursor: default;
+  user-select: none;
+}
+
+.wordpad-app .os-menu-bar .wp-menu.open {
+  color: #fff;
+  background: #000080;
+}
+
+.wp-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+}
+
+.wp-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 6;
+  min-width: 184px;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  color: #000;
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #fff, 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.wp-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 22px;
+  padding: 2px 10px 2px 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: default;
+}
+
+.wp-menu-item:hover,
+.wp-menu-item:focus {
+  color: #fff;
+  background: #000080;
+  box-shadow: none;
+}
+
+.wp-menu-item:active {
+  box-shadow: none;
+}
+
+.wp-menu-check {
+  width: 12px;
+  text-align: center;
+}
+
+.wp-menu-text {
+  flex: 1 1 auto;
+}
+
+.wp-menu-shortcut {
+  opacity: 0.85;
+  padding-left: 16px;
+}
+
+.wp-menu-sep {
+  height: 0;
+  margin: 3px 2px;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #fff;
+}
+
+.wp-toolbar-sep {
+  width: 0;
+  height: 20px;
+  margin: 0 3px;
+  border-left: 1px solid #808080;
+  border-right: 1px solid #fff;
+}
+
+.wordpad-toolbar button,
+.wordpad-formatbar button {
+  min-width: 0;
+  padding: 3px 9px;
+}
+
+.wordpad-toolbar input {
+  flex: 0 1 180px;
+  min-width: 116px;
+}
+
+.wordpad-formatbar select {
+  min-width: 78px;
+  max-width: 150px;
+}
+
+.wordpad-formatbar button {
+  width: 28px;
+  min-width: 28px;
+  padding-inline: 0;
+  font-weight: 700;
+}
+
+.wordpad-formatbar button[title="Bullets"] {
+  width: 36px;
+  min-width: 36px;
+  font-size: 11px;
+}
+
+.wordpad-formatbar .wp-italic {
+  font-style: italic;
+}
+
+.wordpad-formatbar .wp-underline {
+  text-decoration: underline;
+}
+
+.wordpad-formatbar .pressed {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
+}
+
+/* ----- font colour dropdown ----- */
+.wp-color {
+  position: relative;
+}
+
+.wordpad-formatbar .wp-color-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: auto;
+  min-width: 0;
+  padding: 2px 4px;
+}
+
+.wp-color-glyph {
+  font-weight: 700;
+}
+
+.wp-color-bar {
+  width: 14px;
+  height: 4px;
+  border: 1px solid #000;
+}
+
+.wp-color-caret {
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.wp-color-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 7;
+  margin: 1px 0 0;
+  padding: 2px;
+  list-style: none;
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #fff, 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.wp-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 132px;
+  padding: 2px 8px 2px 3px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  font-weight: 400;
+  cursor: default;
+}
+
+.wp-color-row:hover {
+  color: #fff;
+  background: #000080;
+  box-shadow: none;
+}
+
+.wp-color-row.selected {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+}
+
+.wp-color-chip {
+  width: 16px;
+  height: 14px;
+  border: 1px solid #000;
+}
+
+.wordpad-ruler {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  height: 18px;
+  padding: 1px 8px;
+  color: #111;
+  background: #dfdfdf;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px grey;
+  font-size: 11px;
+}
+
+.wordpad-ruler span {
+  border-left: 1px solid #808080;
+  padding-left: 3px;
+}
+
+.wordpad-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 0 18px;
+  background: #808080;
+}
+
+.wordpad-pages {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  min-width: min-content;
+}
+
+.wordpad-page-shell {
+  display: grid;
+  gap: 4px;
+  width: min(100%, 682px);
+  padding: 0 14px;
+}
+
+.wordpad-page-label {
+  justify-self: end;
+  margin: 0;
+  color: #e8e8e8;
+  font-size: 11px;
+  line-height: 1;
+  text-shadow: 1px 1px #404040;
+}
+
+.wordpad-page {
+  display: block;
+  width: 100%;
+  min-height: 760px;
+  margin: 0 auto;
+  padding: 42px 48px;
+  border: 0;
+  outline: none;
+  background: #fff;
+  color: #111;
+  box-shadow: 1px 1px 0 #404040;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.wordpad-page-shell.active .wordpad-page {
+  outline: 1px dotted #000080;
+  outline-offset: 2px;
+}
+
+.wordpad-page:empty::before {
+  content: "";
+}
+
+.wordpad-page ul,
+.wordpad-page ol {
+  margin: 0;
+  padding-left: 26px;
+}
+
+.wordpad-app .status-bar-field {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

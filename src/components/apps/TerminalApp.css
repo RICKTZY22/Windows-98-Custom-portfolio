@@ -1,0 +1,35 @@
+
+.terminal-app {
+  height: 100%;
+  min-height: 0;
+  padding: 6px;
+  color: #c0c0c0;
+  background: #000;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.terminal-output {
+  height: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.terminal-input-line {
+  display: flex;
+  align-items: center;
+}
+
+.terminal-input-line input {
+  flex: 1;
+  min-width: 80px;
+  height: auto;
+  padding: 0;
+  color: #c0c0c0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  font: inherit;
+  outline: none;
+}

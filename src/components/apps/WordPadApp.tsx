@@ -1,3 +1,4 @@
+import './WordPadApp.css'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import type { AppProps } from '../../types'

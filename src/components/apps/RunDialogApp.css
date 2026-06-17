@@ -1,0 +1,9 @@
+
+.run-dialog-app {
+  display: grid;
+  gap: 14px;
+}
+
+.run-dialog-app input {
+  width: 100%;
+}

@@ -1,3 +1,4 @@
+import './HelpApp.css'
 import { useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { portfolioData } from '../../data/portfolioData'

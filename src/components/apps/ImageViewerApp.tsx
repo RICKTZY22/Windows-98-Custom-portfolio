@@ -1,3 +1,4 @@
+import './ImageViewerApp.css'
 import { useEffect, useMemo, useState } from 'react'
 import type { AppProps, FsNode } from '../../types'
 import { win98Icons } from '../../data/icons'

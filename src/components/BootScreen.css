@@ -1,0 +1,224 @@
+
+.boot-terminal-screen {
+  background: #000;
+  color: #c8c8c8;
+  font-family: "Courier New", Consolas, monospace;
+  text-shadow: 0 0 2px #777;
+}
+
+.boot-terminal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(14px, 3vw, 36px) clamp(18px, 9vw, 116px) 14px;
+  overflow: hidden;
+  font-size: clamp(10px, 1.4vw, 14px);
+  line-height: 1.2;
+}
+
+.boot-terminal pre,
+.boot-driver-log,
+.boot-device-menu p,
+.boot-device-menu ol {
+  margin: 0;
+}
+
+.boot-terminal pre {
+  display: block;
+  width: auto;
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  font: inherit !important;
+  text-shadow: inherit;
+  white-space: pre-wrap;
+}
+
+.boot-device-menu {
+  display: grid;
+  gap: 8px;
+  width: min(760px, 100%);
+  margin-top: 22px;
+}
+
+.boot-device-menu .boot-device-hint {
+  color: #9f9f9f;
+  font-size: 0.9em;
+}
+
+.boot-device-menu ol {
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.boot-device-menu button {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.boot-device-menu button.selected {
+  background: #c8c8c8;
+  color: #000;
+  text-shadow: none;
+}
+
+/* Scrolling text region so the console can grow without overlapping the footer. */
+.boot-terminal-scroll {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.boot-terminal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.boot-driver-log {
+  align-self: start;
+  width: min(820px, 100%);
+  margin-top: 22px;
+}
+
+.boot-terminal footer {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a2a;
+  color: #9f9f9f;
+  font-size: 0.85em;
+}
+
+/* Device-selection screen: centre the menu so nothing crowds the choices. */
+.boot-terminal-menu {
+  justify-content: center;
+}
+
+.boot-failure {
+  color: #ff8a8a;
+}
+
+.boot-caret {
+  display: inline-block;
+  width: 0.65em;
+  height: 0.85em;
+  margin-left: 0.35em;
+  background: #c8c8c8;
+  animation: boot-caret 900ms steps(1, end) infinite;
+  vertical-align: -0.1em;
+}
+
+@keyframes boot-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.boot-splash-screen {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #d8ecfb 0%, #96c8e9 48%, #6fb0d2 100%);
+  color: #111;
+}
+
+.boot-splash {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(760px, 92vw);
+  min-height: min(420px, 74dvh);
+  align-content: center;
+}
+
+.boot-splash-logo {
+  width: clamp(160px, 30vw, 340px);
+  height: clamp(160px, 30vw, 340px);
+  image-rendering: pixelated;
+  filter: drop-shadow(5px 10px 0 rgba(0, 0, 0, 0.16));
+}
+
+.boot-splash-title {
+  display: grid;
+  justify-items: center;
+  line-height: 1;
+}
+
+.boot-splash-title span {
+  font-family: Arial, sans-serif;
+  font-size: clamp(14px, 2.4vw, 22px);
+}
+
+.boot-splash-title strong {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(36px, 8vw, 76px);
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.boot-splash-title em {
+  margin-top: 6px;
+  font-style: normal;
+  font-size: clamp(14px, 2.8vw, 24px);
+}
+
+.boot-splash-credit {
+  margin: 0;
+  font-size: clamp(12px, 2vw, 16px);
+}
+
+.boot-splash-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin-top: 12px;
+  color: #333;
+  font-size: 12px;
+}
+
+.boot-splash-status i {
+  width: 5px;
+  height: 5px;
+  background: #333;
+  animation: splash-dot 900ms steps(1, end) infinite;
+}
+
+.boot-splash-status i:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.boot-splash-status i:nth-child(4) {
+  animation-delay: 320ms;
+}
+
+@keyframes splash-dot {
+  50% {
+    opacity: 0.18;
+  }
+}
+
+/* === Boot credit ========================================================= */
+
+.boot-credit {
+  color: #555;
+  font-size: 11px;
+}

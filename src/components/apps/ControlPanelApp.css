@@ -1,0 +1,128 @@
+
+.control-panel-app {
+  grid-template-rows: minmax(110px, 0.55fr) minmax(160px, 1fr);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px;
+  overflow: auto;
+}
+
+.control-icon {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 74px;
+  padding: 4px;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.control-icon img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.control-icon:hover,
+.control-icon:focus {
+  background: #000080;
+  color: #fff;
+}
+
+.control-detail {
+  min-height: 0;
+  overflow: auto;
+}
+
+/* === Soundboard (Control Panel sounds) ================================== */
+
+.soundboard {
+  display: grid;
+  gap: 8px;
+}
+
+.soundboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 6px;
+}
+
+.soundboard-grid button {
+  min-width: 0;
+}
+
+/* ----- Add/Remove Programs ----- */
+.arp-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+}
+
+.arp-hint {
+  margin: 0;
+  font-size: 11px;
+  color: #404040;
+}
+
+.arp-list {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 2px;
+  background: #fff;
+}
+
+.arp-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 6px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arp-item img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.arp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arp-size {
+  color: #404040;
+  font-variant-numeric: tabular-nums;
+}
+
+.arp-item.selected {
+  color: #fff;
+  background: #000080;
+}
+
+.arp-item.selected .arp-size {
+  color: #c8c8ff;
+}
+
+.arp-actions {
+  justify-content: flex-end;
+}

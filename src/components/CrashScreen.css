@@ -1,0 +1,39 @@
+
+.crash-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 26px;
+  color: #fff;
+  background: #0000aa;
+  font-family: "Courier New", monospace;
+  cursor: default;
+}
+
+.crash-panel {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 18px;
+  line-height: 1.45;
+}
+
+.crash-panel p {
+  margin: 0;
+}
+
+.crash-title {
+  justify-self: center;
+  padding: 1px 12px;
+  color: #0000aa;
+  background: #c0c0c0;
+  font-weight: 700;
+}
+
+.crash-muted {
+  color: #dfdfdf;
+}
+
+.crash-actions {
+  margin-top: 8px;
+}

@@ -1,0 +1,132 @@
+
+.taskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 4px;
+  height: 33px;
+  padding: 3px 4px;
+  background: silver;
+  box-shadow: inset 0 1px #fff, inset 0 2px #dfdfdf;
+}
+
+.start-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 76px;
+  min-height: 26px;
+  padding: 2px 8px;
+  font-weight: 700;
+  color: #111;
+}
+
+.start-button img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.start-button.active,
+.task-button.active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
+}
+
+.task-buttons {
+  display: flex;
+  min-width: 0;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.task-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 88px;
+  max-width: 180px;
+  min-height: 24px;
+  padding: 2px 8px;
+  color: #111;
+}
+
+.task-button img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.task-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 6px;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px grey;
+}
+
+.tray-icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.network-led {
+  width: 9px;
+  height: 9px;
+  background: #800000;
+  border: 1px solid #404040;
+  box-shadow: inset 1px 1px #ff8080;
+}
+
+.network-led.online {
+  background: #008000;
+  box-shadow: inset 1px 1px #80ff80;
+}
+
+.tray-cell,
+.tray-time {
+  white-space: nowrap;
+}
+
+/* === Taskbar tray buttons =============================================== */
+
+.tray-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 1px 3px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tray-button:hover {
+  box-shadow: inset 1px 1px #fff, inset -1px -1px grey;
+}
+
+.tray-button:active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px grey;
+}
+
+.tray-button img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}

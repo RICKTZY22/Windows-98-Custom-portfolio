@@ -1,0 +1,126 @@
+
+/* ----- Video Player ----- */
+.video-player-app {
+  grid-template-rows: auto 1fr auto auto;
+}
+
+.video-player-main {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 170px;
+  gap: 6px;
+  min-height: 0;
+}
+
+.video-stage {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-screen {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.video-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  color: #c0c0c0;
+  text-align: center;
+}
+
+.video-empty img {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.video-empty p,
+.video-empty span {
+  margin: 0;
+}
+
+.video-playlist {
+  min-height: 0;
+  overflow: auto;
+  padding: 4px;
+  background: #fff;
+}
+
+.video-track {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 24px;
+  padding: 2px 3px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.video-track img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.video-track span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-track.selected {
+  color: #fff;
+  background: #000080;
+}
+
+.video-empty-list {
+  margin: 8px;
+  color: #606060;
+}
+
+.video-controls {
+  display: grid;
+  grid-template-columns: auto auto minmax(90px, 1fr) auto auto auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+}
+
+.video-controls input[type='range'] {
+  min-width: 0;
+}
+
+.video-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .video-player-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(180px, 1fr) 120px;
+  }
+
+  .video-controls {
+    grid-template-columns: auto auto 1fr;
+  }
+
+  .video-controls span,
+  .video-controls label,
+  .video-controls button:last-child {
+    grid-column: auto / span 1;
+  }
+}

@@ -1,0 +1,138 @@
+
+.win-window {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  min-height: 220px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100svh - 48px);
+  contain: layout paint style;
+  transform-origin: top left;
+}
+
+.win-window.is-maximized {
+  inset: 0 0 0 0;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  max-width: none;
+  max-height: none;
+  transform: none !important;
+}
+
+.win-window.is-dragging {
+  will-change: transform;
+}
+
+.win-window.is-resizing {
+  will-change: transform, width, height;
+}
+
+.win-window.is-dragging iframe,
+.win-window.is-resizing iframe {
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  z-index: 4;
+}
+
+.resize-n,
+.resize-s {
+  left: 8px;
+  right: 8px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.resize-n {
+  top: -3px;
+}
+
+.resize-s {
+  bottom: -3px;
+}
+
+.resize-e,
+.resize-w {
+  top: 22px;
+  bottom: 8px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.resize-e {
+  right: -3px;
+}
+
+.resize-w {
+  left: -3px;
+}
+
+.resize-ne,
+.resize-nw,
+.resize-se,
+.resize-sw {
+  width: 10px;
+  height: 10px;
+}
+
+.resize-ne,
+.resize-sw {
+  cursor: nesw-resize;
+}
+
+.resize-nw,
+.resize-se {
+  cursor: nwse-resize;
+}
+
+.resize-ne {
+  top: -3px;
+  right: -3px;
+}
+
+.resize-nw {
+  top: -3px;
+  left: -3px;
+}
+
+.resize-se {
+  right: -3px;
+  bottom: -3px;
+}
+
+.resize-sw {
+  left: -3px;
+  bottom: -3px;
+}
+
+.title-bar {
+  user-select: none;
+  touch-action: none;
+  cursor: move;
+}
+
+.title-bar-text {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
+}
+
+.title-bar-text img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.title-bar-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

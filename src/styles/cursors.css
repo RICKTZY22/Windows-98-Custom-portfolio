@@ -1,0 +1,80 @@
+
+html[data-cursor="win98"] {
+  --w98-cursor-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 3v22l6-6 4 10 4-2-4-9h8z' fill='%23fff' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M7 8v10l3-3 2 4 2-1-3-5h5z' fill='%23fff'/%3E%3C/svg%3E") 3 2, default;
+  --w98-cursor-busy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 3v22l6-6 4 10 4-2-4-9h8z' fill='%23fff' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Crect x='18' y='5' width='8' height='14' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M19 7h6l-3 4 3 6h-6l3-6z' fill='%23000080'/%3E%3C/svg%3E") 3 2, progress;
+  --w98-cursor-text: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M13 5h8v3h-2v16h2v3h-8v-3h2V8h-2z' fill='%23fff' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") 16 16, text;
+  --w98-cursor-link: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M12 4h4v10h1V8h4v7h1v-5h4v10l-4 8H12l-6-9v-5h4l2 3z' fill='%23fff' stroke='%23000' stroke-width='1.2' stroke-linejoin='round'/%3E%3Cpath d='M14 5v13M19 9v9M24 11v8' stroke='%23000'/%3E%3C/svg%3E") 12 4, pointer;
+  --w98-cursor-move: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l5 5h-3v7h7v-3l5 5-5 5v-3h-7v7h3l-5 5-5-5h3v-7H7v3l-5-5 5-5v3h7V7h-3z' fill='%23fff' stroke='%23000' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, move;
+  --w98-cursor-resize-ns: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l6 7h-4v14h4l-6 7-6-7h4V9h-4z' fill='%23fff' stroke='%23000' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, ns-resize;
+  --w98-cursor-resize-ew: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M2 16l7-6v4h14v-4l7 6-7 6v-4H9v4z' fill='%23fff' stroke='%23000' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, ew-resize;
+  --w98-cursor-resize-nesw: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M25 3h5v5l-4-1-8 8 3 3-11 4 4-11 3 3 8-8zM7 29H2v-5l4 1 8-8-3-3 11-4-4 11-3-3-8 8z' fill='%23fff' stroke='%23000' stroke-width='1.1' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, nesw-resize;
+  --w98-cursor-resize-nwse: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M3 3h5L7 7l8 8 3-3 4 11-11-4 3-3-8-8zM29 29h-5l1-4-8-8-3 3-4-11 11 4-3 3 8 8z' fill='%23fff' stroke='%23000' stroke-width='1.1' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, nwse-resize;
+  --w98-cursor-precision: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M15 2h2v11h11v2H17v11h-2V15H4v-2h11z' fill='%23fff' stroke='%23000' stroke-width='0.8'/%3E%3C/svg%3E") 16 16, crosshair;
+  --w98-cursor-unavailable: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 3v22l6-6 4 10 4-2-4-9h8z' fill='%23fff' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M17 17l10 10' stroke='%23c00' stroke-width='3'/%3E%3C/svg%3E") 3 2, not-allowed;
+}
+
+html[data-cursor="win98"],
+html[data-cursor="win98"] body,
+html[data-cursor="win98"] * {
+  cursor: var(--w98-cursor-default) !important;
+}
+
+html[data-cursor="win98"] .boot-screen,
+html[data-cursor="win98"] .boot-screen *,
+html[data-cursor="win98"] .win-window.is-resizing,
+html[data-cursor="win98"] .win-window.is-resizing * {
+  cursor: var(--w98-cursor-busy) !important;
+}
+
+html[data-cursor="win98"] a,
+html[data-cursor="win98"] a *,
+html[data-cursor="win98"] .web-page a,
+html[data-cursor="win98"] .web-page a * {
+  cursor: var(--w98-cursor-link) !important;
+}
+
+html[data-cursor="win98"] button:disabled,
+html[data-cursor="win98"] button:disabled * {
+  cursor: var(--w98-cursor-unavailable) !important;
+}
+
+html[data-cursor="win98"] input,
+html[data-cursor="win98"] textarea,
+html[data-cursor="win98"] [contenteditable="true"],
+html[data-cursor="win98"] [contenteditable="true"] *,
+html[data-cursor="win98"] .terminal-output {
+  cursor: var(--w98-cursor-text) !important;
+}
+
+html[data-cursor="win98"] .title-bar,
+html[data-cursor="win98"] .title-bar *,
+html[data-cursor="win98"] .desktop-icon.is-dragging,
+html[data-cursor="win98"] .win-window.is-dragging,
+html[data-cursor="win98"] .win-window.is-dragging * {
+  cursor: var(--w98-cursor-move) !important;
+}
+
+html[data-cursor="win98"] .resize-n,
+html[data-cursor="win98"] .resize-s {
+  cursor: var(--w98-cursor-resize-ns) !important;
+}
+
+html[data-cursor="win98"] .resize-e,
+html[data-cursor="win98"] .resize-w {
+  cursor: var(--w98-cursor-resize-ew) !important;
+}
+
+html[data-cursor="win98"] .resize-ne,
+html[data-cursor="win98"] .resize-sw {
+  cursor: var(--w98-cursor-resize-nesw) !important;
+}
+
+html[data-cursor="win98"] .resize-nw,
+html[data-cursor="win98"] .resize-se {
+  cursor: var(--w98-cursor-resize-nwse) !important;
+}
+
+html[data-cursor="win98"] .paint-canvas,
+html[data-cursor="win98"] .paint-canvas * {
+  cursor: var(--w98-cursor-precision) !important;
+}

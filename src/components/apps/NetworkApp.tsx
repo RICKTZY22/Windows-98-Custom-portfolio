@@ -1,3 +1,4 @@
+import './NetworkApp.css'
 import { useEffect, useRef, useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'

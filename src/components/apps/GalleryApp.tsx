@@ -1,3 +1,4 @@
+import './GalleryApp.css'
 import { useMemo, useState } from 'react'
 import type { FsNode } from '../../types'
 import { win98Icons } from '../../data/icons'

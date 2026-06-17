@@ -1,3 +1,4 @@
+import './TerminalApp.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps, CrashState } from '../../types'
 import { useOs } from '../../os/useOs'

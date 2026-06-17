@@ -1,0 +1,289 @@
+
+.file-list {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px;
+}
+
+.file-manager-app {
+  grid-template-rows: auto auto 1fr auto;
+}
+
+.file-manager-toolbar {
+  align-items: center;
+}
+
+.file-manager-toolbar button {
+  min-width: 0;
+  padding: 3px 10px;
+}
+
+.file-manager-toolbar input {
+  min-width: 0;
+}
+
+.address-form {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr);
+  align-items: center;
+  flex: 1 1 100%;
+  gap: 6px;
+}
+
+.address-form input {
+  width: 100%;
+}
+
+.file-manager-layout {
+  display: grid;
+  grid-template-columns: minmax(120px, 158px) minmax(118px, 152px) minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.file-tree {
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Win98 "View as Web Page" info panel: teal header + selected-item details. */
+.file-webinfo {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  color: #fff;
+  background: linear-gradient(160deg, #000080 0%, #1084d0 58%, #62b6ef 100%);
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+}
+
+.file-webinfo-header {
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.file-webinfo-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.file-webinfo-icon {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+
+.file-webinfo-thumb {
+  width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+.file-webinfo-name {
+  margin: 0;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.file-webinfo-detail {
+  margin: 0;
+  font-size: 11px;
+  color: #e6f0ff;
+  word-break: break-word;
+}
+
+.file-webinfo-blurb {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #d6e6ff;
+}
+
+.rich-file-list {
+  display: grid;
+  grid-template-rows: auto;
+  align-content: start;
+  overflow: auto;
+}
+
+.file-header,
+.file-row.file-manager-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.6fr) minmax(80px, 1fr) 64px minmax(104px, 1.1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.file-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: silver;
+  min-height: 20px;
+  padding: 1px 6px 1px 2px;
+}
+
+.file-header button {
+  min-width: 0;
+  text-align: left;
+  padding: 1px 6px;
+}
+
+.file-name-cell {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: 22px minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(90px, 0.8fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  min-width: 0;
+  padding: 2px 6px;
+  text-align: left;
+  background: transparent;
+  box-shadow: none;
+  color: #111;
+}
+
+.file-row:hover,
+.file-row:focus,
+.file-row.selected {
+  background: #000080;
+  color: #fff;
+}
+
+.file-row img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.file-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-name {
+  font-weight: 700;
+}
+
+/* ----- Explorer view modes (Large/Small Icons, List, Details, Thumbnails) ----- */
+.file-view-select {
+  min-width: 104px;
+}
+
+.file-list-body {
+  min-width: 0;
+}
+
+/* List + Small Icons: reflow into columns, icon beside name, no detail columns. */
+.view-list .file-list-body,
+.view-smallIcons .file-list-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  align-content: start;
+  padding: 2px;
+}
+
+/* Large Icons + Thumbnails: a grid of centred tiles. */
+.view-largeIcons .file-list-body,
+.view-thumbnails .file-list-body {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 8px;
+}
+
+.view-largeIcons .file-list-body {
+  grid-template-columns: repeat(auto-fill, 90px);
+}
+
+.view-thumbnails .file-list-body {
+  grid-template-columns: repeat(auto-fill, 118px);
+}
+
+/* Non-details rows drop the 4-column grid and hide Type/Size/Modified. */
+.view-list .file-row,
+.view-smallIcons .file-row,
+.view-largeIcons .file-row,
+.view-thumbnails .file-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 22px;
+}
+
+.view-list .file-row > span:not(.file-name-cell),
+.view-smallIcons .file-row > span:not(.file-name-cell),
+.view-largeIcons .file-row > span:not(.file-name-cell),
+.view-thumbnails .file-row > span:not(.file-name-cell) {
+  display: none;
+}
+
+.view-list .file-name-cell,
+.view-smallIcons .file-name-cell {
+  width: 100%;
+}
+
+/* Large Icons + Thumbnails: icon stacked above a wrapping, centred name. */
+.view-largeIcons .file-row,
+.view-thumbnails .file-row {
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding: 6px 2px;
+  text-align: center;
+}
+
+.view-largeIcons .file-name-cell,
+.view-thumbnails .file-name-cell {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.view-largeIcons .file-row img {
+  width: 36px;
+  height: 36px;
+}
+
+.view-thumbnails .file-row img {
+  width: 32px;
+  height: 32px;
+}
+
+.view-thumbnails .file-row .file-thumb-img {
+  width: 100%;
+  height: 76px;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #808080;
+  image-rendering: auto;
+}
+
+/* === Explorer context menu + inline rename ============================== */
+
+.file-manager-app {
+  position: relative;
+}

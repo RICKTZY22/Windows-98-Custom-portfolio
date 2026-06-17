@@ -1,3 +1,4 @@
+import './ProjectsApp.css'
 import { portfolioData } from '../../data/portfolioData'
 import { win98Icons } from '../../data/icons'
 import type { AppId, WindowPayload } from '../../types'

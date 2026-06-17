@@ -1,3 +1,4 @@
+import './RecycleBinApp.css'
 import { win98Icons } from '../../data/icons'
 import { parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'

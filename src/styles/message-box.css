@@ -1,0 +1,40 @@
+
+/* === Message boxes ====================================================== */
+
+.message-box-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.message-box {
+  width: min(420px, calc(100vw - 32px));
+  box-shadow: 1px 1px 0 #0a0a0a, 3px 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.message-box-body {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.message-box-copy {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.message-box-copy p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.message-detail {
+  color: #444;
+  font-size: 11px;
+}

@@ -1,3 +1,4 @@
+import './MinesweeperApp.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type Difficulty = 'beginner' | 'intermediate' | 'expert'

@@ -1,3 +1,4 @@
+import './PaintApp.css'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { AppProps } from '../../types'
 import { baseName, getNode, joinPath, parentPath } from '../../os/filesystem'

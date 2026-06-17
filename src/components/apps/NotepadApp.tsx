@@ -1,3 +1,4 @@
+import './NotepadApp.css'
 import { useEffect, useMemo, useState } from 'react'
 import type { AppProps } from '../../types'
 import { portfolioData } from '../../data/portfolioData'

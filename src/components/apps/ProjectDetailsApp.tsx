@@ -1,3 +1,4 @@
+import './ProjectDetailsApp.css'
 import { portfolioData } from '../../data/portfolioData'
 import { win98Icons } from '../../data/icons'
 

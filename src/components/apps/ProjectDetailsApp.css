@@ -1,0 +1,30 @@
+
+.project-detail-app {
+  grid-template-rows: auto minmax(70px, 0.8fr) minmax(110px, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.project-detail-app .inset-copy,
+.project-detail-app fieldset {
+  min-height: 0;
+  overflow: auto;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 6px;
+  min-height: 0;
+  max-height: 150px;
+  overflow: auto;
+}
+
+.tag-list span {
+  max-width: 100%;
+  padding: 2px 6px;
+  overflow-wrap: anywhere;
+  background: #fff;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}

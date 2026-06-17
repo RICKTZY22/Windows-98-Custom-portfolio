@@ -1,0 +1,300 @@
+
+/* === System screens (boot menu, recovery, shutdown, DOS-only) =========== */
+
+.boot-menu-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 48px 16px;
+  color: #c0c0c0;
+  background: #000;
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+}
+
+.boot-menu-panel {
+  display: grid;
+  gap: 10px;
+  width: min(620px, 100%);
+}
+
+.boot-menu-panel h1 {
+  margin: 0;
+  padding-bottom: 6px;
+  color: #fff;
+  font-size: 19px;
+  border-bottom: 1px solid #c0c0c0;
+}
+
+.boot-menu-panel p {
+  margin: 0;
+}
+
+.boot-menu-panel ol {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.boot-menu-panel ol button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 8px;
+  text-align: left;
+  color: #c0c0c0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font: inherit;
+}
+
+.boot-menu-panel ol button.selected {
+  color: #000;
+  background: #c0c0c0;
+}
+
+.boot-warning {
+  color: #ffff55;
+}
+
+.boot-muted {
+  color: #808080;
+}
+
+.dos-only-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  background: #000;
+}
+
+/* FDISK-style fullscreen recovery program */
+.fdisk-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px clamp(16px, 8vw, 90px) 18px;
+  overflow: auto;
+  color: #c0c0c0;
+  background: #000;
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.fdisk-screen p {
+  margin: 0;
+}
+
+.fdisk-header {
+  text-align: center;
+  color: #fff;
+}
+
+.fdisk-title {
+  text-align: center;
+  color: #fff;
+}
+
+.fdisk-body {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  flex: 1;
+}
+
+.fdisk-options {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fdisk-options button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #c0c0c0;
+  text-align: left;
+  font: inherit;
+}
+
+.fdisk-options button.selected {
+  color: #000;
+  background: #c0c0c0;
+}
+
+.fdisk-choice {
+  margin-top: 10px;
+  color: #fff;
+}
+
+.fdisk-cursor {
+  display: inline-block;
+  width: 9px;
+  height: 15px;
+  margin-left: 4px;
+  vertical-align: text-bottom;
+  background: #c0c0c0;
+  animation: fdisk-blink 1s steps(1, end) infinite;
+}
+
+@keyframes fdisk-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.fdisk-output {
+  margin: 12px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  color: #c0c0c0;
+  white-space: pre-wrap;
+  font: inherit;
+}
+
+.fdisk-footer {
+  border-top: 1px solid #c0c0c0;
+  padding-top: 8px;
+  color: #fff;
+}
+
+.fdisk-footer b {
+  background: #c0c0c0;
+  color: #000;
+  padding: 0 4px;
+}
+
+.shutdown-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: #ffa733;
+  background: #000;
+  font-family: "Courier New", monospace;
+  font-size: clamp(17px, 4vw, 28px);
+}
+
+.shutdown-screen p {
+  margin: 0 0 12px;
+}
+
+.shutdown-screen button {
+  margin-top: 16px;
+  font-size: 13px;
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+}
+
+.shutdown-wait {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 64, 128, 0.55) 0 26%, transparent 60%),
+    repeating-conic-gradient(#0a0a0a 0% 25%, #111 0% 50%) 0 0 / 4px 4px,
+    #050505;
+}
+
+.shutdown-wait-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  color: #fff;
+  animation: shutdown-fade-in 600ms ease-out;
+}
+
+.shutdown-wait-card img {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  animation: shutdown-logo-pulse 1.4s ease-in-out infinite;
+}
+
+.shutdown-wait-card h1 {
+  margin: 0;
+  font-size: clamp(26px, 6vw, 40px);
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+}
+
+.shutdown-dots::after {
+  content: '';
+  animation: shutdown-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes shutdown-dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+@keyframes shutdown-logo-pulse {
+  50% {
+    transform: scale(1.06);
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes shutdown-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.crt-off {
+  width: 100vw;
+  height: 100vh;
+  background: #fff;
+  animation: crt-collapse 520ms ease-in forwards;
+}
+
+@keyframes crt-collapse {
+  0% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  60% {
+    transform: scaleY(0.006);
+    opacity: 1;
+  }
+  82% {
+    transform: scaleY(0.004) scaleX(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.002) scaleX(0.001);
+    opacity: 0;
+  }
+}
+
+.shutdown-safe .shutdown-safe-copy {
+  animation: shutdown-flicker-in 900ms steps(6, end);
+}
+
+.shutdown-credit {
+  margin-top: 14px;
+  color: #8a5a1d;
+  font-size: clamp(12px, 2vw, 16px);
+}
+
+@keyframes shutdown-flicker-in {
+  0% { opacity: 0; }
+  20% { opacity: 0.9; }
+  35% { opacity: 0.2; }
+  55% { opacity: 1; }
+  70% { opacity: 0.6; }
+  100% { opacity: 1; }
+}

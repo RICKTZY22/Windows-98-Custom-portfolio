@@ -1,3 +1,4 @@
+import './ControlPanelApp.css'
 import { useState } from 'react'
 import type { AppId, AppProps, ControlPanelSectionId, IconKey, SoundId } from '../../types'
 import { controlPanelSections } from '../../data/system'
