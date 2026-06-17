@@ -7,7 +7,7 @@ const CONNECT_STAGES = [
   'Negotiating link speed... 100 Mbps full duplex',
   'Requesting IP address from DHCP server...',
   'Verifying gateway 192.168.98.1...',
-  'Registering on the Portfolio Internet...',
+  'Registering Web Archive gateway...',
 ]
 
 export function NetworkApp() {

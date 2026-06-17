@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import type { AppProps } from '../../types'
-import { baseName, getNode, joinPath, nowStamp } from '../../os/filesystem'
+import { baseName, getNode, joinPath, nowStamp, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 import {
   EMPTY_WORDPAD_PAGE_HTML,
@@ -352,7 +352,8 @@ export function WordPadApp({ windowId, payload }: AppProps) {
   }
 
   function saveAs() {
-    save(joinPath('C:\\My Documents', normalizeDocumentName(saveAsName)))
+    const folder = documentPath ? parentPath(documentPath) : 'C:\\My Documents'
+    save(joinPath(folder, normalizeDocumentName(saveAsName)))
   }
 
   function newDocument() {

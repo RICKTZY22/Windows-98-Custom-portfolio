@@ -167,7 +167,7 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
             />
           ) : (
             <div className="video-empty">
-              <img src={win98Icons.videoFile} alt="" />
+              <img src={win98Icons.videoPlayer} alt="" />
               <p>Select a video from the playlist.</p>
               <span>Files in C:\My Videos open here.</span>
             </div>

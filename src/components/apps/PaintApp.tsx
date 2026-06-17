@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { AppProps } from '../../types'
-import { baseName, getNode, joinPath } from '../../os/filesystem'
+import { baseName, getNode, joinPath, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 
 type PaintTool = 'pencil' | 'brush' | 'eraser' | 'line' | 'rect' | 'ellipse' | 'fill' | 'text' | 'picker'
@@ -157,6 +157,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   const [fillShapes, setFillShapes] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveAsName, setSaveAsName] = useState('media.bmp')
+  const [currentPath, setCurrentPath] = useState(payload?.filePath)
   const [format, setFormat] = useState<PaintFormat>('bmp')
   const [hist, setHist] = useState({ undo: 0, redo: 0 })
   const file = payload?.filePath ? getNode(state.fs, payload.filePath) : undefined
@@ -328,11 +329,11 @@ export function PaintApp({ windowId, payload }: AppProps) {
     setSaved(false)
   }
 
-  function save() {
+  // Encode the canvas to match the target's extension (.bmp = Paint's native bitmap, .jpg, else .png),
+  // write it, and adopt the path so subsequent saves go to the file we just wrote.
+  function writeImage(target: string) {
     const canvas = canvasRef.current
     if (!canvas) return
-    const target = payload?.filePath ?? joinPath('C:\\My Pictures', nameForFormat(saveAsName, format))
-    // Encode to match the target's extension (.bmp = Paint's native bitmap, .jpg, else .png).
     const enc = formatForExtension(target)
     const dataUrl =
       enc === 'bmp'
@@ -346,10 +347,23 @@ export function PaintApp({ windowId, payload }: AppProps) {
       return
     }
     const savedName = baseName(target)
+    setCurrentPath(target)
     setSaveAsName(savedName)
     setFormat(formatForExtension(savedName))
     setWindowTitle(windowId, `${savedName} - Paint`)
     setSaved(true)
+  }
+
+  // Save overwrites the current file (or creates one from the name box if this is a new image).
+  function save() {
+    writeImage(currentPath ?? joinPath('C:\\My Pictures', nameForFormat(saveAsName, format)))
+  }
+
+  // Save As always writes the name box as a NEW file in the current folder and adopts it,
+  // leaving the original untouched.
+  function saveAs() {
+    const folder = currentPath ? parentPath(currentPath) : 'C:\\My Pictures'
+    writeImage(joinPath(folder, nameForFormat(saveAsName, format)))
   }
 
   const shapeToolActive = tool === 'rect' || tool === 'ellipse'
@@ -373,6 +387,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
         </button>
         <button type="button" onClick={clearCanvas}>Clear</button>
         <button type="button" onClick={save}>Save</button>
+        <button type="button" onClick={saveAs}>Save As</button>
         <label className="paint-size">
           Size
           <select value={size} onChange={(event) => setSize(Number(event.target.value))} aria-label="Brush size">

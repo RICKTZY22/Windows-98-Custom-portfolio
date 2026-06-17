@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AppProps } from '../../types'
 import { portfolioData } from '../../data/portfolioData'
-import { getNode, joinPath } from '../../os/filesystem'
+import { baseName, getNode, joinPath, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 
 function defaultNote() {
@@ -16,17 +16,19 @@ function defaultNote() {
 
 export function NotepadApp({ windowId, payload }: AppProps) {
   const { state, fsOps, setWindowTitle, showMessageBox } = useOs()
-  const filePath = payload?.filePath
-  const file = filePath ? getNode(state.fs, filePath) : undefined
+  const openedPath = payload?.filePath
+  const openedFile = openedPath ? getNode(state.fs, openedPath) : undefined
   const initialText = useMemo(() => {
-    if (!filePath) return defaultNote()
-    return file?.content ?? `${file?.name ?? 'Untitled'} is empty.`
-  }, [file?.content, file?.name, filePath])
+    if (!openedPath) return defaultNote()
+    return openedFile?.content ?? `${openedFile?.name ?? 'Untitled'} is empty.`
+  }, [openedFile?.content, openedFile?.name, openedPath])
 
   const [text, setText] = useState(initialText)
   const [saved, setSaved] = useState(true)
   const [wordWrap, setWordWrap] = useState(true)
-  const [saveAsName, setSaveAsName] = useState(file?.name ?? 'Untitled.txt')
+  const [currentPath, setCurrentPath] = useState(openedPath)
+  const file = currentPath ? getNode(state.fs, currentPath) : undefined
+  const [saveAsName, setSaveAsName] = useState(openedFile?.name ?? 'Untitled.txt')
 
   useEffect(() => {
     const title = `${saved ? '' : '*'}${file?.name ?? (saveAsName || 'Untitled.txt')} - Notepad`
@@ -40,14 +42,26 @@ export function NotepadApp({ windowId, payload }: AppProps) {
     showMessageBox({ title: 'Notepad', message, icon: 'error', buttons: ['ok'] })
   }
 
-  function save(path = filePath) {
-    const target = path ?? joinPath('C:\\My Documents', saveAsName || 'Untitled.txt')
+  function writeTo(target: string) {
     const error = fsOps.writeFile(target, { content: text })
     if (error) {
       showError(error)
       return
     }
+    setCurrentPath(target)
+    setSaveAsName(baseName(target))
     setSaved(true)
+  }
+
+  // Save overwrites the current file (or creates one from the name box if this is a new note).
+  function save() {
+    writeTo(currentPath ?? joinPath('C:\\My Documents', saveAsName || 'Untitled.txt'))
+  }
+
+  // Save As writes the name box as a NEW file in the current folder and adopts it.
+  function saveAs() {
+    const folder = currentPath ? parentPath(currentPath) : 'C:\\My Documents'
+    writeTo(joinPath(folder, saveAsName || 'Untitled.txt'))
   }
 
   return (
@@ -59,7 +73,7 @@ export function NotepadApp({ windowId, payload }: AppProps) {
         <li>Help</li>
       </ul>
       <div className="toolbar">
-        <button type="button" onClick={() => save()}>
+        <button type="button" onClick={save}>
           Save
         </button>
         <input
@@ -67,7 +81,7 @@ export function NotepadApp({ windowId, payload }: AppProps) {
           value={saveAsName}
           onChange={(event) => setSaveAsName(event.target.value)}
         />
-        <button type="button" onClick={() => save(joinPath('C:\\My Documents', saveAsName || 'Untitled.txt'))}>
+        <button type="button" onClick={saveAs}>
           Save As
         </button>
         <label>
@@ -85,7 +99,7 @@ export function NotepadApp({ windowId, payload }: AppProps) {
         }}
       />
       <div className="status-bar">
-        <p className="status-bar-field">{file?.path ?? 'C:\\My Documents\\Untitled.txt'}</p>
+        <p className="status-bar-field">{currentPath ?? joinPath('C:\\My Documents', saveAsName || 'Untitled.txt')}</p>
         <p className="status-bar-field">{text.length} byte(s)</p>
         <p className="status-bar-field">Ln {line}, Col {column}</p>
         <p className="status-bar-field">{saved ? 'Saved' : 'Modified'}</p>

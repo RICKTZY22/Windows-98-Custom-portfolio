@@ -1,6 +1,5 @@
 /**
- * Local media library for Windows Media Player / Video Player (not YouTube; those live in
- * src/data/websites.ts and play inside Internet Explorer).
+ * Local media library for Windows Media Player / Video Player.
  *
  * TO ADD YOUR OWN VIDEOS/MUSIC: drop the files into `public/media/user/` and list
  * them here or as virtual files in initialFilesystem.ts. `src` is the URL path

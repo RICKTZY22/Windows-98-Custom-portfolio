@@ -66,7 +66,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   videoPlayer: {
     id: 'videoPlayer',
     title: 'Video Player',
-    icon: 'videoFile',
+    icon: 'videoPlayer',
     defaultRect: { x: 240, y: 86, width: 640, height: 470 },
     singleton: false,
     safeModeAvailable: false,
@@ -114,6 +114,12 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     title: 'Calculator',
     icon: 'calculator',
     defaultRect: { x: 360, y: 150, width: 250, height: 340 },
+  },
+  minesweeper: {
+    id: 'minesweeper',
+    title: 'Minesweeper',
+    icon: 'minesweeper',
+    defaultRect: { x: 280, y: 96, width: 360, height: 470 },
   },
   about: {
     id: 'about',
@@ -169,7 +175,7 @@ export const desktopIconDefs: DesktopIconDef[] = [
   { id: 'internetExplorer', label: 'Internet Explorer', icon: 'internet', appId: 'internetExplorer' },
   { id: 'paint', label: 'Paint', icon: 'paint', appId: 'paint' },
   { id: 'mediaPlayer', label: 'Media Player', icon: 'mediaPlayer', appId: 'mediaPlayer' },
-  { id: 'videoPlayer', label: 'Video Player', icon: 'videoFile', appId: 'videoPlayer' },
+  { id: 'videoPlayer', label: 'Video Player', icon: 'videoPlayer', appId: 'videoPlayer' },
 ]
 
 export type StartMenuModel = Array<
@@ -197,7 +203,7 @@ export const startMenuModel: StartMenuModel = [
           { kind: 'item', id: 'calculator', label: 'Calculator', icon: 'calculator', appId: 'calculator' },
           { kind: 'item', id: 'mediaPlayer', label: 'Media Player', icon: 'mediaPlayer', appId: 'mediaPlayer' },
           { kind: 'item', id: 'imageViewer', label: 'Imaging Preview', icon: 'imageFile', appId: 'imageViewer' },
-          { kind: 'item', id: 'videoPlayer', label: 'Video Player', icon: 'videoFile', appId: 'videoPlayer' },
+          { kind: 'item', id: 'videoPlayer', label: 'Video Player', icon: 'videoPlayer', appId: 'videoPlayer' },
           { kind: 'item', id: 'gallery', label: 'My Pictures', icon: 'gallery', appId: 'gallery' },
           {
             kind: 'item',
@@ -206,6 +212,15 @@ export const startMenuModel: StartMenuModel = [
             icon: 'soundRecorder',
             appId: 'soundRecorder',
           },
+        ],
+      },
+      {
+        kind: 'submenu',
+        id: 'games',
+        label: 'Games',
+        icon: 'folder',
+        items: [
+          { kind: 'item', id: 'minesweeper', label: 'Minesweeper', icon: 'minesweeper', appId: 'minesweeper' },
         ],
       },
       { kind: 'item', id: 'msDosPrompt', label: 'MS-DOS Prompt', icon: 'terminal', appId: 'terminal' },

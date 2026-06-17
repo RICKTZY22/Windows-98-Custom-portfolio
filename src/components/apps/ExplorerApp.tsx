@@ -14,9 +14,24 @@ import {
   uniqueChildName,
 } from '../../os/filesystem'
 
-type ViewMode = 'details' | 'list'
+type ViewMode = 'largeIcons' | 'smallIcons' | 'list' | 'details' | 'thumbnails'
 type SortKey = 'name' | 'type' | 'size' | 'modified'
 type ContextMenuState = { x: number; y: number; targetPath: string | null }
+
+const VIEW_MODES: Array<{ id: ViewMode; label: string }> = [
+  { id: 'largeIcons', label: 'Large Icons' },
+  { id: 'smallIcons', label: 'Small Icons' },
+  { id: 'list', label: 'List' },
+  { id: 'details', label: 'Details' },
+  { id: 'thumbnails', label: 'Thumbnails' },
+]
+
+const IMAGE_NAME_RE = /\.(bmp|png|jpe?g|gif)$/i
+
+/** Image files with a data URL can show a real thumbnail instead of a generic icon. */
+function isThumbnailable(node: FsNode): boolean {
+  return node.kind === 'file' && Boolean(node.dataUrl) && IMAGE_NAME_RE.test(node.name)
+}
 
 const quickPaths = [
   ['C:\\', 'Portfolio (C:)'],
@@ -54,7 +69,8 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
   const { state, openNode, setWindowTitle, fsOps, setClipboard, showMessageBox } = useOs()
   const [currentPath, setCurrentPath] = useState(() => normalizePath(payload?.path ?? 'C:\\'))
   const [address, setAddress] = useState(currentPath)
-  const [selectedPath, setSelectedPath] = useState<string>()
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([])
+  const [anchorPath, setAnchorPath] = useState<string>()
   const [viewMode, setViewMode] = useState<ViewMode>('details')
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -68,11 +84,75 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
 
   const currentNode = getNode(state.fs, currentPath)
   const items = useMemo(() => sortNodes(listDirectory(state.fs, currentPath), sortKey), [currentPath, sortKey, state.fs])
+  // The "primary" item (last clicked) drives single-target actions and the info panel.
+  const selectedPath = selectedPaths[selectedPaths.length - 1]
   const selectedNode = selectedPath ? getNode(state.fs, selectedPath) : undefined
+  const selectedNodes = selectedPaths.map((path) => getNode(state.fs, path)).filter((node): node is FsNode => Boolean(node))
   const protectedHere = isProtectedPath(currentPath)
+
+  function selectSingle(path: string) {
+    setSelectedPaths([path])
+    setAnchorPath(path)
+  }
+
+  function clearSelection() {
+    setSelectedPaths([])
+    setAnchorPath(undefined)
+  }
+
+  function selectAll() {
+    const paths = items.map((node) => node.path)
+    setSelectedPaths(paths)
+    setAnchorPath(paths[0])
+  }
+
+  // Windows-style click selection: plain = single, Ctrl = toggle, Shift = range from anchor.
+  function selectOnClick(path: string, event: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }) {
+    if (event.shiftKey && anchorPath) {
+      const from = items.findIndex((node) => node.path === anchorPath)
+      const to = items.findIndex((node) => node.path === path)
+      if (from !== -1 && to !== -1) {
+        const [lo, hi] = from < to ? [from, to] : [to, from]
+        setSelectedPaths(items.slice(lo, hi + 1).map((node) => node.path))
+        return
+      }
+    }
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedPaths((prev) => (prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]))
+      setAnchorPath(path)
+      return
+    }
+    selectSingle(path)
+  }
 
   function showError(message: string) {
     showMessageBox({ title: 'Windows Explorer', message, icon: 'error', buttons: ['ok'] })
+  }
+
+  function deleteSelection() {
+    const targets = selectedNodes
+    if (!targets.length) return
+    if (targets.length === 1) {
+      confirmDelete(targets[0])
+      return
+    }
+    showMessageBox({
+      title: 'Confirm Multiple File Delete',
+      message: `Are you sure you want to send these ${targets.length} items to the Recycle Bin?`,
+      icon: 'question',
+      buttons: ['yes', 'no'],
+      onResult: (button) => {
+        if (button !== 'yes') return
+        for (const node of targets) {
+          const error = fsOps.deleteNode(node.path, { skipConfirm: true })
+          if (error) {
+            showError(error)
+            break
+          }
+        }
+        clearSelection()
+      },
+    })
   }
 
   function navigate(path: string) {
@@ -84,7 +164,7 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
     }
     setCurrentPath(node.path)
     setAddress(node.path)
-    setSelectedPath(undefined)
+    clearSelection()
     setContextMenu(null)
     setRenamingPath(undefined)
   }
@@ -111,7 +191,7 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
         if (button !== 'yes') return
         const error = fsOps.deleteNode(node.path, { skipConfirm: true })
         if (error) showError(error)
-        setSelectedPath((current) => (current === node.path ? undefined : current))
+        setSelectedPaths((prev) => prev.filter((p) => p !== node.path))
       },
     })
   }
@@ -155,7 +235,7 @@ Size: ${
     if (!node || !next || next === node.name) return
     const error = fsOps.renameNode(node.path, next)
     if (error) showError(error)
-    else setSelectedPath(joinPath(parentPath(node.path), next))
+    else selectSingle(joinPath(parentPath(node.path), next))
   }
 
   function createNew(kind: 'folder' | 'file' | 'document') {
@@ -172,7 +252,7 @@ Size: ${
       return
     }
     const createdPath = joinPath(currentPath, name)
-    setSelectedPath(createdPath)
+    selectSingle(createdPath)
     setRenamingPath(createdPath)
     setRenameValue(name)
     setContextMenu(null)
@@ -199,7 +279,7 @@ Size: ${
     event.stopPropagation()
     const rect = rootRef.current?.getBoundingClientRect()
     if (!rect) return
-    if (targetPath) setSelectedPath(targetPath)
+    if (targetPath && !selectedPaths.includes(targetPath)) selectSingle(targetPath)
     const menuWidth = 190
     const menuHeight = targetPath ? 234 : 194
     setContextMenu({
@@ -249,7 +329,7 @@ Size: ${
         <button type="button" onClick={pasteClipboard} disabled={!state.clipboard}>
           Paste
         </button>
-        <button type="button" onClick={() => selectedNode && confirmDelete(selectedNode)} disabled={!selectedNode}>
+        <button type="button" onClick={deleteSelection} disabled={!selectedNode}>
           Delete
         </button>
         <button type="button" onClick={() => createNew('folder')} disabled={protectedHere}>
@@ -261,9 +341,18 @@ Size: ${
         <button type="button" onClick={() => createNew('document')} disabled={protectedHere}>
           New Doc
         </button>
-        <button type="button" onClick={() => setViewMode((mode) => (mode === 'details' ? 'list' : 'details'))}>
-          {viewMode === 'details' ? 'List' : 'Details'}
-        </button>
+        <select
+          className="file-view-select"
+          value={viewMode}
+          onChange={(event) => setViewMode(event.target.value as ViewMode)}
+          aria-label="View mode"
+        >
+          {VIEW_MODES.map((mode) => (
+            <option key={mode.id} value={mode.id}>
+              {mode.label}
+            </option>
+          ))}
+        </select>
         <form
           className="address-form"
           onSubmit={(event) => {
@@ -293,35 +382,78 @@ Size: ${
             </details>
           </li>
         </ul>
+        <div className="file-webinfo">
+          <div className="file-webinfo-header">{currentNode?.name ?? currentPath}</div>
+          <div className="file-webinfo-body">
+            {selectedNodes.length > 1 ? (
+              <>
+                <img className="file-webinfo-icon" src={win98Icons.folderOpen} alt="" />
+                <p className="file-webinfo-name">{selectedNodes.length} items selected</p>
+                <p className="file-webinfo-detail">
+                  {formatSize(selectedNodes.reduce((sum, node) => sum + (node.kind === 'file' ? node.size : 0), 0)) ||
+                    '0 KB'}
+                </p>
+              </>
+            ) : selectedNode ? (
+              <>
+                {isThumbnailable(selectedNode) ? (
+                  <img className="file-webinfo-thumb" src={selectedNode.dataUrl} alt="" />
+                ) : (
+                  <img className="file-webinfo-icon" src={win98Icons[selectedNode.icon]} alt="" />
+                )}
+                <p className="file-webinfo-name">{selectedNode.name}</p>
+                <p className="file-webinfo-detail">{selectedNode.fileType}</p>
+                {selectedNode.kind === 'file' && (
+                  <p className="file-webinfo-detail">{formatSize(selectedNode.size) || `${selectedNode.size} bytes`}</p>
+                )}
+                <p className="file-webinfo-detail">Modified: {selectedNode.modified}</p>
+              </>
+            ) : (
+              <>
+                <img className="file-webinfo-icon" src={win98Icons[currentNode?.icon ?? 'folder']} alt="" />
+                <p className="file-webinfo-detail">{items.length} object(s)</p>
+                <p className="file-webinfo-blurb">Select an item to view its description.</p>
+              </>
+            )}
+          </div>
+        </div>
         <div
-          className={`sunken-panel rich-file-list ${viewMode === 'list' ? 'is-list-view' : ''}`}
+          className={`sunken-panel rich-file-list view-${viewMode}`}
           onContextMenu={(event) => openContextMenu(event, null)}
         >
-          <div className="file-header">
-            <button type="button" onClick={() => setSortKey('name')}>Name</button>
-            <button type="button" onClick={() => setSortKey('type')}>Type</button>
-            <button type="button" onClick={() => setSortKey('size')}>Size</button>
-            <button type="button" onClick={() => setSortKey('modified')}>Modified</button>
-          </div>
+          {viewMode === 'details' && (
+            <div className="file-header">
+              <button type="button" onClick={() => setSortKey('name')}>Name</button>
+              <button type="button" onClick={() => setSortKey('type')}>Type</button>
+              <button type="button" onClick={() => setSortKey('size')}>Size</button>
+              <button type="button" onClick={() => setSortKey('modified')}>Modified</button>
+            </div>
+          )}
+          <div className="file-list-body">
           {items.map((node) => (
             <div
-              className={`file-row file-manager-row ${selectedPath === node.path ? 'selected' : ''}`}
+              className={`file-row file-manager-row ${selectedPaths.includes(node.path) ? 'selected' : ''}`}
               key={node.path}
               role="button"
               tabIndex={0}
-              aria-pressed={selectedPath === node.path}
-              onClick={() => setSelectedPath(node.path)}
+              aria-pressed={selectedPaths.includes(node.path)}
+              onClick={(event) => selectOnClick(node.path, event)}
               onDoubleClick={() => openExplorerNode(node.path)}
               onContextMenu={(event) => openContextMenu(event, node.path)}
               onKeyDown={(event) => {
                 if (renamingPath === node.path) return
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+                  event.preventDefault()
+                  selectAll()
+                  return
+                }
                 if (event.key === 'Enter') {
                   event.preventDefault()
                   openExplorerNode(node.path)
                 }
                 if (event.key === 'Delete') {
                   event.preventDefault()
-                  confirmDelete(node)
+                  deleteSelection()
                 }
                 if (event.key === 'F2') {
                   event.preventDefault()
@@ -334,7 +466,11 @@ Size: ${
               }}
             >
               <span className="file-name-cell">
-                <img src={win98Icons[node.icon]} alt="" />
+                {viewMode === 'thumbnails' && isThumbnailable(node) ? (
+                  <img className="file-thumb-img" src={node.dataUrl} alt="" />
+                ) : (
+                  <img src={win98Icons[node.icon]} alt="" />
+                )}
                 {renamingPath === node.path ? (
                   <input
                     className="rename-input"
@@ -367,6 +503,7 @@ Size: ${
             </div>
           ))}
           {items.length === 0 && <p className="file-list-empty">This folder is empty.</p>}
+          </div>
         </div>
       </div>
       {contextMenu && (
@@ -457,7 +594,13 @@ Size: ${
         </ul>
       )}
       <div className="status-bar">
-        <p className="status-bar-field">{selectedNode ? `Selected: ${selectedNode.name}` : currentNode?.name ?? currentPath}</p>
+        <p className="status-bar-field">
+          {selectedNodes.length > 1
+            ? `${selectedNodes.length} items selected`
+            : selectedNode
+              ? `Selected: ${selectedNode.name}`
+              : currentNode?.name ?? currentPath}
+        </p>
         <p className="status-bar-field">{items.length} object(s)</p>
         <p className="status-bar-field">{state.clipboard ? `${state.clipboard.mode}: ${baseName(state.clipboard.path)}` : 'Ready'}</p>
       </div>

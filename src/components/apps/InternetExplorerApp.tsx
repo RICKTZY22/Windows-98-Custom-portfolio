@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps } from '../../types'
-import { portfolioData } from '../../data/portfolioData'
-import { fakeSites, youtubeVideos, type FakeVideo } from '../../data/websites'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 
-const HOME = 'http://portfolio.local/'
+const HOME = 'http://google.com/'
+// Snapshots from the 2016–2017 era. `if_` serves the page without the Wayback toolbar.
+const WAYBACK_PREFIX = 'https://web.archive.org/web/20161201000000if_/'
+
+// Popular sites with rich 2016–2017 archives, shown on the Links bar.
+const POPULAR_SITES: Array<{ label: string; url: string }> = [
+  { label: 'Google', url: 'google.co.id' },
+  { label: 'YouTube', url: 'jp.youtube.com' },
+  { label: 'Facebook', url: 'facebook.de' },
+  { label: 'Instagram', url: 'instagr.am' },
+  { label: 'Twitter', url: 'twitter.com' },
+  { label: 'Wikipedia', url: 'wikipedia.org' },
+  { label: 'Amazon', url: 'amazon.com' },
+  { label: 'Reddit', url: 'reddit.com' },
+  { label: 'Yahoo', url: 'yahoo.com' },
+]
 
 function looksLikeSearchQuery(raw: string): boolean {
   const trimmed = raw.trim()
@@ -19,10 +32,19 @@ function normalizeUrl(raw: string): string {
   const trimmed = raw.trim()
   if (!trimmed) return HOME
   if (looksLikeSearchQuery(trimmed)) return `http://google.com/search?q=${encodeURIComponent(trimmed)}`
-  if (trimmed.startsWith('about:')) return trimmed
+  if (trimmed.startsWith('about:')) return HOME
   if (/^[a-z]+:/i.test(trimmed) && !/^[a-z]+:\/\//i.test(trimmed)) return trimmed
   if (/^[a-z]+:\/\//i.test(trimmed)) return trimmed
   return `http://${trimmed.replace(/^www\./i, '')}`
+}
+
+function isHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 function hostOf(url: string): string {
@@ -30,6 +52,19 @@ function hostOf(url: string): string {
     return new URL(url).hostname.replace(/^www\./, '').toLowerCase()
   } catch {
     return ''
+  }
+}
+
+function archiveUrlFor(url: string): string {
+  if (hostOf(url) === 'web.archive.org') return url
+  return `${WAYBACK_PREFIX}${url}`
+}
+
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname
+  } catch {
+    return '/'
   }
 }
 
@@ -41,47 +76,31 @@ function paramOf(url: string, key: string): string {
   }
 }
 
-function pathOf(url: string): string {
-  try {
-    return new URL(url).pathname
-  } catch {
-    return '/'
-  }
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&#0?39;/g, "'")
+    .trim()
 }
 
+type SearchResult = { title: string; snippet: string; url: string }
+type SearchState = { query: string; status: 'idle' | 'loading' | 'done' | 'error'; results: SearchResult[] }
+
 type Page =
-  | { kind: 'home' }
-  | { kind: 'contact' }
-  | { kind: 'credits' }
-  | { kind: 'google'; query: string }
-  | { kind: 'youtube' }
-  | { kind: 'youtubeWatch'; video: FakeVideo }
-  | { kind: 'construction'; host: string; title: string }
+  | { kind: 'search'; query: string }
+  | { kind: 'archive'; host: string; originalUrl: string; archiveUrl: string }
   | { kind: 'notfound'; host: string }
 
 function resolvePage(url: string): Page {
   const host = hostOf(url)
-  const path = pathOf(url)
-  if (host === 'portfolio.local' || url === 'about:home') {
-    if (path.startsWith('/contact')) return { kind: 'contact' }
-    if (path.startsWith('/credits')) return { kind: 'credits' }
-    return { kind: 'home' }
+  if ((host === 'google.com' || host === 'bing.com' || host === 'duckduckgo.com') && pathOf(url).startsWith('/search')) {
+    return { kind: 'search', query: paramOf(url, 'q') }
   }
-  if (host === 'google.com') {
-    return { kind: 'google', query: paramOf(url, 'q') }
+  if (isHttpUrl(url)) {
+    return { kind: 'archive', host: host || url, originalUrl: url, archiveUrl: archiveUrlFor(url) }
   }
-  if (host === 'youtube.com' || host === 'youtu.be') {
-    const videoId = host === 'youtu.be' ? path.replace(/^\//, '') : paramOf(url, 'v')
-    if (videoId) {
-      const video =
-        youtubeVideos.find((item) => item.id === videoId || item.youtubeId === videoId) ??
-        ({ id: videoId, title: 'Video', author: 'Unknown channel', views: '? views', uploaded: '2026', youtubeId: /^[\w-]{11}$/.test(videoId) ? videoId : undefined } satisfies FakeVideo)
-      return { kind: 'youtubeWatch', video }
-    }
-    return { kind: 'youtube' }
-  }
-  if (host === 'plmunnexus.com') return { kind: 'construction', host, title: 'PLMUN Nexus' }
-  if (host === 'betweentworuins.com') return { kind: 'construction', host, title: 'Between Two Ruins' }
   return { kind: 'notfound', host: host || url }
 }
 
@@ -91,9 +110,11 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
   const [address, setAddress] = useState(initial)
   const [history, setHistory] = useState([initial])
   const [index, setIndex] = useState(0)
-  const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(false)
   const loadTimerRef = useRef<number | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState<SearchState>({ query: '', status: 'idle', results: [] })
+  const lastSearchRef = useRef<string>('')
 
   const current = history[index] ?? initial
   const page = useMemo(() => resolvePage(current), [current])
@@ -101,16 +122,8 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
   const currentHost = hostOf(current) || current
 
   useEffect(() => {
-    const title =
-      page.kind === 'home'
-        ? 'Microsoft Internet Explorer Home Page'
-        : page.kind === 'youtubeWatch'
-          ? page.video.title
-          : page.kind === 'google'
-            ? `Search: ${page.query || 'Google'}`
-            : currentHost
-    setWindowTitle(windowId, `${title} - Microsoft Internet Explorer`)
-  }, [currentHost, page, setWindowTitle, windowId])
+    setWindowTitle(windowId, `${currentHost || 'Internet Explorer'} - Microsoft Internet Explorer`)
+  }, [currentHost, setWindowTitle, windowId])
 
   useEffect(
     () => () => {
@@ -119,7 +132,41 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
     [],
   )
 
-  // Brief simulated page load so the globe throbber spins and the status bar fills.
+  // Real web search: archived search-engine result pages can't run a live index, so we
+  // query the CORS-enabled Wikipedia API and render our own results list. Clicking a
+  // result opens that page in the 2016–2017 Web Archive.
+  useEffect(() => {
+    if (!online || page.kind !== 'search') return
+    const query = page.query.trim()
+    // Empty query: nothing to fetch, and we must not setState synchronously here (it would
+    // cascade renders — react-hooks/set-state-in-effect). renderSearch already falls back to
+    // the prompt because the results are gated on `search.query === query`.
+    if (!query) return
+    if (lastSearchRef.current === query) return
+    lastSearchRef.current = query
+    setSearch({ query, status: 'loading', results: [] })
+    const controller = new AbortController()
+    const endpoint =
+      'https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=12&format=json&origin=*&srsearch=' +
+      encodeURIComponent(query)
+    fetch(endpoint, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => {
+        const hits = (data?.query?.search ?? []) as Array<{ title: string; snippet: string }>
+        const results: SearchResult[] = hits.map((hit) => ({
+          title: hit.title,
+          snippet: stripHtml(hit.snippet ?? ''),
+          url: `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.title.replace(/ /g, '_'))}`,
+        }))
+        setSearch({ query, status: 'done', results })
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setSearch({ query, status: 'error', results: [] })
+      })
+    return () => controller.abort()
+  }, [online, page])
+
   function beginLoading() {
     if (loadTimerRef.current !== null) window.clearTimeout(loadTimerRef.current)
     setLoading(true)
@@ -153,16 +200,6 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
     beginLoading()
   }
 
-  function searchResults(query: string) {
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-    if (!words.length) return fakeSites
-    const hits = fakeSites.filter((site) => {
-      const haystack = `${site.host} ${site.title} ${site.description}`.toLowerCase()
-      return words.some((word) => haystack.includes(word))
-    })
-    return hits.length ? hits : fakeSites
-  }
-
   function renderOffline() {
     return (
       <div className="web-error">
@@ -172,169 +209,24 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
           <li>Open Network Neighborhood and click Connect.</li>
           <li>Or run <b>ipconfig /renew</b> in the MS-DOS Prompt.</li>
         </ul>
-        <p className="web-muted">Cannot find server or DNS Error — Internet Explorer (Simulated)</p>
+        <p className="web-muted">Cannot find server or DNS Error - Internet Explorer (Simulated)</p>
         <button type="button" onClick={() => openApp('network')}>Open Network</button>
       </div>
     )
   }
 
-  function renderHome() {
+  function renderArchive(originalUrl: string, archiveUrl: string) {
     return (
-      <div className="web-page ie-classic-home">
-        <div className="ie-home-mark">
-          <img src={win98Icons.internet} alt="" />
-          <div>
-            <span>Portfolio</span>
-            <strong>Internet Explorer</strong>
-          </div>
-        </div>
-        <h2>Thank you for using Portfolio Internet Explorer on Windows 98 Portfolio Edition</h2>
-        <p>
-          You can use Portfolio Internet Explorer to browse Web pages on your local portfolio network and
-          on the simulated Internet.
-        </p>
-        <hr />
-        <p>
-          To browse Web pages on your local network, type the page name in the address box at the top of
-          this browser. For example, type:{' '}
-          <button type="button" className="web-result-link" onClick={() => navigate('portfolio.local')}>
-            portfolio.local
-          </button>
-        </p>
-        <hr />
-        <p className="web-muted">Quick links from {portfolioData.profile.name}'s portfolio desktop:</p>
-        <div className="web-link-grid">
-          <button type="button" onClick={() => navigate('plmunnexus.com')}>
-            <strong>PLMUN Nexus</strong>
-            <span>plmunnexus.com</span>
-          </button>
-          <button type="button" onClick={() => navigate('betweentworuins.com')}>
-            <strong>Between Two Ruins</strong>
-            <span>betweentworuins.com</span>
-          </button>
-          <button type="button" onClick={() => navigate('youtube.com')}>
-            <strong>My YouTube</strong>
-            <span>youtube.com</span>
-          </button>
-          <button type="button" onClick={() => navigate('google.com')}>
-            <strong>Search the Web</strong>
-            <span>google.com</span>
-          </button>
-        </div>
-        <div className="button-row">
-          <button type="button" onClick={() => navigate('portfolio.local/contact')}>Contact</button>
-          <button type="button" onClick={() => navigate('portfolio.local/credits')}>Credits</button>
-        </div>
-        <p className="web-counter">You are visitor no. 001998 since 1998</p>
-      </div>
-    )
-  }
-
-  function renderGoogle(query: string) {
-    return (
-      <div className="web-page web-google">
-        <p className="web-google-logo" aria-label="Google">
-          <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
-        </p>
-        <form
-          className="web-google-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            navigate(`google.com/search?q=${encodeURIComponent(searchDraft)}`)
-          }}
-        >
-          <input
-            aria-label="Search"
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-          />
-          <button type="submit">Search</button>
-        </form>
-        {query ? (
-          <div className="web-google-results">
-            <p className="web-muted">
-              The Portfolio Internet found {searchResults(query).length} result(s) for “{query}”
-            </p>
-            {searchResults(query).map((site) => (
-              <article key={site.host}>
-                <button type="button" className="web-result-link" onClick={() => navigate(site.host)}>
-                  {site.title}
-                </button>
-                <p className="web-result-url">http://{site.host}/</p>
-                <p>{site.description}</p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="web-muted">Searching the whole Portfolio Internet — all {fakeSites.length} websites of it.</p>
-        )}
-      </div>
-    )
-  }
-
-  function renderYoutube() {
-    return (
-      <div className="web-page web-youtube">
-        <div className="web-youtube-header">
-          <span className="web-youtube-logo">▶ YouTube</span>
-          <span className="web-muted">1998 Edition — videos by John Erick Mendoza</span>
-        </div>
-        <div className="web-video-grid">
-          {youtubeVideos.map((video) => (
-            <button key={video.id} type="button" className="web-video-card" onClick={() => navigate(`youtube.com/watch?v=${video.youtubeId ?? video.id}`)}>
-              <span className={`web-thumb ${video.youtubeId ? 'is-ready' : ''}`}>▶</span>
-              <strong>{video.title}</strong>
-              <span className="web-muted">{video.author}</span>
-              <span className="web-muted">{video.views} · {video.uploaded}</span>
-            </button>
-          ))}
-        </div>
-        <p className="web-muted">
-          Add your real videos in src/data/websites.ts — slots without a video id show as coming soon.
-        </p>
-      </div>
-    )
-  }
-
-  function renderYoutubeWatch(video: FakeVideo) {
-    return (
-      <div className="web-page web-youtube">
-        <div className="web-youtube-header">
-          <button type="button" className="web-result-link" onClick={() => navigate('youtube.com')}>
-            ◀ Back to YouTube
-          </button>
-        </div>
-        {video.youtubeId ? (
-          <iframe
-            className="web-video-frame"
-            title={video.title}
-            src={`https://www.youtube.com/embed/${video.youtubeId}`}
-            allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <div className="web-thumb web-thumb-large">
-            <p>This video slot is reserved.</p>
-            <p className="web-muted">Add its YouTube id in src/data/websites.ts to play it here.</p>
-          </div>
-        )}
-        <h3>{video.title}</h3>
-        <p className="web-muted">{video.author} · {video.views} · {video.uploaded}</p>
-      </div>
-    )
-  }
-
-  function renderConstruction(title: string, host: string) {
-    return (
-      <div className="web-page web-construction">
-        <div className="web-construction-stripes" aria-hidden="true" />
-        <h2>{title}</h2>
-        <p className="web-construction-badge">🚧 UNDER CONSTRUCTION 🚧</p>
-        <p>
-          {title} by John Erick Mendoza is coming soon to <b>{host}</b>.
-        </p>
-        <p className="web-muted">Check back in 2026. This page is part of the simulated Portfolio Internet.</p>
-        <div className="web-construction-stripes" aria-hidden="true" />
+      <div className="web-page web-archive">
+        <iframe
+          className="web-archive-frame"
+          title={`Archived page for ${originalUrl}`}
+          src={archiveUrl}
+          sandbox="allow-same-origin allow-scripts allow-forms allow-pointer-lock allow-modals allow-popups"
+          allow="fullscreen; encrypted-media; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="no-referrer"
+        />
       </div>
     )
   }
@@ -344,64 +236,86 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
       <div className="web-error">
         <h3>The page cannot be displayed</h3>
         <p>
-          Internet Explorer cannot find <b>{host}</b>. The Portfolio Internet has exactly {fakeSites.length}{' '}
-          websites, and that is not one of them.
+          Internet Explorer cannot open <b>{host || 'that address'}</b>. It may not be a valid Web address.
         </p>
-        <p>Try one of these instead:</p>
-        <ul className="compact-list">
-          {fakeSites.map((site) => (
-            <li key={site.host}>
-              <button type="button" className="web-result-link" onClick={() => navigate(site.host)}>
-                http://{site.host}/
-              </button>{' '}
-              — {site.title}
-            </li>
-          ))}
+        <p className="web-muted">
+          Type a site like <b>google.com</b> or <b>wikipedia.org</b>, or a few words to search Google.
+        </p>
+        <p className="web-muted">Cannot find server or DNS Error - Internet Explorer (Simulated)</p>
+        <button type="button" onClick={() => navigate(HOME)}>Go to Google</button>
+      </div>
+    )
+  }
+
+  function renderSearch(query: string) {
+    // Only show fetched results/status when they belong to the query currently displayed,
+    // so stale results never leak under a different or empty query.
+    const matches = search.query === query
+    return (
+      <div className="web-page web-search">
+        <div className="web-search-head">
+          <span className="web-search-logo" aria-hidden="true">
+            <span style={{ color: '#4285f4' }}>G</span>
+            <span style={{ color: '#ea4335' }}>o</span>
+            <span style={{ color: '#fbbc05' }}>o</span>
+            <span style={{ color: '#4285f4' }}>g</span>
+            <span style={{ color: '#34a853' }}>l</span>
+            <span style={{ color: '#ea4335' }}>e</span>
+          </span>
+          {query && (
+            <span className="web-search-query">
+              Results for <b>{query}</b>
+            </span>
+          )}
+        </div>
+        {matches && search.status === 'loading' && <p className="web-muted">Searching the Web&hellip;</p>}
+        {matches && search.status === 'error' && (
+          <p className="web-muted">Could not reach the search service. Check the Ethernet connection and try again.</p>
+        )}
+        {matches && search.status === 'done' && query && search.results.length === 0 && (
+          <p className="web-muted">
+            No results found for <b>{query}</b>.
+          </p>
+        )}
+        {!query && <p className="web-muted">Type a few words in the Address bar or the Search box to search the Web.</p>}
+        <ul className="web-search-results">
+          {matches &&
+            search.results.map((result) => (
+              <li key={result.url} className="web-search-result">
+                <button type="button" className="web-result-link" onClick={() => navigate(result.url)}>
+                  {result.title}
+                </button>
+                <span className="web-result-url">{result.url}</span>
+                {result.snippet && <p className="web-result-snippet">{result.snippet}</p>}
+              </li>
+            ))}
         </ul>
-        <p className="web-muted">Cannot find server or DNS Error — Internet Explorer (Simulated)</p>
+        {matches && search.results.length > 0 && (
+          <p className="web-search-foot">
+            Results from Wikipedia &mdash; click any result to open it in the 2016&ndash;2017 Web Archive.
+          </p>
+        )}
       </div>
     )
   }
 
   function renderPage() {
-    if (!online && page.kind !== 'home' && page.kind !== 'contact' && page.kind !== 'credits') {
-      return renderOffline()
-    }
-    switch (page.kind) {
-      case 'home':
-        return renderHome()
-      case 'contact':
-        return (
-          <div className="web-page">
-            <h2>Contact</h2>
-            <p>Email: {portfolioData.contact.email}</p>
-            <p>Location: {portfolioData.profile.location}</p>
-            <button type="button" onClick={() => openApp('contact')}>Open Address Book</button>
-          </div>
-        )
-      case 'credits':
-        return (
-          <div className="web-page">
-            <h2>Credits</h2>
-            <p>Local Win98 icon assets are self-hosted from the Alex Meub Windows 98 icon viewer.</p>
-            <button type="button" onClick={() => openApp('credits')}>Open Credits.txt</button>
-          </div>
-        )
-      case 'google':
-        return renderGoogle(page.query)
-      case 'youtube':
-        return renderYoutube()
-      case 'youtubeWatch':
-        return renderYoutubeWatch(page.video)
-      case 'construction':
-        return renderConstruction(page.title, page.host)
-      case 'notfound':
-      default:
-        return renderNotFound(page.host)
-    }
+    if (!online) return renderOffline()
+    if (page.kind === 'search') return renderSearch(page.query)
+    if (page.kind === 'archive') return renderArchive(page.originalUrl, page.archiveUrl)
+    return renderNotFound(page.host)
   }
 
-  const statusText = !online ? 'Working Offline' : page.kind === 'notfound' ? 'Cannot find server' : 'Done'
+  const statusText = !online
+    ? 'Working Offline'
+    : page.kind === 'notfound'
+      ? 'Cannot find server'
+      : page.kind === 'search'
+        ? search.status === 'loading'
+          ? 'Searching the Web...'
+          : `${search.results.length} result(s) found`
+        : 'Done (Web Archive)'
+  const statusZone = !online ? 'Offline' : page.kind === 'archive' ? 'Archive zone' : 'Internet zone'
 
   return (
     <div className="app-content internet-explorer-app">
@@ -415,35 +329,35 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
       </ul>
       <div className="ie-toolbar">
         <button type="button" className="ie-tool" onClick={() => go(-1)} disabled={index <= 0}>
-          <span className="ie-tool-glyph ie-back">←</span>
+          <span className="ie-tool-glyph ie-back">&lt;</span>
           <span>Back</span>
         </button>
         <button type="button" className="ie-tool" onClick={() => go(1)} disabled={index >= history.length - 1}>
-          <span className="ie-tool-glyph ie-fwd">→</span>
+          <span className="ie-tool-glyph ie-fwd">&gt;</span>
           <span>Forward</span>
         </button>
         <button type="button" className="ie-tool ie-tool-mini" onClick={stopLoading} disabled={!loading} title="Stop">
-          <span className="ie-tool-glyph ie-stop">✕</span>
+          <span className="ie-tool-glyph ie-stop">X</span>
           <span>Stop</span>
         </button>
         <button type="button" className="ie-tool ie-tool-mini" onClick={() => navigate(current)} title="Refresh">
-          <span className="ie-tool-glyph ie-refresh">⟳</span>
+          <span className="ie-tool-glyph ie-refresh">R</span>
           <span>Refresh</span>
         </button>
         <button type="button" className="ie-tool ie-tool-mini" onClick={() => navigate(HOME)} title="Home">
-          <span className="ie-tool-glyph ie-home">⌂</span>
+          <span className="ie-tool-glyph ie-home">H</span>
           <span>Home</span>
         </button>
         <span className="ie-tool-sep" aria-hidden="true" />
-        <button type="button" className="ie-tool" onClick={() => navigate('google.com')} title="Search">
+        <button type="button" className="ie-tool" onClick={() => navigate(HOME)} title="Search">
           <img src={win98Icons.search} alt="" />
           <span>Search</span>
         </button>
-        <button type="button" className="ie-tool" onClick={() => navigate(HOME)} title="Favorites">
+        <button type="button" className="ie-tool" onClick={() => navigate('web.archive.org')} title="Favorites">
           <img src={win98Icons.favorites} alt="" />
           <span>Favorites</span>
         </button>
-        <button type="button" className="ie-tool" onClick={() => navigate('portfolio.local/credits')} title="History">
+        <button type="button" className="ie-tool" onClick={() => navigate(HOME)} title="History">
           <img src={win98Icons.world} alt="" />
           <span>History</span>
         </button>
@@ -486,10 +400,41 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
           <img src={win98Icons.internet} alt="" />
         </div>
       </div>
+      <div className="ie-links-row">
+        <span className="ie-links-label">Links</span>
+        {POPULAR_SITES.map((site) => (
+          <button
+            key={site.url}
+            type="button"
+            className="ie-link"
+            onClick={() => navigate(site.url)}
+            title={`${site.url} — 2016–2017 archive`}
+          >
+            {site.label}
+          </button>
+        ))}
+        <form
+          className="ie-search-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const query = searchInput.trim()
+            if (query) navigate(query)
+          }}
+        >
+          <img src={win98Icons.search} alt="" aria-hidden="true" />
+          <input
+            aria-label="Search the Web"
+            placeholder="Search the Web"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+          />
+          <button type="submit">Search</button>
+        </form>
+      </div>
       <div className="sunken-panel browser-page">{renderPage()}</div>
       <div className="status-bar ie-status">
         <p className="status-bar-field ie-status-msg">
-          {loading ? `Opening ${currentHost}…` : statusText}
+          {loading ? `Opening ${currentHost}...` : statusText}
           {loading && (
             <span className="ie-progress" aria-hidden="true">
               <span />
@@ -498,7 +443,7 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
         </p>
         <p className="status-bar-field ie-status-zone">
           <img src={win98Icons.world} alt="" />
-          {online ? 'Internet zone' : 'Offline'}
+          {statusZone}
         </p>
       </div>
     </div>

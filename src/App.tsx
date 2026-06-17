@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { desktopIconDefs } from './data/apps'
 import {
@@ -26,36 +26,49 @@ import { win98Icons } from './data/icons'
 import type { AppId, BiosSettings, BootDeviceId, Point, WindowPayload, WindowState } from './types'
 import { useOs } from './os/useOs'
 import { isSystemHealthy, missingSystemFiles, restoreSystemFiles } from './os/recovery'
-import { AboutApp } from './components/apps/AboutApp'
 import { BootScreen } from './components/BootScreen'
-import { CalculatorApp } from './components/apps/CalculatorApp'
-import { ContactApp } from './components/apps/ContactApp'
-import { ControlPanelApp } from './components/apps/ControlPanelApp'
 import { CrashScreen } from './components/CrashScreen'
-import { CreditsApp } from './components/apps/CreditsApp'
 import { DesktopContextMenu } from './components/DesktopContextMenu'
 import { DesktopIcon } from './components/DesktopIcon'
-import { ExplorerApp } from './components/apps/ExplorerApp'
-import { GalleryApp } from './components/apps/GalleryApp'
-import { HelpApp } from './components/apps/HelpApp'
-import { ImageViewerApp } from './components/apps/ImageViewerApp'
-import { InternetExplorerApp } from './components/apps/InternetExplorerApp'
-import { MediaPlayerApp } from './components/apps/MediaPlayerApp'
-import { NetworkApp } from './components/apps/NetworkApp'
-import { NotepadApp } from './components/apps/NotepadApp'
-import { PaintApp } from './components/apps/PaintApp'
-import { ProjectDetailsApp } from './components/apps/ProjectDetailsApp'
-import { ProjectsApp } from './components/apps/ProjectsApp'
-import { RecycleBinApp } from './components/apps/RecycleBinApp'
-import { RunDialogApp } from './components/apps/RunDialogApp'
-import { SoundRecorderApp } from './components/apps/SoundRecorderApp'
 import { StartMenu } from './components/StartMenu'
 import { Taskbar } from './components/Taskbar'
-import { TaskManagerApp } from './components/apps/TaskManagerApp'
-import { TerminalApp } from './components/apps/TerminalApp'
-import { VideoPlayerApp } from './components/apps/VideoPlayerApp'
 import { WindowFrame } from './components/WindowFrame'
-import { WordPadApp } from './components/apps/WordPadApp'
+
+// App windows are code-split: each app is loaded on demand (its own JS/CSS chunk) the first
+// time a window of that type opens, keeping the initial desktop bundle small. The shell
+// (boot, desktop, taskbar, Start menu, window frame) above stays eager so booting is instant.
+const AboutApp = lazy(() => import('./components/apps/AboutApp').then((m) => ({ default: m.AboutApp })))
+const CalculatorApp = lazy(() => import('./components/apps/CalculatorApp').then((m) => ({ default: m.CalculatorApp })))
+const ContactApp = lazy(() => import('./components/apps/ContactApp').then((m) => ({ default: m.ContactApp })))
+const ControlPanelApp = lazy(() =>
+  import('./components/apps/ControlPanelApp').then((m) => ({ default: m.ControlPanelApp })),
+)
+const CreditsApp = lazy(() => import('./components/apps/CreditsApp').then((m) => ({ default: m.CreditsApp })))
+const ExplorerApp = lazy(() => import('./components/apps/ExplorerApp').then((m) => ({ default: m.ExplorerApp })))
+const GalleryApp = lazy(() => import('./components/apps/GalleryApp').then((m) => ({ default: m.GalleryApp })))
+const HelpApp = lazy(() => import('./components/apps/HelpApp').then((m) => ({ default: m.HelpApp })))
+const ImageViewerApp = lazy(() => import('./components/apps/ImageViewerApp').then((m) => ({ default: m.ImageViewerApp })))
+const InternetExplorerApp = lazy(() =>
+  import('./components/apps/InternetExplorerApp').then((m) => ({ default: m.InternetExplorerApp })),
+)
+const MediaPlayerApp = lazy(() => import('./components/apps/MediaPlayerApp').then((m) => ({ default: m.MediaPlayerApp })))
+const MinesweeperApp = lazy(() => import('./components/apps/MinesweeperApp').then((m) => ({ default: m.MinesweeperApp })))
+const NetworkApp = lazy(() => import('./components/apps/NetworkApp').then((m) => ({ default: m.NetworkApp })))
+const NotepadApp = lazy(() => import('./components/apps/NotepadApp').then((m) => ({ default: m.NotepadApp })))
+const PaintApp = lazy(() => import('./components/apps/PaintApp').then((m) => ({ default: m.PaintApp })))
+const ProjectDetailsApp = lazy(() =>
+  import('./components/apps/ProjectDetailsApp').then((m) => ({ default: m.ProjectDetailsApp })),
+)
+const ProjectsApp = lazy(() => import('./components/apps/ProjectsApp').then((m) => ({ default: m.ProjectsApp })))
+const RecycleBinApp = lazy(() => import('./components/apps/RecycleBinApp').then((m) => ({ default: m.RecycleBinApp })))
+const RunDialogApp = lazy(() => import('./components/apps/RunDialogApp').then((m) => ({ default: m.RunDialogApp })))
+const SoundRecorderApp = lazy(() =>
+  import('./components/apps/SoundRecorderApp').then((m) => ({ default: m.SoundRecorderApp })),
+)
+const TaskManagerApp = lazy(() => import('./components/apps/TaskManagerApp').then((m) => ({ default: m.TaskManagerApp })))
+const TerminalApp = lazy(() => import('./components/apps/TerminalApp').then((m) => ({ default: m.TerminalApp })))
+const VideoPlayerApp = lazy(() => import('./components/apps/VideoPlayerApp').then((m) => ({ default: m.VideoPlayerApp })))
+const WordPadApp = lazy(() => import('./components/apps/WordPadApp').then((m) => ({ default: m.WordPadApp })))
 
 const desktopIconWidth = 88
 const desktopIconHeight = 80
@@ -137,6 +150,8 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <TaskManagerApp />
     case 'calculator':
       return <CalculatorApp />
+    case 'minesweeper':
+      return <MinesweeperApp />
     case 'about':
       return <AboutApp />
     case 'contact':
@@ -1121,7 +1136,9 @@ function Desktop() {
               onToggleMaximize={toggleMaximize}
               onMove={moveWindow}
             >
-              {renderAppWindow(windowState, openApp)}
+              <Suspense fallback={<div className="window-loading-placeholder">Loading...</div>}>
+                {renderAppWindow(windowState, openApp)}
+              </Suspense>
             </WindowFrame>
           ),
         )}

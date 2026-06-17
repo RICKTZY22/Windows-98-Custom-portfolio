@@ -49,12 +49,14 @@ export type IconKey =
   | 'imageFile'
   | 'gallery'
   | 'audioFile'
+  | 'videoPlayer'
   | 'videoFile'
   | 'urlFile'
   | 'sysFile'
   | 'batchFile'
   | 'explorer'
   | 'run'
+  | 'minesweeper'
 
 export type AppId =
   | 'explorer'
@@ -74,6 +76,7 @@ export type AppId =
   | 'run'
   | 'taskManager'
   | 'calculator'
+  | 'minesweeper'
   | 'about'
   | 'contact'
   | 'projects'

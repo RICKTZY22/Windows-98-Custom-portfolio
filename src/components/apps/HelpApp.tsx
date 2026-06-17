@@ -29,7 +29,7 @@ const DOS_COMMANDS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'mem', desc: 'Show simulated memory usage.' },
   { cmd: 'chkdsk / scandisk', desc: 'Check the simulated disk for errors.' },
   { cmd: 'format', desc: 'Pretend to format a drive (it is only simulated!).' },
-  { cmd: 'ping', desc: 'Ping a host on the fake Portfolio Internet.' },
+  { cmd: 'ping', desc: 'Ping a host through the simulated Ethernet adapter.' },
   { cmd: 'ipconfig / winipcfg', desc: 'Show the network adapter configuration.' },
   { cmd: 'scanreg', desc: 'Scan or restore the registry (system recovery).' },
   { cmd: 'sfc', desc: 'System File Checker — verify protected system files.' },
@@ -113,7 +113,7 @@ export function HelpApp() {
                 <dt>Paint</dt>
                 <dd>Draw with pencil, brush, shapes, fill bucket, eyedropper and text. Undo/redo and save as PNG.</dd>
                 <dt>Internet Explorer</dt>
-                <dd>Browse the make-believe Portfolio Internet — the home page, search, YouTube and project sites.</dd>
+                <dd>Browse real Web Archive snapshots. It opens on archived Google and routes typed sites through Wayback.</dd>
                 <dt>Media Player</dt>
                 <dd>Plays local clips you add under public/media (listed in src/data/media.ts).</dd>
                 <dt>Control Panel</dt>
