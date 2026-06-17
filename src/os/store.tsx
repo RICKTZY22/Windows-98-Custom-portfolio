@@ -287,10 +287,30 @@ function nextActiveWindow(windows: WindowState[], excludeId?: string): string | 
     .sort((a, b) => b.zIndex - a.zIndex)[0]?.instanceId
 }
 
-function reducer(state: OsState, action: Action): OsState {
+// Exported for unit testing (e.g. OPEN_WINDOW idempotency). Colocated with the
+// provider it drives; the disable keeps fast-refresh lint happy for that export.
+// eslint-disable-next-line react-refresh/only-export-components
+export function reducer(state: OsState, action: Action): OsState {
   switch (action.type) {
     case 'OPEN_WINDOW': {
       const zIndex = state.zCounter + 1
+      // Idempotent guard: if a window with this instanceId already exists, focus
+      // it instead of appending a duplicate. openApp dedupes against stateRef, but
+      // two synchronous opens (e.g. a key press firing two handlers in one tick)
+      // both read the same stale state — without this they'd create two windows
+      // sharing one React key.
+      const existing = state.windows.find((win) => win.instanceId === action.window.instanceId)
+      if (existing) {
+        return {
+          ...state,
+          zCounter: zIndex,
+          windows: state.windows.map((win) =>
+            win.instanceId === action.window.instanceId ? { ...win, minimized: false, zIndex } : win,
+          ),
+          activeWindowId: action.window.instanceId,
+          startMenuOpen: false,
+        }
+      }
       return {
         ...state,
         zCounter: zIndex,

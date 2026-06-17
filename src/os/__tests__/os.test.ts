@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { BootDeviceId } from '../../types'
+import type { BootDeviceId, OsState, WindowState } from '../../types'
+import { reducer } from '../store'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../../data/initialFilesystem'
 import { executeCommand } from '../commands'
 import {
@@ -183,6 +184,57 @@ describe('virtual filesystem', () => {
     const emptied = emptyRecycleBin(deleted.fs)
     expect(emptied.recycle.length).toBe(0)
     expect(getNode(emptied, 'C:\\My Documents\\Education.txt')).toBeUndefined()
+  })
+})
+
+describe('window reducer', () => {
+  // Minimal slice of OsState: OPEN_WINDOW only reads windows/zCounter/activeWindowId/startMenuOpen.
+  const baseState = (): OsState =>
+    ({ windows: [], zCounter: 20, activeWindowId: undefined, startMenuOpen: false }) as unknown as OsState
+
+  const makeWindow = (instanceId: string): Omit<WindowState, 'zIndex'> =>
+    ({
+      instanceId,
+      appId: 'internetExplorer',
+      title: 'Internet Explorer',
+      icon: 'internetExplorer',
+      minimized: false,
+      maximized: false,
+      x: 0,
+      y: 0,
+      width: 400,
+      height: 300,
+    }) as unknown as Omit<WindowState, 'zIndex'>
+
+  it('focuses instead of duplicating when the same instanceId is opened twice', () => {
+    // Reproduces the Enter-key double-handler race: two OPEN_WINDOW dispatches for
+    // one instanceId, as happens when both DesktopIcon and the desktop window-level
+    // keydown handler fire before state commits. Must yield a single window so two
+    // React children never share the instanceId key.
+    const win = makeWindow('internetExplorer')
+    const once = reducer(baseState(), { type: 'OPEN_WINDOW', window: win })
+    const twice = reducer(once, { type: 'OPEN_WINDOW', window: win })
+
+    expect(once.windows).toHaveLength(1)
+    expect(twice.windows).toHaveLength(1)
+    expect(twice.windows.map((w) => w.instanceId)).toEqual(['internetExplorer'])
+    expect(twice.activeWindowId).toBe('internetExplorer')
+    // Re-opening still raises the window above where it was.
+    expect(twice.windows[0].zIndex).toBeGreaterThan(once.windows[0].zIndex)
+  })
+
+  it('restores a minimized window when its app is reopened', () => {
+    const win = makeWindow('internetExplorer')
+    const opened = reducer(baseState(), { type: 'OPEN_WINDOW', window: win })
+    const minimized: OsState = {
+      ...opened,
+      windows: opened.windows.map((w) => ({ ...w, minimized: true })),
+    }
+
+    const reopened = reducer(minimized, { type: 'OPEN_WINDOW', window: win })
+    expect(reopened.windows).toHaveLength(1)
+    expect(reopened.windows[0].minimized).toBe(false)
+    expect(reopened.activeWindowId).toBe('internetExplorer')
   })
 })
 
