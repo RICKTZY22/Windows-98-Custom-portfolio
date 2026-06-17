@@ -1,5 +1,5 @@
-import { win98Icons } from '../data/icons'
-import type { AppId, WindowPayload } from '../types'
+import { win98Icons } from '../../data/icons'
+import type { AppId, WindowPayload } from '../../types'
 
 type DesktopContextMenuProps = {
   x: number

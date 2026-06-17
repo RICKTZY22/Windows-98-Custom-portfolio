@@ -1,5 +1,5 @@
-import { win98Icons } from '../data/icons'
-import type { NetworkState, WindowState } from '../types'
+import { win98Icons } from '../../data/icons'
+import type { NetworkState, WindowState } from '../../types'
 
 type TaskbarProps = {
   windows: WindowState[]

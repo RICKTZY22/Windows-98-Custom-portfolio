@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import type { CrashState } from '../types'
-import { useOs } from '../os/useOs'
+import type { CrashState } from '../../types'
+import { useOs } from '../../os/useOs'
 
 type CrashScreenProps = {
   crash: CrashState

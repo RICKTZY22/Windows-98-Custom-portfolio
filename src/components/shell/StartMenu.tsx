@@ -1,6 +1,6 @@
-import { startMenuModel, type StartMenuModel } from '../data/apps'
-import { win98Icons } from '../data/icons'
-import type { AppId, NetworkState, WindowPayload } from '../types'
+import { startMenuModel, type StartMenuModel } from '../../data/apps'
+import { win98Icons } from '../../data/icons'
+import type { AppId, NetworkState, WindowPayload } from '../../types'
 
 type StartMenuProps = {
   openApp: (appId: AppId, payload?: WindowPayload) => void

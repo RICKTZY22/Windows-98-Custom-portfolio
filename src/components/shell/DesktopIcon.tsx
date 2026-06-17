@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import type { DesktopIconDef, Point } from '../types'
-import { win98Icons } from '../data/icons'
+import type { DesktopIconDef, Point } from '../../types'
+import { win98Icons } from '../../data/icons'
 
 type DesktopIconProps = {
   iconDef: DesktopIconDef
@@ -136,6 +136,10 @@ export function DesktopIcon({ iconDef, position, selected, onSelect, onOpen, onM
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
+          // Stop the desktop's window-level keydown handler from also firing for
+          // this same key press; otherwise both open the app in one tick and the
+          // stale-state dedupe in openApp can spawn two windows with one instanceId.
+          event.stopPropagation()
           onOpen()
         }
       }}

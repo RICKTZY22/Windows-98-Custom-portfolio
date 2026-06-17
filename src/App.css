@@ -3,10 +3,10 @@
  * each app ship its own CSS as a lazy-loaded chunk (loaded only when the app opens).
  *
  * Eager/global styles (loaded before any app, in this order) are imported from main.tsx:
- *   styles/base.css, styles/cursors.css, components/BootScreen.css, styles/desktop.css,
- *   components/WindowFrame.css, styles/common.css, styles/file-manager.css,
- *   components/CrashScreen.css, components/StartMenu.css, components/Taskbar.css,
- *   components/DesktopContextMenu.css, styles/responsive.css, styles/system-screens.css,
+ *   styles/base.css, styles/cursors.css, components/system/BootScreen.css, styles/desktop.css,
+ *   components/shell/WindowFrame.css, styles/common.css, styles/file-manager.css,
+ *   components/system/CrashScreen.css, components/shell/StartMenu.css, components/shell/Taskbar.css,
+ *   components/shell/DesktopContextMenu.css, styles/responsive.css, styles/system-screens.css,
  *   styles/bios.css, styles/message-box.css
  *
  * Per-app styles live next to each component as components/apps/<Name>App.css and are

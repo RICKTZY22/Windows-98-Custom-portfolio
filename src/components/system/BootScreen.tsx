@@ -8,11 +8,11 @@ import {
   osCreditName,
   osProductName,
   type BootDeviceOption,
-} from '../data/system'
-import { bootSequenceLabel } from '../data/bios'
-import { win98Icons } from '../data/icons'
-import { useOs } from '../os/useOs'
-import { isSystemHealthy } from '../os/recovery'
+} from '../../data/system'
+import { bootSequenceLabel } from '../../data/bios'
+import { win98Icons } from '../../data/icons'
+import { useOs } from '../../os/useOs'
+import { isSystemHealthy } from '../../os/recovery'
 
 type Stage = 'post' | 'menu' | 'booting' | 'failed'
 

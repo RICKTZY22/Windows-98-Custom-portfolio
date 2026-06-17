@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { win98Icons } from '../data/icons'
-import type { WindowRect, WindowState } from '../types'
+import { win98Icons } from '../../data/icons'
+import type { WindowRect, WindowState } from '../../types'
 
 type WindowFrameProps = {
   window: WindowState
