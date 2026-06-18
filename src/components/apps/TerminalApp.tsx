@@ -115,6 +115,17 @@ export function TerminalApp({ windowId, payload }: AppProps) {
     setInput('')
   }
 
+  // Run an initial command passed via payload (e.g. from the Run dialog) once on open.
+  const ranInitialRef = useRef(false)
+  useEffect(() => {
+    const initial = payload?.command?.trim()
+    if (ranInitialRef.current || !initial) return
+    ranInitialRef.current = true
+    runCommand(initial)
+    setHistory((current) => [...current, initial])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className={`terminal-app ${dosOnly ? 'dos-only-terminal' : ''}`} onClick={() => inputRef.current?.focus()}>
       <div className="terminal-output">

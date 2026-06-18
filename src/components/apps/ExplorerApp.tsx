@@ -5,6 +5,7 @@ import type { AppProps, FsNode } from '../../types'
 import { useOs } from '../../os/useOs'
 import {
   baseName,
+  extensionOf,
   formatSize,
   getNode,
   isProtectedPath,
@@ -231,9 +232,15 @@ Size: ${
   function commitRename() {
     if (!renamingPath) return
     const node = getNode(state.fs, renamingPath)
-    const next = renameValue.trim()
+    const typed = renameValue.trim()
     setRenamingPath(undefined)
-    if (!node || !next || next === node.name) return
+    if (!node || !typed) return
+    // Keep the original extension if the user dropped it while renaming a file —
+    // otherwise the file loses its app association and won't open ("not a valid
+    // Win32 application"). Folders are renamed verbatim.
+    const originalExt = node.kind === 'file' ? extensionOf(node.name) : ''
+    const next = originalExt && !extensionOf(typed) ? `${typed}.${originalExt}` : typed
+    if (next === node.name) return
     const error = fsOps.renameNode(node.path, next)
     if (error) showError(error)
     else selectSingle(joinPath(parentPath(node.path), next))
@@ -420,7 +427,20 @@ Size: ${
         </div>
         <div
           className={`sunken-panel rich-file-list view-${viewMode}`}
+          tabIndex={0}
           onContextMenu={(event) => openContextMenu(event, null)}
+          onKeyDown={(event) => {
+            if (renamingPath) return
+            // Selection-wide shortcuts live on the pane so they work whether a row or
+            // the empty list area has focus (rows still handle Enter/F2/Backspace).
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+              event.preventDefault()
+              selectAll()
+            } else if (event.key === 'Delete') {
+              event.preventDefault()
+              deleteSelection()
+            }
+          }}
         >
           {viewMode === 'details' && (
             <div className="file-header">
@@ -443,18 +463,11 @@ Size: ${
               onContextMenu={(event) => openContextMenu(event, node.path)}
               onKeyDown={(event) => {
                 if (renamingPath === node.path) return
-                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
-                  event.preventDefault()
-                  selectAll()
-                  return
-                }
+                // Ctrl+A and Delete are handled by the list pane (so they also work when
+                // the empty area is focused); let them bubble up instead of duplicating.
                 if (event.key === 'Enter') {
                   event.preventDefault()
                   openExplorerNode(node.path)
-                }
-                if (event.key === 'Delete') {
-                  event.preventDefault()
-                  deleteSelection()
                 }
                 if (event.key === 'F2') {
                   event.preventDefault()

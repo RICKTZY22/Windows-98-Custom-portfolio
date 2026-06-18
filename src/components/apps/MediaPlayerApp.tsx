@@ -60,11 +60,9 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
     localMediaLibrary.forEach((item) =>
       tracks.push({ id: `local-${item.id}`, name: item.name, kind: item.kind, src: item.src }),
     )
-    listDirectory(state.fs, 'C:\\Windows\\Media').forEach((node) => {
-      const synthId = soundByFileName[node.name.toLowerCase()]
-      if (synthId) tracks.push({ id: node.path, name: node.name, kind: 'audio', synthId })
-    })
-    const documentDirs = ['C:\\My Documents', 'C:\\My Documents\\Music']
+    // Only the user's own media is listed. System event sounds (C:\Windows\Media)
+    // are intentionally excluded so the playlist shows music/recordings, not bleeps.
+    const documentDirs = ['C:\\My Documents', 'C:\\My Documents\\Music', 'C:\\My Documents\\My Recordings']
     documentDirs.forEach((dir) => {
       listDirectory(state.fs, dir).forEach((node) => {
         if (isMediaFile(node)) {
@@ -258,7 +256,11 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
             <span className="media-playlist-kind">{track.kind}</span>
           </div>
         ))}
-        {playlist.length === 0 && <p className="media-empty">No media found. Add files to public/media and src/data/media.ts.</p>}
+        {playlist.length === 0 && (
+          <p className="media-empty">
+            No media yet. Record a clip in Sound Recorder, or add audio/video to My Documents\Music.
+          </p>
+        )}
       </div>
       {!state.audio.enabled && (
         <button type="button" className="media-enable-hint" onClick={enableAudio}>

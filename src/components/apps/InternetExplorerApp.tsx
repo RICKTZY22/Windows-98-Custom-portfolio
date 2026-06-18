@@ -4,21 +4,38 @@ import type { AppProps } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 
-const HOME = 'http://google.com/'
-// Snapshots from the 2016–2017 era. `if_` serves the page without the Wayback toolbar.
-const WAYBACK_PREFIX = 'https://web.archive.org/web/20161201000000if_/'
+const HOME = 'http://www.google.com/'
+// Default Wayback snapshot for typed/unlisted URLs. `if_` serves the page without
+// the Wayback toolbar (and lets it load inside the iframe).
+const DEFAULT_SNAPSHOT = '20150601000000'
 
-// Popular sites with rich 2016–2017 archives, shown on the Links bar.
+// Per-host snapshot timestamps within the 2011–2017 window, in English. The
+// crucial ones (Google/YouTube/Facebook/Instagram) were confirmed against the
+// Wayback availability API (archive.org/wayback/available).
+const SNAPSHOT_BY_HOST: Record<string, string> = {
+  'google.com': '20140601000000',
+  'youtube.com': '20140602000310',
+  'facebook.com': '20140601235450',
+  'instagram.com': '20150102001443',
+  'twitter.com': '20150601000000',
+  'wikipedia.org': '20150601000000',
+  'en.wikipedia.org': '20150601000000',
+  'amazon.com': '20150601000000',
+  'reddit.com': '20150601000000',
+  'yahoo.com': '20150601000000',
+}
+
+// Popular sites shown on the Links bar — English (.com / www) editions.
 const POPULAR_SITES: Array<{ label: string; url: string }> = [
-  { label: 'Google', url: 'google.co.id' },
-  { label: 'YouTube', url: 'jp.youtube.com' },
-  { label: 'Facebook', url: 'facebook.de' },
-  { label: 'Instagram', url: 'instagr.am' },
+  { label: 'Google', url: 'www.google.com' },
+  { label: 'YouTube', url: 'www.youtube.com' },
+  { label: 'Facebook', url: 'www.facebook.com' },
+  { label: 'Instagram', url: 'instagram.com' },
   { label: 'Twitter', url: 'twitter.com' },
-  { label: 'Wikipedia', url: 'wikipedia.org' },
-  { label: 'Amazon', url: 'amazon.com' },
-  { label: 'Reddit', url: 'reddit.com' },
-  { label: 'Yahoo', url: 'yahoo.com' },
+  { label: 'Wikipedia', url: 'en.wikipedia.org' },
+  { label: 'Amazon', url: 'www.amazon.com' },
+  { label: 'Reddit', url: 'www.reddit.com' },
+  { label: 'Yahoo', url: 'www.yahoo.com' },
 ]
 
 function looksLikeSearchQuery(raw: string): boolean {
@@ -57,8 +74,10 @@ function hostOf(url: string): string {
 }
 
 function archiveUrlFor(url: string): string {
-  if (hostOf(url) === 'web.archive.org') return url
-  return `${WAYBACK_PREFIX}${url}`
+  const host = hostOf(url)
+  if (host === 'web.archive.org') return url
+  const snapshot = SNAPSHOT_BY_HOST[host] ?? DEFAULT_SNAPSHOT
+  return `https://web.archive.org/web/${snapshot}if_/${url}`
 }
 
 function pathOf(url: string): string {

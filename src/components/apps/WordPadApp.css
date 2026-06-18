@@ -187,6 +187,8 @@
   margin: 1px 0 0;
   padding: 2px;
   list-style: none;
+  max-height: 232px;
+  overflow-y: auto;
   background: #c0c0c0;
   border: 1px solid #000;
   box-shadow: inset -1px -1px #808080, inset 1px 1px #fff, 2px 2px 0 rgba(0, 0, 0, 0.35);

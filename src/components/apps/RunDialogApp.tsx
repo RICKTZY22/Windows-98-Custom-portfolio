@@ -33,10 +33,11 @@ const commands: Record<string, { appId: AppId; path?: string; url?: string; file
 export function RunDialogApp() {
   const { state, openApp, openNode } = useOs()
   const [command, setCommand] = useState('')
-  const [message, setMessage] = useState('Type the name of a program, folder, document, or Internet resource.')
+  const [message] = useState('Type the name of a program, folder, document, command, or Internet resource.')
 
   function run() {
     const value = command.trim()
+    if (!value) return
     const lower = value.toLowerCase()
     const target = commands[lower]
     if (target) {
@@ -55,7 +56,9 @@ export function RunDialogApp() {
       return
     }
 
-    setMessage('Windows cannot find the specified file.')
+    // Not an app/URL/file — hand it to the command prompt and run it there, so any
+    // shell command (dir, ipconfig, echo, ping, ...) works like a PowerShell/Run combo.
+    openApp('terminal', { command: value })
   }
 
   return (

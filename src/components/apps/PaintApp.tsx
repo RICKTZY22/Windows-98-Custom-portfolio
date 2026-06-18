@@ -35,6 +35,10 @@ function point(event: ReactPointerEvent<HTMLCanvasElement>) {
 
 type PaintFormat = 'bmp' | 'png' | 'jpeg'
 
+// Paint saves into its own folder so bitmaps live in the file manager and stay
+// out of the photo Gallery (which only shows C:\My Pictures, sans .bmp).
+const PAINT_DIR = 'C:\\My Documents\\Paint'
+
 const FORMAT_EXT: Record<PaintFormat, string> = { bmp: 'bmp', png: 'png', jpeg: 'jpg' }
 
 /** Force the save name to carry the chosen format's extension (media.bmp / media.png / media.jpg). */
@@ -117,7 +121,9 @@ function floodFill(ctx: CanvasRenderingContext2D, width: number, height: number,
   const tr = d[start], tg = d[start + 1], tb = d[start + 2], ta = d[start + 3]
   const [fr, fg, fb] = hexToRgb(hex)
   if (Math.abs(fr - tr) <= 2 && Math.abs(fg - tg) <= 2 && Math.abs(fb - tb) <= 2 && ta === 255) return
-  const tol = 48
+  // Tight tolerance so the fill stops at a drawn shape's outline instead of
+  // bleeding across it — clicking inside a circle fills only that circle.
+  const tol = 20
   const seen = new Uint8Array(width * height)
   const stack = [yi * width + xi]
   while (stack.length) {
@@ -357,14 +363,18 @@ export function PaintApp({ windowId, payload }: AppProps) {
 
   // Save overwrites the current file (or creates one from the name box if this is a new image).
   function save() {
-    writeImage(currentPath ?? joinPath('C:\\My Pictures', nameForFormat(saveAsName, format)))
+    writeImage(currentPath ?? joinPath(PAINT_DIR, nameForFormat(saveAsName, format)))
   }
 
-  // Save As always writes the name box as a NEW file in the current folder and adopts it,
-  // leaving the original untouched.
+  // Save As prompts for a filename (so you can rename, not stay stuck on media.bmp),
+  // writes it as a NEW file in the current folder, and adopts it.
   function saveAs() {
-    const folder = currentPath ? parentPath(currentPath) : 'C:\\My Pictures'
-    writeImage(joinPath(folder, nameForFormat(saveAsName, format)))
+    const folder = currentPath ? parentPath(currentPath) : PAINT_DIR
+    const input = window.prompt('Save picture as:', saveAsName)
+    if (input == null) return
+    const finalName = nameForFormat(input, format)
+    setSaveAsName(finalName)
+    writeImage(joinPath(folder, finalName))
   }
 
   const shapeToolActive = tool === 'rect' || tool === 'ellipse'

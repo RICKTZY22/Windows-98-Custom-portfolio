@@ -14,7 +14,8 @@ function formatTime(seconds: number) {
 }
 
 export function SoundRecorderApp() {
-  const { fsOps, enableAudio, playSound, showMessageBox } = useOs()
+  const { fsOps, enableAudio, playSound, showMessageBox, openApp } = useOs()
+  const RECORDINGS_DIR = 'C:\\My Documents\\My Recordings'
   const [mode, setMode] = useState<RecorderMode>('stopped')
   const [seconds, setSeconds] = useState(0)
   const [clips, setClips] = useState(0)
@@ -76,14 +77,16 @@ export function SoundRecorderApp() {
       } else {
         dataUrl = await renderSoundToWavDataUrl('ding').catch(() => undefined)
       }
-      const error = fsOps.createFile('C:\\My Documents\\Music', name, {
+      const error = fsOps.createFile(RECORDINGS_DIR, name, {
         dataUrl,
         content: `Recorded ${nowStamp()}`,
       })
       if (error) {
         showMessageBox({ title: 'Sound Recorder', message: error, icon: 'error', buttons: ['ok'] })
       } else {
-        setStatus(`Saved ${joinPath('C:\\My Documents\\Music', name)}`)
+        setStatus(`Saved ${joinPath(RECORDINGS_DIR, name)} — opening Media Player...`)
+        // Hand the fresh recording off to Media Player so it can be played back.
+        openApp('mediaPlayer', { filePath: joinPath(RECORDINGS_DIR, name) })
       }
     }
     setMode('stopped')
@@ -136,7 +139,7 @@ export function SoundRecorderApp() {
       </div>
       <div className="status-bar">
         <p className="status-bar-field">{clips} saved clip(s)</p>
-        <p className="status-bar-field">Saved in C:\My Documents\Music</p>
+        <p className="status-bar-field">Saved in {RECORDINGS_DIR}</p>
       </div>
     </div>
   )

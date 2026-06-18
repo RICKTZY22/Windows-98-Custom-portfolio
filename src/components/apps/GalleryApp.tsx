@@ -5,7 +5,9 @@ import { win98Icons } from '../../data/icons'
 import { extensionOf, formatSize, listDirectory } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 
-const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif'])
+// BMP is intentionally excluded: Paint saves .bmp files into C:\My Documents\Paint
+// (browse them in the file manager), so they don't clutter the photo gallery.
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif'])
 const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'webm', 'mov', 'mkv', 'ogg'])
 
 const PICTURES_DIR = 'C:\\My Pictures'

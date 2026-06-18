@@ -102,6 +102,7 @@ export type WindowPayload = {
   path?: string // explorer folder path
   filePath?: string // document to open (notepad/paint/media/resume)
   url?: string // internet explorer target
+  command?: string // terminal: a command to run on open (Run dialog routes commands here)
   projectId?: string
   controlPanelSection?: ControlPanelSectionId
 }

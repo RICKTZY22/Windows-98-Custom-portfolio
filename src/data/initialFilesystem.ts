@@ -770,6 +770,10 @@ export function createInitialFsState(): FsState {
     modified: '06/13/2026 12:34 AM',
   })
   folder('C:\\My Documents\\Music', 'folder', '06/12/2026 12:07 AM')
+  // Sound Recorder saves .wav clips here; Media Player lists them for playback.
+  folder('C:\\My Documents\\My Recordings', 'folder', '06/12/2026 12:07 AM')
+  // Paint saves its bitmaps here (kept out of My Pictures / the Gallery).
+  folder('C:\\My Documents\\Paint', 'folder', '06/12/2026 12:07 AM')
 
   // ----- Projects: one folder per project -----
   folder('C:\\Projects', 'projects', '06/13/2026 12:35 AM')
@@ -1084,6 +1088,8 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Pictures',
   ...SAMPLE_PICTURE_FILES.map((file) => file.path),
   'C:\\My Videos',
+  'C:\\My Documents\\My Recordings',
+  'C:\\My Documents\\Paint',
   'C:\\My Documents\\Resume.doc',
   'C:\\My Documents\\Education.txt',
   'C:\\Projects',
