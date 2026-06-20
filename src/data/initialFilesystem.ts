@@ -9,6 +9,7 @@ import {
   parentPath,
 } from '../os/filesystem'
 import { portfolioData } from './portfolioData'
+import { galleryPhotos, galleryVideos } from './media'
 
 export const REQUIRED_SYSTEM_FILES: string[] = REQUIRED
 
@@ -135,6 +136,25 @@ const COVER_ART_DATA_URL =
 type ScaffoldFile = FileOpts & { path: string }
 
 const SAMPLE_PICTURE_FILES: ScaffoldFile[] = []
+
+// Photos/videos hosted off-repo (see src/data/media.ts). Each becomes a virtual
+// file whose dataUrl is the external URL, so nothing heavy lives in this repo.
+const GALLERY_PHOTO_FILES: ScaffoldFile[] = galleryPhotos.map((item) => ({
+  path: `C:\\My Pictures\\${item.name}`,
+  dataUrl: item.src,
+  icon: 'imageFile',
+  fileType: 'Image',
+  size: 0,
+  modified: MODERN_STAMP,
+}))
+const GALLERY_VIDEO_FILES: ScaffoldFile[] = galleryVideos.map((item) => ({
+  path: `C:\\My Videos\\${item.name}`,
+  dataUrl: item.src,
+  icon: 'videoFile',
+  fileType: 'Video Clip',
+  size: 0,
+  modified: MODERN_STAMP,
+}))
 
 function btrPath(...parts: string[]): string {
   return `${BETWEEN_TWO_RUINS_WEB_ROOT}\\${parts.join('\\')}`
@@ -827,12 +847,15 @@ export function createInitialFsState(): FsState {
 
   // ----- My Pictures (cleaned out - drop your own images here) -----
   folder('C:\\My Pictures', 'folder', '06/12/2026 12:04 AM')
-  for (const { path, ...opts } of SAMPLE_PICTURE_FILES) {
+  for (const { path, ...opts } of [...SAMPLE_PICTURE_FILES, ...GALLERY_PHOTO_FILES]) {
     file(path, opts)
   }
 
   // ----- My Videos (drop your own clips here) -----
   folder('C:\\My Videos', 'folder', '06/12/2026 12:04 AM')
+  for (const { path, ...opts } of GALLERY_VIDEO_FILES) {
+    file(path, opts)
+  }
 
   // ----- Windows -----
   folder('C:\\Windows', 'windows', '05/11/1998 08:00 AM')
@@ -1119,7 +1142,9 @@ export function createInitialFsState(): FsState {
 const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Pictures',
   ...SAMPLE_PICTURE_FILES.map((file) => file.path),
+  ...GALLERY_PHOTO_FILES.map((file) => file.path),
   'C:\\My Videos',
+  ...GALLERY_VIDEO_FILES.map((file) => file.path),
   'C:\\My Documents\\My Recordings',
   'C:\\My Documents\\Paint',
   'C:\\My Documents\\Private',
