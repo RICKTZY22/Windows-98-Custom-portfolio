@@ -3,6 +3,8 @@
 A browser-based, Windows 98–inspired portfolio OS built with **React 19, TypeScript, Vite,
 and 98.css**.
 
+**🕹️ [Play it live →](https://windows-98-custom-portfolio.vercel.app/)**
+
 This isn't a normal landing page. It boots like a small simulated PC — BIOS, startup menu,
 splash — then opens into a draggable desktop that presents John Erick Mendoza's resume,
 projects, and contact details through classic desktop apps.
