@@ -2,7 +2,7 @@
 
 # Windows 98 Portfolio Edition
 
-A browser-based **Windows 98 desktop** — it boots like a real PC, then opens into a
+A browser-based **Windows 98 desktop**  it boots like a real PC, then opens into a
 draggable desktop full of working apps. Built as an interactive portfolio.
 
 [![Play it live](https://img.shields.io/badge/Play%20it%20live-windows--98--custom--portfolio.vercel.app-000?style=for-the-badge&logo=vercel)](https://windows-98-custom-portfolio.vercel.app/)
