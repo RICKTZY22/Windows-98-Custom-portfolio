@@ -1,11 +1,11 @@
 <div align="center">
 
-# 🖥️ Windows 98 Portfolio Edition
+# Windows 98 Portfolio Edition
 
 A browser-based **Windows 98 desktop** — it boots like a real PC, then opens into a
 draggable desktop full of working apps. Built as an interactive portfolio.
 
-[![Play it live](https://img.shields.io/badge/▶%20Play%20it%20live-windows--98--custom--portfolio.vercel.app-000?style=for-the-badge&logo=vercel)](https://windows-98-custom-portfolio.vercel.app/)
+[![Play it live](https://img.shields.io/badge/Play%20it%20live-windows--98--custom--portfolio.vercel.app-000?style=for-the-badge&logo=vercel)](https://windows-98-custom-portfolio.vercel.app/)
 
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)
 &nbsp;![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
@@ -16,7 +16,7 @@ draggable desktop full of working apps. Built as an interactive portfolio.
 
 > Fan-made simulation — not affiliated with, endorsed by, or sponsored by Microsoft.
 
-## ✨ Features
+## Features
 
 - **Authentic shell** — BIOS cold boot, startup menu, splash, and shutdown / restart /
   crash / recovery flows.
@@ -26,7 +26,7 @@ draggable desktop full of working apps. Built as an interactive portfolio.
 - **Working apps** — Explorer, Notepad, WordPad, Paint, Media Player, Sound Recorder,
   Image / Gallery viewer, Calculator, Minesweeper, Control Panel, Task Manager, Run,
   About, Contact, Projects, and Credits.
-- **MS-DOS Prompt** — a real command parser (`dir`, `cd`, `type`, `del`, `scanreg`, …),
+- **MS-DOS Prompt** — a real command parser (`dir`, `cd`, `type`, `del`, `scanreg`, ...),
   with safeguards before deleting protected system files.
 - **Internet Explorer** — browses period-accurate snapshots through the Web Archive.
 - **DOS games** — DOOM and Wolfenstein 3D run fully in-browser via
@@ -35,17 +35,17 @@ draggable desktop full of working apps. Built as an interactive portfolio.
 - **Virtual filesystem** — a persistent `C:\` drive; delete the wrong System32 files and
   you get the crash-and-recovery console.
 
-## 🚀 Getting started
+## Getting started
 
 ```bash
 npm install
-npm run dev      # dev server (Vite — usually http://localhost:5173)
+npm run dev      # dev server (Vite - usually http://localhost:5173)
 npm run build    # type-check + production build
 npm run lint     # eslint
 npm test         # vitest
 ```
 
-## 🗂️ Project structure
+## Project structure
 
 ```text
 src/
@@ -56,25 +56,25 @@ src/
 public/
   games/        self-hosted .jsdos game bundles
   js-dos/       js-dos player + WebAssembly emulator backends
-  icons/        Windows 98–style icons
+  icons/        Windows 98-style icons
 ```
 
 Personal content lives in `src/data/portfolioData.ts` · desktop & Start-menu entries in
 `src/data/apps.ts` · the seeded `C:\` drive in `src/data/initialFilesystem.ts`.
 
-## 🛠️ Tech
+## Tech
 
 React 19 · TypeScript · Vite · Vitest · ESLint · [98.css](https://jdan.github.io/98.css/)
 
-## 🙏 Credits
+## Credits
 
-Game IP © **id Software / Bethesda (ZeniMax)** · DOS emulation by **js-dos** & **DOSBox** ·
+Game IP (c) **id Software / Bethesda (ZeniMax)** · DOS emulation by **js-dos** & **DOSBox** ·
 game files preserved by the **Internet Archive** · UI foundation by **98.css**.
 Full attributions live in the in-app **Credits** window.
 
 Built by **John Erick Mendoza**, with development help from **Claude (Anthropic)** and
 **OpenAI Codex**.
 
-## 📄 License
+## License
 
 MIT — see [LICENSE](LICENSE).
