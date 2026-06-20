@@ -73,6 +73,7 @@ desktop.ini
 
 # Documentation, generated docx, and docx-rendering tools (kept local, not published)
 *.md
+!/README.md
 *.docx
 /docs/
 /tools/
