@@ -57,6 +57,8 @@ export type IconKey =
   | 'explorer'
   | 'run'
   | 'minesweeper'
+  | 'wolfenstein'
+  | 'doom'
 
 export type AppId =
   | 'explorer'
@@ -77,6 +79,7 @@ export type AppId =
   | 'taskManager'
   | 'calculator'
   | 'minesweeper'
+  | 'dosGame'
   | 'about'
   | 'contact'
   | 'projects'
@@ -102,6 +105,7 @@ export type WindowPayload = {
   path?: string // explorer folder path
   filePath?: string // document to open (notepad/paint/media/resume)
   url?: string // internet explorer target
+  windowTitle?: string // overrides the app definition title in the window title bar
   command?: string // terminal: a command to run on open (Run dialog routes commands here)
   projectId?: string
   controlPanelSection?: ControlPanelSectionId
@@ -138,6 +142,7 @@ export type FsAttributes = {
   critical?: boolean // deleting it crashes Windows / blocks normal boot
   readOnly?: boolean
   hidden?: boolean
+  passcode?: string // folders only: opening prompts for this code before contents show
 }
 
 export type FsNode = {

@@ -494,6 +494,41 @@ export function copyNode(fs: FsState, path: string, targetFolder: string): FsRes
   return { fs: next, error: null, createdPath: newRoot }
 }
 
+/** The authentic Win98 desktop folder. Icons here are mirrored onto the desktop. */
+export const DESKTOP_FOLDER = 'C:\\Windows\\Desktop'
+
+/**
+ * Drops a `.lnk` shortcut for `targetPath` into the Desktop folder so it shows up
+ * as a desktop icon. Uses internalInsertNode to bypass the C:\Windows write
+ * protection (a "Send to Desktop" is a deliberate, safe system op, like restore).
+ */
+export function createDesktopShortcut(fs: FsState, targetPath: string): FsResult {
+  const target = getNode(fs, targetPath)
+  if (!target) {
+    return fail(fs, 'The system cannot find the file specified.')
+  }
+  const desktop = getNode(fs, DESKTOP_FOLDER)
+  if (!desktop || desktop.kind !== 'folder') {
+    return fail(fs, 'The system cannot find the path specified.')
+  }
+  const open = openTargetFor(target)
+  const baseLabel = target.name.replace(/\.lnk$/i, '')
+  const name = uniqueChildName(fs, desktop.path, `${baseLabel}.lnk`)
+  const path = joinPath(desktop.path, name)
+  const node: FsNode = {
+    path,
+    name,
+    kind: 'file',
+    icon: target.icon,
+    fileType: 'Shortcut',
+    size: 1024,
+    modified: nowStamp(),
+    appId: open?.appId ?? target.appId,
+    appPayload: open?.payload ?? target.appPayload,
+  }
+  return { fs: internalInsertNode(fs, node), error: null, createdPath: path }
+}
+
 let recycleCounter = 0
 
 export function deleteNode(fs: FsState, path: string): { fs: FsState; error: string | null; criticalDeleted: boolean } {

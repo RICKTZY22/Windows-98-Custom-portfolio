@@ -52,6 +52,8 @@ export const win98Icons: Record<IconKey, string> = {
   gallery: `${iconBase}/kodak_imaging-0.png`,
   minesweeper:
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23c0c0c0'/%3E%3Cpath d='M0 0h32v2H0zM0 0h2v32H0z' fill='%23fff'/%3E%3Cpath d='M0 30h32v2H0zM30 0h2v32h-2z' fill='%23808080'/%3E%3Ccircle cx='15' cy='18' r='8' fill='%23000'/%3E%3Crect x='4' y='17' width='22' height='2' fill='%23000'/%3E%3Crect x='14' y='7' width='2' height='22' fill='%23000'/%3E%3Ccircle cx='12' cy='15' r='2.2' fill='%23fff'/%3E%3Ccircle cx='19' cy='6' r='2.6' fill='%23ff2d2d'/%3E%3C/svg%3E",
+  wolfenstein: `${iconBase}/woldenstein.png`,
+  doom: `${iconBase}/doom.png`,
   audioFile: `${iconBase}/loudspeaker_rays-0.png`,
   videoPlayer: `${iconBase}/windows_movie-0.png`,
   videoFile: `${iconBase}/video_tl-1.png`,

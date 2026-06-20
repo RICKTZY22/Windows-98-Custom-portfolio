@@ -22,8 +22,9 @@ import {
   shutdownLines,
 } from './data/system'
 import { win98Icons } from './data/icons'
-import type { AppId, BiosSettings, BootDeviceId, Point, WindowPayload, WindowState } from './types'
+import type { AppId, BiosSettings, BootDeviceId, DesktopIconDef, FsNode, Point, WindowPayload, WindowState } from './types'
 import { useOs } from './os/useOs'
+import { DESKTOP_FOLDER, getNode, openTargetFor } from './os/filesystem'
 import { isSystemHealthy, missingSystemFiles, restoreSystemFiles } from './os/recovery'
 import { BootScreen } from './components/system/BootScreen'
 import { CrashScreen } from './components/system/CrashScreen'
@@ -51,6 +52,9 @@ const InternetExplorerApp = lazy(() =>
   import('./components/apps/InternetExplorerApp').then((m) => ({ default: m.InternetExplorerApp })),
 )
 const MediaPlayerApp = lazy(() => import('./components/apps/MediaPlayerApp').then((m) => ({ default: m.MediaPlayerApp })))
+const JsDosGameApp = lazy(() =>
+  import('./components/apps/JsDosGameApp').then((m) => ({ default: m.JsDosGameApp })),
+)
 const MinesweeperApp = lazy(() => import('./components/apps/MinesweeperApp').then((m) => ({ default: m.MinesweeperApp })))
 const NetworkApp = lazy(() => import('./components/apps/NetworkApp').then((m) => ({ default: m.NetworkApp })))
 const NotepadApp = lazy(() => import('./components/apps/NotepadApp').then((m) => ({ default: m.NotepadApp })))
@@ -110,6 +114,34 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
 }
 
+// Mirror the store's defaultDesktopIconPositions grid so FS-backed icons (which have
+// no stored position yet) continue the same columns the hardcoded icons use.
+const iconLayoutStepX = 96 // icon width 88 + gap 8
+const iconLayoutStepY = 96 // icon row 84 + gap 12 (matches src/os/store.tsx)
+
+function fallbackIconPosition(index: number): Point {
+  const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight
+  const desktopHeight = Math.max(160, viewportHeight - 33)
+  const rowsPerColumn = Math.max(1, Math.floor((desktopHeight - 24) / iconLayoutStepY))
+  const column = Math.floor(index / rowsPerColumn)
+  const row = index % rowsPerColumn
+  return { x: 10 + column * iconLayoutStepX, y: 12 + row * iconLayoutStepY }
+}
+
+// Turn a node living in C:\Windows\Desktop into a desktop icon definition so the
+// desktop mirrors that folder — this is how "Send to Desktop" shortcuts show up.
+function fsNodeToIconDef(node: FsNode): DesktopIconDef | null {
+  const target = openTargetFor(node)
+  if (!target) return null
+  return {
+    id: `fs:${node.path}`,
+    label: node.name.replace(/\.lnk$/i, ''),
+    icon: node.icon,
+    appId: target.appId,
+    payload: target.payload,
+  }
+}
+
 // Taglish note: App.tsx ang shell/router layer. Dito lang pinipili kung anong
 // window/app component ang irerender; yung business logic stays sa src/os.
 function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: WindowPayload) => void) {
@@ -151,6 +183,8 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <CalculatorApp />
     case 'minesweeper':
       return <MinesweeperApp />
+    case 'dosGame':
+      return <JsDosGameApp {...props} />
     case 'about':
       return <AboutApp />
     case 'contact':
@@ -641,15 +675,51 @@ function RecoveryConsole() {
   const { state, fsOps, restart, playSound } = useOs()
   const [choice, setChoice] = useState(1)
   const [output, setOutput] = useState<string[]>([])
+  const [scanning, setScanning] = useState(false)
   const missing = missingSystemFiles(state.fs)
   const choiceRef = useRef(choice)
+  const scanTimer = useRef<number | null>(null)
   useEffect(() => {
     choiceRef.current = choice
   }, [choice])
 
+  const stopScan = useCallback(() => {
+    if (scanTimer.current !== null) {
+      window.clearInterval(scanTimer.current)
+      scanTimer.current = null
+    }
+  }, [])
+
+  // Clear any running scan when the recovery console unmounts.
+  useEffect(() => () => stopScan(), [stopScan])
+
+  // Reveal output one line at a time so a scan/restore feels like real work
+  // instead of dumping the whole list instantly. onDone fires after the last
+  // line (used to apply the filesystem repair only once the animation ends).
+  const reveal = useCallback(
+    (lines: string[], onDone?: () => void) => {
+      stopScan()
+      setScanning(true)
+      setOutput(lines.slice(0, 1))
+      let index = 1
+      scanTimer.current = window.setInterval(() => {
+        if (index >= lines.length) {
+          stopScan()
+          setScanning(false)
+          onDone?.()
+          return
+        }
+        const line = lines[index]
+        index += 1
+        setOutput((prev) => [...prev, line])
+      }, 45)
+    },
+    [stopScan],
+  )
+
   function runChoice(id: number) {
     if (id === 1) {
-      setOutput(
+      reveal(
         missing.length
           ? ['Scanning C:\\WINDOWS for required system files...', '', ...missing.map((path) => `MISSING   ${path}`), '', `${missing.length} file(s) must be restored before Windows can start.`]
           : ['Scanning C:\\WINDOWS for required system files...', '', 'No missing system files were found.', 'Windows should start normally.'],
@@ -658,31 +728,35 @@ function RecoveryConsole() {
     }
     if (id === 2) {
       if (!missing.length) {
-        setOutput(['Nothing to restore. All required system files are present.'])
+        reveal(['Nothing to restore. All required system files are present.'])
         return
       }
       const result = restoreSystemFiles(state.fs)
-      fsOps.replaceFs(result.fs)
-      playSound('ding')
-      setOutput([
-        'Restoring system files from registry backup RB000.CAB...',
-        '',
-        ...result.restored.map((path) => `RESTORED  ${path}`),
-        '',
-        `${result.restored.length} file(s) restored successfully.`,
-        'Windows has fixed your registry. Press Esc, then choose Normal to start Windows.',
-      ])
+      reveal(
+        [
+          'Restoring system files from registry backup RB000.CAB...',
+          '',
+          ...result.restored.map((path) => `RESTORED   ${path}`),
+          '',
+          `${result.restored.length} file(s) restored successfully.`,
+          'Windows has fixed your registry. Press Esc, then choose Normal to start Windows.',
+        ],
+        () => {
+          fsOps.replaceFs(result.fs)
+          playSound('ding')
+        },
+      )
       return
     }
     if (id === 3) {
-      setOutput(
+      reveal(
         missing.length
           ? ['Verifying the integrity of all protected system files...', '', ...missing.map((path) => `CORRUPT   ${path}`), '', 'Integrity violations found. Run option 2 to repair.']
           : ['Verifying the integrity of all protected system files...', '', 'Windows resource protection did not find any integrity violations.'],
       )
       return
     }
-    setOutput([
+    reveal([
       'Current fixed disk drive: 1',
       '',
       'Partition   Status   Type      Volume Label   Mbytes   System   Usage',
@@ -755,9 +829,17 @@ function RecoveryConsole() {
           ))}
         </ol>
         <p className="fdisk-choice">
-          Enter choice: [{choice}]<span className="fdisk-cursor" aria-hidden="true" />
+          Enter choice: [{choice}]
+          {!scanning && <span className="fdisk-cursor" aria-hidden="true" />}
         </p>
-        {output.length > 0 && <pre className="fdisk-output">{output.join('\n')}</pre>}
+        {(output.length > 0 || scanning) && (
+          <div className="fdisk-output" role="log" aria-live="polite">
+            {output.map((line, index) => (
+              <RecoveryLine key={index} text={line} />
+            ))}
+            {scanning && <span className="fdisk-scan-cursor" aria-hidden="true" />}
+          </div>
+        )}
       </div>
       <footer className="fdisk-footer">
         <p>
@@ -766,6 +848,23 @@ function RecoveryConsole() {
       </footer>
     </main>
   )
+}
+
+// Renders one recovery output line, coloring a leading status keyword
+// (MISSING/CORRUPT in red, RESTORED/OK in green) like a real repair console.
+function RecoveryLine({ text }: { text: string }) {
+  const match = /^(MISSING|CORRUPT|RESTORED|OK|FOUND)\s{2,}(.*)$/.exec(text)
+  if (match) {
+    const status = match[1]
+    const bad = status === 'MISSING' || status === 'CORRUPT'
+    return (
+      <div className="fdisk-line">
+        <span className={`fdisk-status ${bad ? 'fdisk-status-bad' : 'fdisk-status-good'}`}>{status}</span>
+        {match[2]}
+      </div>
+    )
+  }
+  return <div className="fdisk-line">{text === '' ? ' ' : text}</div>
 }
 
 function ShutdownScreen() {
@@ -836,6 +935,9 @@ function Desktop() {
     shutDown,
     enableAudio,
     setAudioMuted,
+    setAudioVolume,
+    fsOps,
+    showMessageBox,
   } = useOs()
   const [selectedIcon, setSelectedIcon] = useState(desktopIconDefs[0]?.id ?? 'myComputer')
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>(() =>
@@ -843,12 +945,34 @@ function Desktop() {
   )
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null)
+  const [recycleHover, setRecycleHover] = useState(false)
   const [refreshingDesktop, setRefreshingDesktop] = useState(false)
   const [clock, setClock] = useState(() => formatClock(new Date()))
   const desktopRef = useRef<HTMLDivElement>(null)
   const orderedWindows = useMemo(() => [...state.windows].sort((a, b) => a.zIndex - b.zIndex), [state.windows])
   const primarySelectedIcon = selectedIconIds[0]
   const keyboardAnchorIcon = primarySelectedIcon ?? selectedIcon ?? desktopIconDefs[0]?.id
+
+  // The desktop mirrors C:\Windows\Desktop: those FS nodes render as extra icons
+  // alongside the hardcoded system icons. "Send to Desktop" drops shortcuts here.
+  const fsDesktopIcons = useMemo<DesktopIconDef[]>(() => {
+    const folder = getNode(state.fs, DESKTOP_FOLDER)
+    if (!folder?.children) return []
+    return folder.children
+      .map((path) => state.fs.nodes[path])
+      .filter((node): node is FsNode => Boolean(node))
+      .map(fsNodeToIconDef)
+      .filter((def): def is DesktopIconDef => Boolean(def))
+  }, [state.fs])
+  const allIconDefs = useMemo(() => [...desktopIconDefs, ...fsDesktopIcons], [fsDesktopIcons])
+  // Stored position if the user has moved the icon, else a computed grid slot.
+  const iconPositions = useMemo(() => {
+    const map: Record<string, Point> = {}
+    allIconDefs.forEach((def, index) => {
+      map[def.id] = state.desktopIcons[def.id] ?? fallbackIconPosition(index)
+    })
+    return map
+  }, [allIconDefs, state.desktopIcons])
 
   useEffect(() => {
     const interval = window.setInterval(() => setClock(formatClock(new Date())), 1000)
@@ -877,21 +1001,21 @@ function Desktop() {
 
   const selectedIdsForBox = useCallback((box: SelectionBox): string[] => {
     const rect = normalizeRect(box)
-    return desktopIconDefs
-      .filter((icon) => intersectsIcon(rect, state.desktopIcons[icon.id] ?? { x: 10, y: 12 }))
+    return allIconDefs
+      .filter((icon) => intersectsIcon(rect, iconPositions[icon.id] ?? { x: 10, y: 12 }))
       .map((icon) => icon.id)
-  }, [state.desktopIcons])
+  }, [allIconDefs, iconPositions])
 
   const findNextDesktopIcon = useCallback((currentId: string, key: string): string => {
-    const current = state.desktopIcons[currentId] ?? { x: 10, y: 12 }
+    const current = iconPositions[currentId] ?? { x: 10, y: 12 }
     const currentCenter = {
       x: current.x + desktopIconWidth / 2,
       y: current.y + desktopIconHeight / 2,
     }
-    const scored = desktopIconDefs
+    const scored = allIconDefs
       .filter((icon) => icon.id !== currentId)
       .map((icon) => {
-        const pos = state.desktopIcons[icon.id] ?? { x: 10, y: 12 }
+        const pos = iconPositions[icon.id] ?? { x: 10, y: 12 }
         const center = { x: pos.x + desktopIconWidth / 2, y: pos.y + desktopIconHeight / 2 }
         return { id: icon.id, dx: center.x - currentCenter.x, dy: center.y - currentCenter.y }
       })
@@ -909,13 +1033,39 @@ function Desktop() {
         return primaryA - primaryB || secondaryA - secondaryB
       })
     return scored[0]?.id ?? currentId
-  }, [state.desktopIcons])
+  }, [allIconDefs, iconPositions])
+
+  // Dropping a desktop shortcut onto the Recycle Bin deletes it (after the usual
+  // Win98 confirmation). Only FS-backed icons (`fs:<path>`) are deletable.
+  const handleDropOnRecycle = useCallback(
+    (iconId: string) => {
+      setRecycleHover(false)
+      if (!iconId.startsWith('fs:')) return
+      const path = iconId.slice(3)
+      const node = getNode(state.fs, path)
+      if (!node) return
+      showMessageBox({
+        title: 'Confirm File Delete',
+        message: `Are you sure you want to send '${node.name.replace(/\.lnk$/i, '')}' to the Recycle Bin?`,
+        icon: 'question',
+        buttons: ['yes', 'no'],
+        onResult: (button) => {
+          if (button !== 'yes') return
+          const error = fsOps.deleteNode(path, { skipConfirm: true })
+          if (error) {
+            showMessageBox({ title: 'Delete', message: error, icon: 'error', buttons: ['ok'] })
+          }
+        },
+      })
+    },
+    [state.fs, fsOps, showMessageBox],
+  )
 
   function lineUpIcons() {
-    const targets = selectedIconIds.length ? selectedIconIds : desktopIconDefs.map((icon) => icon.id)
+    const targets = selectedIconIds.length ? selectedIconIds : allIconDefs.map((icon) => icon.id)
     const orderedTargets = [...targets].sort((a, b) => {
-      const posA = state.desktopIcons[a] ?? { x: 10, y: 12 }
-      const posB = state.desktopIcons[b] ?? { x: 10, y: 12 }
+      const posA = iconPositions[a] ?? { x: 10, y: 12 }
+      const posB = iconPositions[b] ?? { x: 10, y: 12 }
       return posA.y - posB.y || posA.x - posB.x
     })
     const desktopHeight = Math.max(160, window.innerHeight - 33)
@@ -974,6 +1124,15 @@ function Desktop() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      // When a DOS game window is focused it captures the keyboard entirely:
+      // arrows are player movement, Ctrl/Alt/Space are fire/strafe/use, and
+      // F-keys/Enter/Escape drive in-game menus. Let js-dos have every key so
+      // desktop icon navigation and Windows shortcuts don't fire at the same
+      // time. The user switches away by clicking the taskbar or another window.
+      const activeWindow = state.windows.find((item) => item.instanceId === state.activeWindowId)
+      if (activeWindow?.appId === 'dosGame' && !activeWindow.minimized) {
+        return
+      }
       if (event.ctrlKey && event.key === 'Escape') {
         event.preventDefault()
         setContextMenu(null)
@@ -1008,7 +1167,7 @@ function Desktop() {
         focusDesktopIcon(nextId)
       }
       if (event.key === 'Enter' && primarySelectedIcon) {
-        const icon = desktopIconDefs.find((item) => item.id === primarySelectedIcon)
+        const icon = allIconDefs.find((item) => item.id === primarySelectedIcon)
         if (icon) {
           event.preventDefault()
           openApp(icon.appId, icon.payload)
@@ -1018,6 +1177,7 @@ function Desktop() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    allIconDefs,
     focusWindow,
     findNextDesktopIcon,
     openApp,
@@ -1099,15 +1259,19 @@ function Desktop() {
       >
         {state.bootMode === 'safe' && <div className="safe-mode-banner">Safe Mode</div>}
         <div className="desktop-grid">
-          {desktopIconDefs.map((iconDef) => (
+          {allIconDefs.map((iconDef) => (
             <DesktopIcon
               key={iconDef.id}
               iconDef={iconDef}
-              position={state.desktopIcons[iconDef.id] ?? { x: 10, y: 12 }}
+              position={iconPositions[iconDef.id] ?? { x: 10, y: 12 }}
               selected={selectedIconIds.includes(iconDef.id)}
+              deletable={iconDef.id.startsWith('fs:')}
+              highlighted={recycleHover && iconDef.id === 'recycleBin'}
               onSelect={(extend) => selectDesktopIcon(iconDef.id, extend)}
               onOpen={() => openApp(iconDef.appId, iconDef.payload)}
               onMove={moveDesktopIcon}
+              onRecycleHoverChange={setRecycleHover}
+              onDropOnRecycle={handleDropOnRecycle}
             />
           ))}
         </div>
@@ -1174,16 +1338,18 @@ function Desktop() {
         network={state.network}
         audioEnabled={state.audio.enabled}
         audioMuted={state.audio.muted}
+        audioVolume={state.audio.volume}
         onToggleStart={() => setStartMenuOpen(!state.startMenuOpen)}
         onTaskClick={taskClick}
         onToggleNetwork={() => openApp('network')}
-        onToggleAudio={() => {
+        onToggleMute={() => {
           if (!state.audio.enabled) {
             enableAudio()
           } else {
             setAudioMuted(!state.audio.muted)
           }
         }}
+        onSetVolume={setAudioVolume}
       />
     </main>
   )

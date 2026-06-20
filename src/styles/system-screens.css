@@ -104,10 +104,11 @@
 }
 
 .fdisk-body {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  align-content: start;
   flex: 1;
+  min-height: 0;
 }
 
 .fdisk-options {
@@ -159,11 +160,38 @@
 
 .fdisk-output {
   margin: 12px 0 0;
-  max-height: 220px;
+  flex: 1;
+  min-height: 90px;
   overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid #555;
+  background: #050505;
   color: #c0c0c0;
   white-space: pre-wrap;
   font: inherit;
+}
+
+.fdisk-status {
+  display: inline-block;
+  min-width: 10ch;
+  font-weight: bold;
+}
+
+.fdisk-status-bad {
+  color: #ff5555;
+}
+
+.fdisk-status-good {
+  color: #33dd55;
+}
+
+.fdisk-scan-cursor {
+  display: inline-block;
+  width: 9px;
+  height: 15px;
+  vertical-align: text-bottom;
+  background: #c0c0c0;
+  animation: fdisk-blink 1s steps(1, end) infinite;
 }
 
 .fdisk-footer {

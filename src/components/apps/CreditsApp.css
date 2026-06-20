@@ -1,4 +1,15 @@
 
+.credits-list .credits-section-title {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #000080;
+}
+
+.credits-list .credits-section-title:first-child {
+  margin-top: 0;
+}
+
 .credits-list article + article {
   border-top: 1px dotted #808080;
   padding-top: 8px;

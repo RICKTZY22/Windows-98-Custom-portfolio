@@ -281,6 +281,22 @@ describe('command processor', () => {
     expect(executeCommand('format c:', ctx).lines.join('\n')).toContain('disabled')
     expect(executeCommand('winver', ctx).lines.join('\n')).toContain('Portfolio Shell')
   })
+
+  it('guards terminal del of protected system paths behind /Y', () => {
+    const fs = createInitialFsState()
+    const ctx = { cwd: 'C:\\', fs, network: defaultNetworkState, bootMode: 'normal' as const, dosOnly: false }
+
+    // Without /Y the command warns and changes nothing.
+    const blocked = executeCommand('del C:\\Windows\\System32', ctx)
+    expect(blocked.lines.join('\n')).toContain('WARNING')
+    expect(blocked.effects).toBeUndefined()
+    expect(getNode(fs, 'C:\\Windows\\System32')).toBeTruthy()
+
+    // With /Y it deletes the subtree and triggers the recovery crash.
+    const confirmed = executeCommand('del C:\\Windows\\System32 /Y', ctx)
+    expect(confirmed.effects?.some((effect) => effect.type === 'setFs')).toBe(true)
+    expect(confirmed.effects?.some((effect) => effect.type === 'crash')).toBe(true)
+  })
 })
 
 describe('network simulator', () => {

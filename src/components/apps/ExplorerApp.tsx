@@ -78,6 +78,12 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [renamingPath, setRenamingPath] = useState<string>()
   const [renameValue, setRenameValue] = useState('')
+  // Passcode folders the user has unlocked this window session, plus the live
+  // input for the lock prompt. Unlock is intentionally per-window: closing the
+  // Explorer re-locks the folder.
+  const [unlockedPaths, setUnlockedPaths] = useState<Set<string>>(() => new Set())
+  const [passcodeInput, setPasscodeInput] = useState('')
+  const [passcodeError, setPasscodeError] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -85,7 +91,20 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
   }, [currentPath, setWindowTitle, windowId])
 
   const currentNode = getNode(state.fs, currentPath)
+  const requiredPasscode = currentNode?.attributes?.passcode
+  const locked = Boolean(requiredPasscode) && !unlockedPaths.has(currentPath)
   const items = useMemo(() => sortNodes(listDirectory(state.fs, currentPath), sortKey), [currentPath, sortKey, state.fs])
+
+  function submitPasscode() {
+    if (passcodeInput === requiredPasscode) {
+      setUnlockedPaths((prev) => new Set(prev).add(currentPath))
+      setPasscodeInput('')
+      setPasscodeError(false)
+    } else {
+      setPasscodeError(true)
+      setPasscodeInput('')
+    }
+  }
   // The "primary" item (last clicked) drives single-target actions and the info panel.
   const selectedPath = selectedPaths[selectedPaths.length - 1]
   const selectedNode = selectedPath ? getNode(state.fs, selectedPath) : undefined
@@ -138,10 +157,13 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
       confirmDelete(targets[0])
       return
     }
+    const hasSystem = targets.some((node) => Boolean(node.attributes?.system) || isProtectedPath(node.path))
     showMessageBox({
-      title: 'Confirm Multiple File Delete',
-      message: `Are you sure you want to send these ${targets.length} items to the Recycle Bin?`,
-      icon: 'question',
+      title: hasSystem ? 'Confirm System File Delete' : 'Confirm Multiple File Delete',
+      message: hasSystem
+        ? `Some of these ${targets.length} items are Windows system files. Deleting them may make Windows unusable. Delete them anyway?`
+        : `Are you sure you want to send these ${targets.length} items to the Recycle Bin?`,
+      icon: hasSystem ? 'warning' : 'question',
       buttons: ['yes', 'no'],
       onResult: (button) => {
         if (button !== 'yes') return
@@ -169,6 +191,9 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
     clearSelection()
     setContextMenu(null)
     setRenamingPath(undefined)
+    // Drop any half-typed code / error so the prompt is fresh at the new folder.
+    setPasscodeInput('')
+    setPasscodeError(false)
   }
 
   function openExplorerNode(path: string) {
@@ -217,6 +242,12 @@ Size: ${
       icon: 'info',
       buttons: ['ok'],
     })
+  }
+
+  function sendToDesktop(node: FsNode) {
+    setContextMenu(null)
+    const error = fsOps.createDesktopShortcut(node.path)
+    if (error) showError(error)
   }
 
   function startRename(node: FsNode) {
@@ -289,7 +320,7 @@ Size: ${
     if (!rect) return
     if (targetPath && !selectedPaths.includes(targetPath)) selectSingle(targetPath)
     const menuWidth = 190
-    const menuHeight = targetPath ? 234 : 194
+    const menuHeight = targetPath ? 260 : 194
     setContextMenu({
       x: Math.max(2, Math.min(event.clientX - rect.left, rect.width - menuWidth - 2)),
       y: Math.max(2, Math.min(event.clientY - rect.top, rect.height - menuHeight - 2)),
@@ -416,6 +447,12 @@ Size: ${
                 )}
                 <p className="file-webinfo-detail">Modified: {selectedNode.modified}</p>
               </>
+            ) : locked ? (
+              <>
+                <img className="file-webinfo-icon" src={win98Icons[currentNode?.icon ?? 'folder']} alt="" />
+                <p className="file-webinfo-detail">🔒 Locked</p>
+                <p className="file-webinfo-blurb">Enter the passcode to view this folder.</p>
+              </>
             ) : (
               <>
                 <img className="file-webinfo-icon" src={win98Icons[currentNode?.icon ?? 'folder']} alt="" />
@@ -442,6 +479,46 @@ Size: ${
             }
           }}
         >
+          {locked ? (
+            <div className="folder-lock">
+              <img className="folder-lock-icon" src={win98Icons.folder} alt="" />
+              <p className="folder-lock-title">
+                <span className="folder-lock-glyph" aria-hidden="true">🔒</span>
+                {' '}
+                {currentNode?.name} is protected
+              </p>
+              <form
+                className="folder-lock-form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  submitPasscode()
+                }}
+              >
+                <label className="folder-lock-label">
+                  Passcode:
+                  <input
+                    className="folder-lock-input"
+                    type="password"
+                    inputMode="numeric"
+                    autoFocus
+                    value={passcodeInput}
+                    onChange={(event) => {
+                      setPasscodeInput(event.target.value)
+                      setPasscodeError(false)
+                    }}
+                  />
+                </label>
+                <div className="folder-lock-actions">
+                  <button type="submit">OK</button>
+                  <button type="button" onClick={() => navigate(parentPath(currentPath))}>
+                    Back
+                  </button>
+                </div>
+                {passcodeError && <p className="folder-lock-error">Incorrect passcode. Please try again.</p>}
+              </form>
+            </div>
+          ) : (
+            <>
           {viewMode === 'details' && (
             <div className="file-header">
               <button type="button" onClick={() => setSortKey('name')}>Name</button>
@@ -453,7 +530,7 @@ Size: ${
           <div className="file-list-body">
           {items.map((node) => (
             <div
-              className={`file-row file-manager-row ${selectedPaths.includes(node.path) ? 'selected' : ''}`}
+              className={`file-row file-manager-row ${selectedPaths.includes(node.path) ? 'selected' : ''} ${node.attributes?.hidden ? 'is-hidden' : ''}`}
               key={node.path}
               role="button"
               tabIndex={0}
@@ -518,6 +595,8 @@ Size: ${
           ))}
           {items.length === 0 && <p className="file-list-empty">This folder is empty.</p>}
           </div>
+            </>
+          )}
         </div>
       </div>
       {contextMenu && (
@@ -543,6 +622,11 @@ Size: ${
               <li>
                 <button type="button" onClick={() => { setClipboard({ mode: 'copy', path: contextNode.path }); setContextMenu(null) }}>
                   Copy
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => sendToDesktop(contextNode)}>
+                  Send to Desktop
                 </button>
               </li>
               <li className="context-separator" aria-hidden="true"></li>

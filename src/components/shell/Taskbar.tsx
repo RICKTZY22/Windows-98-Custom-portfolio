@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import type { NetworkState, WindowState } from '../../types'
 
@@ -9,10 +10,12 @@ type TaskbarProps = {
   network: NetworkState
   audioEnabled: boolean
   audioMuted: boolean
+  audioVolume: number
   onToggleStart: () => void
   onTaskClick: (instanceId: string) => void
   onToggleNetwork: () => void
-  onToggleAudio: () => void
+  onToggleMute: () => void
+  onSetVolume: (volume: number) => void
 }
 
 export function Taskbar({
@@ -23,11 +26,40 @@ export function Taskbar({
   network,
   audioEnabled,
   audioMuted,
+  audioVolume,
   onToggleStart,
   onTaskClick,
   onToggleNetwork,
-  onToggleAudio,
+  onToggleMute,
+  onSetVolume,
 }: TaskbarProps) {
+  const soundOn = audioEnabled && !audioMuted
+  const [volumeOpen, setVolumeOpen] = useState(false)
+  const volumeRef = useRef<HTMLDivElement>(null)
+
+  // Close the volume flyout on Escape or a click anywhere outside it. The
+  // taskbar swallows its own pointerdown events, so this window listener only
+  // ever fires for clicks out on the desktop/windows.
+  useEffect(() => {
+    if (!volumeOpen) return
+    function onPointerDown(event: PointerEvent) {
+      if (!volumeRef.current?.contains(event.target as Node)) {
+        setVolumeOpen(false)
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setVolumeOpen(false)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [volumeOpen])
+
+  const volumePercent = Math.round(audioVolume * 100)
+
   return (
     <footer className="taskbar" onPointerDown={(event) => event.stopPropagation()}>
       <button
@@ -54,17 +86,47 @@ export function Taskbar({
         ))}
       </div>
       <div className="tray" aria-label="System tray">
-        <button className="tray-button" type="button" title="Network" onClick={onToggleNetwork}>
+        <button
+          className={`tray-button ${network.connected ? '' : 'offline'}`}
+          type="button"
+          title={network.connected ? 'Network (connected)' : 'Network (disconnected)'}
+          aria-pressed={network.connected}
+          onClick={onToggleNetwork}
+        >
           <img className="tray-icon" src={win98Icons.network} alt="" />
         </button>
-        <button
-          className={`tray-button ${audioEnabled && !audioMuted ? 'online' : ''}`}
-          type="button"
-          title={audioEnabled ? 'Mute sound' : 'Enable sound'}
-          onClick={onToggleAudio}
-        >
-          <img className="tray-icon" src={win98Icons.soundRecorder} alt="" />
-        </button>
+        <div className="tray-volume" ref={volumeRef}>
+          <button
+            className={`tray-button ${soundOn ? '' : 'muted'}`}
+            type="button"
+            title={soundOn ? `Volume: ${volumePercent}%` : 'Volume: muted'}
+            aria-haspopup="dialog"
+            aria-expanded={volumeOpen}
+            onClick={() => setVolumeOpen((open) => !open)}
+          >
+            <img className="tray-icon" src={win98Icons.soundRecorder} alt="" />
+          </button>
+          {volumeOpen && (
+            <div className="volume-flyout" role="dialog" aria-label="Volume control">
+              <span className="volume-flyout-title">Volume</span>
+              <input
+                className="volume-slider"
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={audioVolume}
+                aria-label="Volume level"
+                onChange={(event) => onSetVolume(Number(event.target.value))}
+              />
+              <span className="volume-flyout-value">{volumePercent}%</span>
+              <label className="volume-flyout-mute">
+                <input type="checkbox" checked={!soundOn} onChange={onToggleMute} />
+                Mute
+              </label>
+            </div>
+          )}
+        </div>
         <span className={`network-led ${network.connected ? 'online' : ''}`}></span>
         <span className="tray-cell">{network.connected ? 'LAN' : 'OFF'}</span>
         <span className="tray-time">{timeLabel}</span>

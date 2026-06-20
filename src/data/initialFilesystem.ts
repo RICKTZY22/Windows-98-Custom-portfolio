@@ -774,6 +774,20 @@ export function createInitialFsState(): FsState {
   folder('C:\\My Documents\\My Recordings', 'folder', '06/12/2026 12:07 AM')
   // Paint saves its bitmaps here (kept out of My Pictures / the Gallery).
   folder('C:\\My Documents\\Paint', 'folder', '06/12/2026 12:07 AM')
+  // Hidden, passcode-protected folder: Explorer ghosts the icon and prompts for
+  // the code before revealing the contents (see ExplorerApp's lock gate).
+  const privateFolder = folder('C:\\My Documents\\Private', 'folder', '06/12/2026 12:08 AM')
+  privateFolder.attributes = { hidden: true, passcode: '0722' }
+  file('C:\\My Documents\\Private\\Secret Note.txt', {
+    content: [
+      'Private',
+      '=======',
+      '',
+      'This folder is locked with a passcode.',
+      'Only someone who knows the code can read what is kept here.',
+    ].join('\n'),
+    modified: '06/12/2026 12:08 AM',
+  })
 
   // ----- Projects: one folder per project -----
   folder('C:\\Projects', 'projects', '06/13/2026 12:35 AM')
@@ -1047,6 +1061,24 @@ export function createInitialFsState(): FsState {
     appId: 'videoPlayer',
     modified: '06/12/2026 12:13 AM',
   })
+  folder('C:\\Program Files\\Games', 'folder', '06/12/2026 12:14 AM')
+  file('C:\\Program Files\\Games\\WOLF3D.EXE', {
+    size: 1457664,
+    icon: 'wolfenstein',
+    fileType: 'Application',
+    appId: 'dosGame',
+    appPayload: { url: '/games/wolf3d.jsdos?v=2', windowTitle: 'Wolfenstein 3D' },
+    modified: '05/05/1992 12:00 AM',
+  })
+  file('C:\\Program Files\\Games\\DOOM.EXE', {
+    size: 2094592,
+    icon: 'doom',
+    fileType: 'Application',
+    appId: 'dosGame',
+    appPayload: { url: '/games/doom.jsdos?v=2', windowTitle: 'DOOM' },
+    modified: '12/10/1993 12:00 AM',
+  })
+
   folder('C:\\Program Files\\Internet Explorer', 'internet', '06/12/2026 12:11 AM')
   file('C:\\Program Files\\Internet Explorer\\IEXPLORE.EXE', {
     size: 65536,
@@ -1090,6 +1122,8 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Videos',
   'C:\\My Documents\\My Recordings',
   'C:\\My Documents\\Paint',
+  'C:\\My Documents\\Private',
+  'C:\\My Documents\\Private\\Secret Note.txt',
   'C:\\My Documents\\Resume.doc',
   'C:\\My Documents\\Education.txt',
   'C:\\Projects',
@@ -1102,6 +1136,9 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',
   'C:\\Program Files\\Accessories\\KODAKIMG.EXE',
   'C:\\Program Files\\Accessories\\VIDPLAY.EXE',
+  'C:\\Program Files\\Games',
+  'C:\\Program Files\\Games\\WOLF3D.EXE',
+  'C:\\Program Files\\Games\\DOOM.EXE',
 ]
 
 // Seed artifacts from older disk layouts. A persisted disk migrated forward

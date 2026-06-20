@@ -121,6 +121,14 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'minesweeper',
     defaultRect: { x: 280, y: 96, width: 360, height: 470 },
   },
+  dosGame: {
+    id: 'dosGame',
+    title: 'DOS Game',
+    icon: 'dos',
+    defaultRect: { x: 60, y: 30, width: 860, height: 640 },
+    singleton: false,
+    safeModeAvailable: false,
+  },
   about: {
     id: 'about',
     title: 'About Me',
@@ -176,6 +184,20 @@ export const desktopIconDefs: DesktopIconDef[] = [
   { id: 'paint', label: 'Paint', icon: 'paint', appId: 'paint' },
   { id: 'mediaPlayer', label: 'Media Player', icon: 'mediaPlayer', appId: 'mediaPlayer' },
   { id: 'videoPlayer', label: 'Video Player', icon: 'videoPlayer', appId: 'videoPlayer' },
+  {
+    id: 'wolfenstein',
+    label: 'Wolfenstein 3D',
+    icon: 'wolfenstein',
+    appId: 'dosGame',
+    payload: { url: '/games/wolf3d.jsdos?v=2', windowTitle: 'Wolfenstein 3D' },
+  },
+  {
+    id: 'doom',
+    label: 'DOOM',
+    icon: 'doom',
+    appId: 'dosGame',
+    payload: { url: '/games/doom.jsdos?v=2', windowTitle: 'DOOM' },
+  },
 ]
 
 export type StartMenuModel = Array<
@@ -221,6 +243,22 @@ export const startMenuModel: StartMenuModel = [
         icon: 'folder',
         items: [
           { kind: 'item', id: 'minesweeper', label: 'Minesweeper', icon: 'minesweeper', appId: 'minesweeper' },
+          {
+            kind: 'item',
+            id: 'wolfenstein',
+            label: 'Wolfenstein 3D',
+            icon: 'wolfenstein',
+            appId: 'dosGame',
+            payload: { url: '/games/wolf3d.jsdos?v=2', windowTitle: 'Wolfenstein 3D' },
+          },
+          {
+            kind: 'item',
+            id: 'doom',
+            label: 'DOOM',
+            icon: 'doom',
+            appId: 'dosGame',
+            payload: { url: '/games/doom.jsdos?v=2', windowTitle: 'DOOM' },
+          },
         ],
       },
       { kind: 'item', id: 'msDosPrompt', label: 'MS-DOS Prompt', icon: 'terminal', appId: 'terminal' },

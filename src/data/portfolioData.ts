@@ -245,29 +245,76 @@ export const portfolioData = {
   },
   credits: [
     {
+      section: 'Portfolio & tooling',
       label: 'John Erick Mendoza',
       href: '#john-erick-mendoza',
       note: 'Portfolio owner, project developer, resume subject, and creator of PLMun Inventory Nexus, Canlas Inventory System, Between Two Ruins, and the Windows 98 Portfolio Edition direction.',
     },
     {
+      section: 'Portfolio & tooling',
       label: 'OpenAI Codex',
       href: 'https://openai.com/',
       note: 'AI coding assistance for implementation support, QA, and Windows 98 Portfolio OS iteration.',
     },
     {
+      section: 'Portfolio & tooling',
       label: 'Claude Fable / Opus 4.8',
       href: 'https://www.anthropic.com/',
       note: 'Planning and refactor assistance credited by request for the portfolio OS build process.',
     },
     {
+      section: 'Portfolio & tooling',
       label: 'Windows 98 icon PNGs',
       href: 'https://win98icons.alexmeub.com/',
       note: 'Selected icons are self-hosted in public/icons/win98 for reliability.',
     },
     {
+      section: 'Portfolio & tooling',
       label: '98.css',
       href: 'https://jdan.github.io/98.css/',
       note: 'Provides the classic Windows 98 component styling; React supplies behavior.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'id Software',
+      href: 'https://www.idsoftware.com/',
+      note: 'Creators of DOOM (1993) and Wolfenstein 3D (1992) — John Carmack, John Romero, Tom Hall, Sandy Petersen, Adrian Carmack, Kevin Cloud, and composer Bobby Prince. The free shareware episodes are included here in tribute.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'Bethesda Softworks / ZeniMax Media',
+      href: 'https://bethesda.net/',
+      note: 'Current owners of id Software and the DOOM and Wolfenstein franchises (now part of Microsoft). All game names, trademarks, and assets belong to them.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'Apogee Software / 3D Realms',
+      href: 'https://3drealms.com/',
+      note: 'Original 1992 shareware publisher of Wolfenstein 3D.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'js-dos',
+      href: 'https://js-dos.com/',
+      note: 'In-browser DOS player by Alexander Guryanov (caiiiycuk). Runs the games entirely client-side via WebAssembly; the .jsdos bundles are self-hosted in public/games.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'DOSBox',
+      href: 'https://www.dosbox.com/',
+      note: 'The DOS emulator core that js-dos compiles to WebAssembly to run the original MS-DOS executables.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'Internet Archive',
+      href: 'https://archive.org/',
+      note: 'The MS-DOS software collection at archive.org preserves and provides the shareware game files used to build the bundles.',
+    },
+    {
+      section: 'Games & DOS emulation',
+      label: 'DOS.Zone',
+      href: 'https://dos.zone/',
+      note: 'Community MS-DOS games portal (built on js-dos) referenced while sourcing and configuring the games.',
     },
   ],
 }

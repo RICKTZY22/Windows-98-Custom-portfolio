@@ -44,6 +44,7 @@ export type OsContextValue = {
     renameNode(path: string, newName: string): string | null
     moveNode(path: string, targetFolder: string): string | null
     copyNode(path: string, targetFolder: string): string | null
+    createDesktopShortcut(targetPath: string): string | null
     deleteNode(path: string, opts?: { skipConfirm?: boolean }): string | null
     restoreEntry(entryId: string): string | null
     emptyRecycleBin(): void

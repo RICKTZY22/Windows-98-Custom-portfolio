@@ -18,6 +18,15 @@ dist-ssr
 build
 *.local
 
+# Generated document QA artifacts
+docs/docx/_rendered/
+docs/docx/**/*.pdf
+docs/docx/**/*.png
+
+# Word temporary lock files
+~$*.docx
+docs/docx/~$*.docx
+
 # Local user media
 public/media/user/*
 !public/media/user/.gitkeep
@@ -61,3 +70,10 @@ coverage
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Documentation, generated docx, and docx-rendering tools (kept local, not published)
+*.md
+*.docx
+/docs/
+/tools/
+__pycache__/

@@ -53,3 +53,69 @@
   margin: 10px;
   color: #555;
 }
+
+/* Hidden files/folders render ghosted, the way Win98 dims hidden items. */
+.file-row.is-hidden img,
+.file-row.is-hidden .file-name-cell {
+  opacity: 0.5;
+}
+
+/* Passcode gate shown in place of a protected folder's contents. */
+.folder-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+}
+
+.folder-lock-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.folder-lock-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.folder-lock-glyph {
+  margin-right: 2px;
+}
+
+.folder-lock-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-lock-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.folder-lock-input {
+  width: 120px;
+  height: 20px;
+  padding: 0 4px;
+  font-family: "Courier New", monospace;
+  letter-spacing: 3px;
+}
+
+.folder-lock-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.folder-lock-actions button {
+  min-width: 64px;
+}
+
+.folder-lock-error {
+  margin: 0;
+  color: #b00000;
+}

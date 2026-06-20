@@ -28,6 +28,7 @@ import { defaultThemeId, defaultWallpaperId, getTheme, getWallpaper } from '../d
 import {
   baseName,
   copyNode as fsCopyNode,
+  createDesktopShortcut as fsCreateDesktopShortcut,
   createFile as fsCreateFile,
   createFolder as fsCreateFolder,
   deleteNode as fsDeleteNode,
@@ -177,6 +178,8 @@ function titleFor(appId: AppId, fs: FsState, payload?: WindowPayload): string {
       const section = controlPanelSections.find((item) => item.id === payload.controlPanelSection)
       return section ? `${section.title} Properties` : def.title
     }
+    case 'dosGame':
+      return payload?.windowTitle ?? def.title
     default:
       return def.title
   }
@@ -186,6 +189,10 @@ function iconFor(appId: AppId, payload?: WindowPayload) {
   if (appId === 'explorer') {
     const path = normalizePath(payload?.path ?? 'C:\\')
     return path === 'C:\\' ? appDefinitions.explorer.icon : 'folderOpen'
+  }
+  if (appId === 'dosGame' && payload?.url) {
+    if (payload.url.includes('wolf')) return 'wolfenstein'
+    if (payload.url.includes('doom')) return 'doom'
   }
   return appDefinitions[appId].icon
 }
@@ -830,6 +837,13 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         const result = fsCopyNode(stateRef.current.fs, path, targetFolder)
         if (result.error) return result.error
         commitFs(result.fs)
+        return null
+      },
+      createDesktopShortcut(targetPath: string): string | null {
+        const result = fsCreateDesktopShortcut(stateRef.current.fs, targetPath)
+        if (result.error) return result.error
+        commitFs(result.fs)
+        playSound('ding')
         return null
       },
       deleteNode(path: string, opts?: { skipConfirm?: boolean }): string | null {

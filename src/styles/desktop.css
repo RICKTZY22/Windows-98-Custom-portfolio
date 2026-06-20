@@ -95,6 +95,20 @@
   will-change: transform;
 }
 
+/* Recycle Bin (or any icon) highlighted as the active drop target while an icon
+   is being dragged onto it. The "full" bin asset is identical to the empty one,
+   so the highlight is the visible cue rather than an icon swap. */
+.desktop-icon.drop-target {
+  outline: 2px dotted #fff;
+  outline-offset: -3px;
+  background: rgba(0, 0, 128, 0.4);
+}
+
+.desktop-icon.drop-target img {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9));
+}
+
 .desktop.is-refreshing .desktop-icon {
   animation: desktop-refresh 120ms steps(2, end) 2;
 }

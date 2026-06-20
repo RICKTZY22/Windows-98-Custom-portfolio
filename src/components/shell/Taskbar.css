@@ -130,3 +130,90 @@
   height: 16px;
   image-rendering: pixelated;
 }
+
+/* Disconnected network: dim + desaturate the two-PCs icon. */
+.tray-button.offline img {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+/* Muted / sound-off: fade the speaker and draw a red slash across it. */
+.tray-button.muted {
+  position: relative;
+}
+
+.tray-button.muted img {
+  opacity: 0.55;
+}
+
+.tray-button.muted::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: #d40000;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* === Volume flyout ====================================================== */
+
+.tray-volume {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Small raised panel that pops up above the tray speaker, Win98-style. */
+.volume-flyout {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px 6px;
+  background: silver;
+  box-shadow:
+    inset -1px -1px #0a0a0a,
+    inset 1px 1px #fff,
+    inset -2px -2px grey,
+    inset 2px 2px #dfdfdf;
+}
+
+.volume-flyout-title,
+.volume-flyout-value {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Vertical slider. The selector is intentionally more specific than 98.css's
+   `input[type=range]` rule, which forces width:100% + appearance:none and
+   collapses once the control is rotated vertical. We opt back into the native
+   vertical slider and size it slim. direction: rtl puts the loud end at the top. */
+.volume-flyout .volume-slider {
+  appearance: auto;
+  -webkit-appearance: auto;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 16px;
+  height: 90px;
+  margin: 0;
+}
+
+.volume-flyout-mute {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.volume-flyout-mute input {
+  margin: 0;
+}

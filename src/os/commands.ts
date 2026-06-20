@@ -7,6 +7,7 @@ import {
   extensionOf,
   getNode,
   isCriticalPath,
+  isProtectedPath,
   listDirectory,
   moveNode,
   normalizePath,
@@ -617,7 +618,9 @@ function rdCommand(arg: string | undefined, ctx: CommandContext): CommandOutput 
   return { lines: [], effects }
 }
 
-function delCommand(arg: string | undefined, ctx: CommandContext): CommandOutput {
+function delCommand(args: string[], ctx: CommandContext): CommandOutput {
+  const confirmed = args.some((token) => token.toLowerCase() === '/y')
+  const arg = args.find((token) => !token.startsWith('/'))
   if (!arg) {
     return { lines: ['Required parameter missing'] }
   }
@@ -625,6 +628,18 @@ function delCommand(arg: string | undefined, ctx: CommandContext): CommandOutput
   const node = getNode(ctx.fs, target)
   if (!node) {
     return { lines: ['File not found'] }
+  }
+  // Safeguard: deleting anything under the protected Windows tree (System32,
+  // etc.) can break the boot, so require an explicit /Y the way real DOS makes
+  // you confirm a wildcard delete — no silent `del C:\Windows\System32`.
+  if (!confirmed && isProtectedPath(target)) {
+    return {
+      lines: [
+        `WARNING: ${target} is part of the protected Windows system folder.`,
+        'Deleting it can stop Windows from starting and force a recovery boot.',
+        `To delete it anyway, run:  del ${arg} /Y`,
+      ],
+    }
   }
   const result = deleteNode(ctx.fs, target)
   if (result.error) {
@@ -787,7 +802,7 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
       return rdCommand(args[0], ctx)
     case 'del':
     case 'erase':
-      return delCommand(args[0], ctx)
+      return delCommand(args, ctx)
     case 'copy':
       return copyOrMove('copy', args, ctx)
     case 'move':
