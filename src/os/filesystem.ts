@@ -617,6 +617,7 @@ export function emptyRecycleBin(fs: FsState): FsState {
 
 const TEXT_EXTENSIONS = new Set(['txt', 'ini', 'log', 'inf', 'bat', 'md'])
 const DOCUMENT_EXTENSIONS = new Set(['doc', 'docx', 'rtf'])
+const PDF_EXTENSIONS = new Set(['pdf'])
 const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif'])
 const AUDIO_EXTENSIONS = new Set(['wav', 'mp3', 'mid'])
 const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'webm', 'mov', 'mkv', 'ogg'])
@@ -636,6 +637,9 @@ export function openTargetFor(node: FsNode): { appId: AppId; payload: WindowPayl
   if (DOCUMENT_EXTENSIONS.has(ext)) {
     return { appId: 'wordpad', payload: { filePath: node.path } }
   }
+  if (PDF_EXTENSIONS.has(ext)) {
+    return { appId: 'pdfViewer', payload: { filePath: node.path } }
+  }
   if (IMAGE_EXTENSIONS.has(ext)) {
     return { appId: 'imageViewer', payload: { filePath: node.path } }
   }
@@ -654,6 +658,7 @@ export function openTargetFor(node: FsNode): { appId: AppId; payload: WindowPayl
 export function iconForFileName(name: string): IconKey {
   const ext = extensionOf(name)
   if (ext === 'bat') return 'batchFile'
+  if (PDF_EXTENSIONS.has(ext)) return 'html'
   if (DOCUMENT_EXTENSIONS.has(ext)) return 'wordpad'
   if (TEXT_EXTENSIONS.has(ext)) return 'textFile'
   if (ext === 'bmp') return 'paint'
@@ -687,6 +692,8 @@ export function fileTypeForName(name: string): string {
       return 'Microsoft Word Document'
     case 'rtf':
       return 'Rich Text Format'
+    case 'pdf':
+      return 'PDF Document'
     case 'bmp':
       return 'Bitmap Image'
     case 'png':

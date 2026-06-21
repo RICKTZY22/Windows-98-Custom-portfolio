@@ -9,7 +9,7 @@ import {
   parentPath,
 } from '../os/filesystem'
 import { portfolioData } from './portfolioData'
-import { galleryPhotos, galleryVideos } from './media'
+import { galleryMusic, galleryPhotos, galleryVideos } from './media'
 
 export const REQUIRED_SYSTEM_FILES: string[] = REQUIRED
 
@@ -88,32 +88,129 @@ function escapeResumeHtml(text: string): string {
 }
 
 /**
- * Render the plain-text resume into formatted WordPad HTML so Resume.doc opens
- * with a real heading, bold navy section titles, bold role lines, and bullets
- * (WordPad stores rich text as HTML — see wordpadFormatting.ts).
+ * Render Resume.doc as styled WordPad HTML. The layout intentionally mirrors the
+ * real dark two-column resume, while staying editable inside the simulated app.
  */
-function resumeToHtml(content: string): string {
-  return content
-    .split(/\r?\n/)
-    .map((line, index) => {
-      const text = line.trim()
-      if (index === 0) {
-        return `<div><span style="font-family:Arial; font-size:18pt; font-weight:bold">${escapeResumeHtml(text)}</span></div>`
-      }
-      if (text === '') return '<div><br></div>'
-      const isSectionHeader = text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 40
-      if (isSectionHeader) {
-        return `<div><span style="font-family:Arial; font-size:13pt; font-weight:bold; color:#000080">${escapeResumeHtml(text)}</span></div>`
-      }
-      if (text.startsWith('- ')) {
-        return `<div style="font-family:Arial; margin-left:18px">&bull; ${escapeResumeHtml(text.slice(2))}</div>`
-      }
-      if (/ - /.test(text) && text.length < 80) {
-        return `<div style="font-family:Arial; font-weight:bold">${escapeResumeHtml(text)}</div>`
-      }
-      return `<div style="font-family:Arial">${escapeResumeHtml(text)}</div>`
-    })
+function resumeInlineList(items: string[]): string {
+  return `<ul style="margin:4px 0 9px 18px; padding:0; line-height:1.34">${items
+    .map((item) => `<li style="margin:2px 0">${escapeResumeHtml(item)}</li>`)
+    .join('')}</ul>`
+}
+
+function resumeSidebarGroup(title: string, items: string[]): string {
+  return [
+    `<div style="margin:6px 0 2px; color:#c7c7c7; font-style:italic">${escapeResumeHtml(title)}</div>`,
+    resumeInlineList(items),
+  ].join('')
+}
+
+function resumeSection(title: string, body: string): string {
+  return [
+    `<div style="margin:0 0 11px">`,
+    `<div style="color:#8fb4ff; font-weight:700; font-size:16px; letter-spacing:.2px; border-bottom:1px solid #8fb4ff; padding-bottom:5px; margin-bottom:7px">${escapeResumeHtml(title)}</div>`,
+    body,
+    '</div>',
+  ].join('')
+}
+
+function resumeProject(title: string, meta: string, bullets: string[]): string {
+  return [
+    '<div style="margin:0 0 12px">',
+    `<div style="font-weight:700; color:#f4f4f4; font-size:16px">${escapeResumeHtml(title)}</div>`,
+    `<div style="color:#c7c7c7; font-style:italic; margin:1px 0 3px">${escapeResumeHtml(meta)}</div>`,
+    resumeInlineList(bullets),
+    '</div>',
+  ].join('')
+}
+
+function resumeToHtml(): string {
+  const contactLinks = [
+    'Email: johnerickmendoza567@gmail.com',
+    'GitHub: RICKTZY22',
+    'LinkedIn Profile',
+    'Facebook Profile',
+  ]
+  const frontendSkills = [
+    'React 18 / Vite',
+    'JavaScript (ES6+)',
+    'HTML5 / Tailwind CSS',
+    'Vanilla CSS / Bootstrap',
+    'React Router / Zustand',
+    'Axios / REST APIs',
+    'GSAP / ScrollTrigger',
+    'Rive / Lottie / Motion',
+    'Recharts / jsPDF',
+  ]
+  const backendSkills = [
+    'Node.js / Express.js',
+    'Python / Django / DRF',
+    'PostgreSQL / SQLite',
+    'JWT Authentication',
+    'WebSockets (Channels)',
+  ]
+  const aiSkills = ['Gemini API', 'Local Ollama']
+  const toolingSkills = ['Git / GitHub Actions', 'ESLint / Vitest', 'React Testing Library', 'Render / Deployment', 'CodeQL / pip-audit']
+
+  const contactHtml = contactLinks
+    .map((item) => `<div style="margin:2px 0; color:#a9c7ff; text-decoration:underline">${escapeResumeHtml(item)}</div>`)
     .join('')
+
+  return [
+    '<div data-resume-template="dark-sidebar-v1" style="font-family:Arial,Helvetica,sans-serif; margin:-42px -48px; min-height:760px; background:#242424; color:#f0f0f0; line-height:1.22; font-size:14px; overflow:hidden">',
+    '<div style="background:#bcccf6; color:#252525; text-align:center; padding:34px 28px 30px">',
+    '<div style="font-size:42px; line-height:1; font-weight:800; letter-spacing:1px">JOHN ERICK MENDOZA</div>',
+    '<div style="font-size:18px; color:#3d4a5a; margin-top:8px">BS Computer <span style="text-decoration:underline">Science</span> | Frontend Developer</div>',
+    '</div>',
+    '<div style="display:grid; grid-template-columns:242px minmax(0,1fr); align-items:stretch">',
+    '<aside style="background:#2f3640; padding:38px 22px 28px; color:#f0f3f8">',
+    '<div style="color:#8fb4ff; font-weight:700; font-size:16px; border-bottom:1px solid #8fb4ff; padding-bottom:6px; margin-bottom:7px">CONTACT</div>',
+    '<div style="line-height:1.25; margin-bottom:17px">Muntinlupa / Las Piñas, PH' + contactHtml + '</div>',
+    '<div style="color:#8fb4ff; font-weight:700; font-size:16px; border-bottom:1px solid #8fb4ff; padding-bottom:6px; margin-bottom:7px">SKILLS</div>',
+    resumeSidebarGroup('Frontend (Proficient)', frontendSkills),
+    resumeSidebarGroup('Backend (Familiar)', backendSkills),
+    resumeSidebarGroup('AI Integration', aiSkills),
+    resumeSidebarGroup('Dev & Tools', toolingSkills),
+    '</aside>',
+    '<main style="padding:38px 28px 34px 38px; background:#242424; min-width:0">',
+    resumeSection(
+      'PROFESSIONAL SUMMARY',
+      '<p style="margin:0">Computer Science student at PLMun specializing in frontend development — building polished, interactive React interfaces and creative browser experiences with JavaScript, Tailwind CSS, and animation libraries like GSAP and Rive. Have contributed to full-stack capstone projects using Django and PostgreSQL and am expanding into Node.js and Express. Seeking internship opportunities to contribute meaningfully on the frontend while growing as a developer.</p>',
+    ),
+    resumeSection(
+      'PROJECT EXPERIENCE',
+      [
+        resumeProject('Windows 98 Portfolio Edition', 'Creative Frontend Developer • React • TypeScript • Virtual Filesystem • Browser OS', [
+          'Built a fully interactive browser-based Windows 98-style portfolio OS with a virtual filesystem, movable windows, and simulated desktop apps.',
+          'Implemented startup and recovery flows, custom themes, and sound design, reframing portfolio presentation as a navigable OS.',
+          'Demonstrates depth in React architecture, creative state management, and frontend engineering.',
+        ]),
+        resumeProject('Between Two Ruins', 'Visual Novel / Interactive Experience Developer • React • GSAP • ScrollTrigger • JavaScript', [
+          'Designed and built a browser-based visual novel with cinematic scroll-driven transitions, reusable story components, and scene-pacing logic.',
+          'Blends frontend engineering with narrative craft, showcasing animation fluency and component design.',
+        ]),
+        resumeProject('PLMun Inventory Nexus', 'Full-Stack Capstone Developer • React • Vite • Tailwind CSS • Django • PostgreSQL • JWT', [
+          'Architected a full-stack inventory and request management system with role-based access control, JWT authentication, and analytics dashboard reporting tools.',
+          'Built real-time WebSocket chat and AI-assisted messaging using local Ollama and Gemini integrations.',
+          'Delivered QR code rendering, PDF export, and REST API tooling for end-to-end item tracking workflows.',
+        ]),
+        resumeProject('Canlas Inventory System', 'Frontend & Integration Developer • React • Django • Daphne • Redis • GitHub Actions • Render', [
+          'Contributed React frontend, API integration, and Render deployment config for a production-ready inventory platform.',
+          'Project includes CI/CD via GitHub Actions, OpenAPI documentation, and security scanning with CodeQL and pip-audit.',
+        ]),
+      ].join(''),
+    ),
+    resumeSection(
+      'EDUCATION',
+      [
+        '<p style="margin:0 0 6px"><b>Pamantasan ng Lungsod ng Muntinlupa (PLMun)</b> — <span style="text-decoration:underline">BS</span> Computer Science (2023–2027, Expected)</p>',
+        '<p style="margin:0 0 6px"><b>Holy Rosary Academy</b> — <span style="text-decoration:underline">HUMSS</span> Strand (2021–2023)</p>',
+        '<p style="margin:0"><b>Las Piñas National High School</b> — <span style="text-decoration:underline">Junior</span> High School (2017–2021)</p>',
+      ].join(''),
+    ),
+    '</main>',
+    '</div>',
+    '</div>',
+  ].join('')
 }
 
 type FileOpts = {
@@ -132,18 +229,700 @@ const BETWEEN_TWO_RUINS_WEB_ROOT = 'C:\\Projects\\Between Two Ruins\\between-two
 const BETWEEN_TWO_RUINS_WEB_STAMP = '06/15/2026 12:00 AM'
 const COVER_ART_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+const PLMUN_NEXUS_ROOT = 'C:\\Projects\\PLMun Inventory Nexus'
+const PLMUN_NEXUS_STAMP = '06/16/2026 10:30 PM'
+const WIN98_PORTFOLIO_ROOT = 'C:\\Projects\\Windows 98 Portfolio OS'
+const WIN98_PORTFOLIO_STAMP = '06/17/2026 09:18 PM'
 
 type ScaffoldFile = FileOpts & { path: string }
 
 const SAMPLE_PICTURE_FILES: ScaffoldFile[] = []
 
-// Photos/videos hosted off-repo (see src/data/media.ts). Each becomes a virtual
+function projectDocumentationContent(project: (typeof portfolioData.projects)[number], doc: 'Overview' | 'Features' | 'Architecture'): string {
+  if (doc === 'Features') {
+    return [
+      `# ${project.name} Features`,
+      '',
+      project.summary,
+      '',
+      '## Highlights',
+      ...project.details
+        .split('. ')
+        .map((line) => line.trim().replace(/\.$/, ''))
+        .filter(Boolean)
+        .slice(0, 6)
+        .map((line) => `- ${line}.`),
+      '',
+      `## Stack`,
+      project.stack.map((item) => `- ${item}`).join('\n'),
+    ].join('\n')
+  }
+
+  if (doc === 'Architecture') {
+    return [
+      `# ${project.name} Architecture`,
+      '',
+      '## Purpose',
+      project.details,
+      '',
+      '## Main building blocks',
+      '- User-facing screens and workflows.',
+      '- Data/state layer for project behavior.',
+      '- Integration points documented through the project files in this folder.',
+      '- Quality checks and deployment notes where applicable.',
+    ].join('\n')
+  }
+
+  return [
+    `# ${project.name}`,
+    '',
+    project.summary,
+    '',
+    '## What to inspect',
+    '- README.txt for a short project brief.',
+    '- Features.md for user-facing capabilities.',
+    '- Architecture.md for implementation patterns and structure.',
+    '- Source folders/files when this virtual disk includes the project tree.',
+  ].join('\n')
+}
+
+function win98PortfolioPath(relativePath: string): string {
+  return `${WIN98_PORTFOLIO_ROOT}\\${relativePath}`
+}
+
+function win98PortfolioPdfFile(relativePath: string, dataUrl: string, size: number): ScaffoldFile {
+  const path = win98PortfolioPath(relativePath)
+  return {
+    path,
+    dataUrl,
+    size,
+    icon: 'html',
+    fileType: 'PDF Document',
+    appId: 'pdfViewer',
+    appPayload: { filePath: path },
+    modified: WIN98_PORTFOLIO_STAMP,
+  }
+}
+
+const WIN98_PORTFOLIO_PDF_FILES = [
+  win98PortfolioPdfFile(
+    'Documentation\\PDFs\\AI and the Developer Case Study.pdf',
+    '/docs/pdf/AI-and-the-Developer-Case-Study.pdf',
+    8389,
+  ),
+  win98PortfolioPdfFile(
+    'Documentation\\PDFs\\Build Documentation Explained.pdf',
+    '/docs/pdf/final-1.pdf',
+    279432,
+  ),
+  win98PortfolioPdfFile(
+    'Documentation\\PDFs\\Algorithms and Patterns Explained.pdf',
+    '/docs/pdf/final-2.pdf',
+    302252,
+  ),
+  win98PortfolioPdfFile(
+    'Documentation\\PDFs\\Apps and Features Reference Explained.pdf',
+    '/docs/pdf/final-3.pdf',
+    514774,
+  ),
+  win98PortfolioPdfFile(
+    'docs\\docx\\AI-and-the-Developer-Case-Study.pdf',
+    '/docs/pdf/AI-and-the-Developer-Case-Study.pdf',
+    8389,
+  ),
+  win98PortfolioPdfFile('docs\\docx\\final 1.pdf', '/docs/pdf/final-1.pdf', 279432),
+  win98PortfolioPdfFile('docs\\docx\\final 2.pdf', '/docs/pdf/final-2.pdf', 302252),
+  win98PortfolioPdfFile('docs\\docx\\final 3.pdf', '/docs/pdf/final-3.pdf', 514774),
+  win98PortfolioPdfFile(
+    'public\\docs\\pdf\\AI-and-the-Developer-Case-Study.pdf',
+    '/docs/pdf/AI-and-the-Developer-Case-Study.pdf',
+    8389,
+  ),
+  win98PortfolioPdfFile('public\\docs\\pdf\\final-1.pdf', '/docs/pdf/final-1.pdf', 279432),
+  win98PortfolioPdfFile('public\\docs\\pdf\\final-2.pdf', '/docs/pdf/final-2.pdf', 302252),
+  win98PortfolioPdfFile('public\\docs\\pdf\\final-3.pdf', '/docs/pdf/final-3.pdf', 514774),
+]
+
+const WIN98_PORTFOLIO_FOLDER_PATHS = [
+  'Documentation',
+  'Documentation\\PDFs',
+  'docs',
+  'docs\\apps',
+  'docs\\docx',
+  'public',
+  'public\\cursors',
+  'public\\docs',
+  'public\\docs\\pdf',
+  'public\\games',
+  'public\\icons',
+  'public\\icons\\win98',
+  'public\\js-dos',
+  'public\\media',
+  'public\\sounds',
+  'src',
+  'src\\components',
+  'src\\components\\apps',
+  'src\\components\\shell',
+  'src\\components\\system',
+  'src\\data',
+  'src\\os',
+  'src\\os\\__tests__',
+  'src\\styles',
+  'tools',
+].map(win98PortfolioPath)
+
+const WIN98_PORTFOLIO_FILE_PATHS = [
+  '.env.example',
+  'eslint.config.js',
+  'index.html',
+  'LICENSE',
+  'package.json',
+  'package-lock.json',
+  'README.md',
+  'tsconfig.app.json',
+  'tsconfig.json',
+  'tsconfig.node.json',
+  'vite.config.ts',
+  'docs\\README.md',
+  'docs\\apps\\README.md',
+  'docs\\apps\\explorer.md',
+  'docs\\apps\\paint.md',
+  'docs\\apps\\terminal.md',
+  'docs\\apps\\wordpad.md',
+  'docs\\apps\\internet-explorer.md',
+  'docs\\apps\\task-manager.md',
+  'docs\\docx\\Windows_98_Portfolio_Build_Documentation_Explained.docx',
+  'docs\\docx\\Windows_98_Portfolio_Algorithms_and_Patterns_Explained.docx',
+  'docs\\docx\\Windows_98_Portfolio_Apps_and_Features_Explained.docx',
+  'public\\sounds\\README.txt',
+  'src\\App.tsx',
+  'src\\index.css',
+  'src\\main.tsx',
+  'src\\types.ts',
+  'src\\vite-env.d.ts',
+  'src\\components\\apps\\AboutApp.tsx',
+  'src\\components\\apps\\AboutApp.css',
+  'src\\components\\apps\\ContactApp.tsx',
+  'src\\components\\apps\\ContactApp.css',
+  'src\\components\\apps\\ExplorerApp.tsx',
+  'src\\components\\apps\\ExplorerApp.css',
+  'src\\components\\apps\\InternetExplorerApp.tsx',
+  'src\\components\\apps\\PaintApp.tsx',
+  'src\\components\\apps\\PdfViewerApp.tsx',
+  'src\\components\\apps\\PdfViewerApp.css',
+  'src\\components\\apps\\ProjectsApp.tsx',
+  'src\\components\\apps\\TerminalApp.tsx',
+  'src\\components\\apps\\WordPadApp.tsx',
+  'src\\components\\shell\\DesktopIcon.tsx',
+  'src\\components\\shell\\StartMenu.tsx',
+  'src\\components\\shell\\Taskbar.tsx',
+  'src\\components\\shell\\WindowFrame.tsx',
+  'src\\components\\system\\BootScreen.tsx',
+  'src\\components\\system\\CrashScreen.tsx',
+  'src\\data\\apps.ts',
+  'src\\data\\bios.ts',
+  'src\\data\\icons.ts',
+  'src\\data\\initialFilesystem.ts',
+  'src\\data\\portfolioData.ts',
+  'src\\data\\themes.ts',
+  'src\\os\\audio.ts',
+  'src\\os\\commands.ts',
+  'src\\os\\filesystem.ts',
+  'src\\os\\persistence.ts',
+  'src\\os\\recovery.ts',
+  'src\\os\\store.tsx',
+  'src\\os\\useOs.ts',
+  'src\\os\\wordpadFormatting.ts',
+  'src\\os\\__tests__\\os.test.ts',
+  'src\\styles\\base.css',
+  'src\\styles\\common.css',
+  'src\\styles\\desktop.css',
+  'src\\styles\\file-manager.css',
+  'src\\styles\\responsive.css',
+  'tools\\generate_apps_features_explained.py',
+  'tools\\generate_build_documentation_explained.py',
+].map(win98PortfolioPath)
+
+const WIN98_PORTFOLIO_SEED_PATHS = [
+  WIN98_PORTFOLIO_ROOT,
+  ...WIN98_PORTFOLIO_FOLDER_PATHS,
+  ...WIN98_PORTFOLIO_FILE_PATHS,
+  ...WIN98_PORTFOLIO_PDF_FILES.map((file) => file.path),
+]
+
+function win98PortfolioFileType(relativePath: string): string | undefined {
+  const lower = relativePath.toLowerCase()
+  if (lower.endsWith('.tsx')) return 'React TypeScript Source'
+  if (lower.endsWith('.ts')) return 'TypeScript Source'
+  if (lower.endsWith('.css')) return 'Style Sheet'
+  if (lower.endsWith('.json')) return 'JSON File'
+  if (lower.endsWith('.md')) return 'Markdown Document'
+  if (lower.endsWith('.py')) return 'Python Source'
+  if (lower.endsWith('.docx')) return 'Microsoft Word Document'
+  if (lower.endsWith('.pdf')) return 'PDF Document'
+  if (lower.endsWith('.env.example')) return 'Environment Example'
+  return undefined
+}
+
+function win98PortfolioFileContent(relativePath: string): string {
+  const normalized = relativePath.replace(/\\/g, '/')
+  const name = normalized.slice(normalized.lastIndexOf('/') + 1)
+
+  if (normalized === 'README.md') {
+    return [
+      '# Windows 98 Portfolio OS',
+      '',
+      'Interactive React portfolio presented as a nostalgic Windows 98-style desktop.',
+      '',
+      '## What is inside',
+      '- Virtual filesystem seeded from src/data/initialFilesystem.ts.',
+      '- Movable/resizable windows and a taskbar-driven shell.',
+      '- Apps for Explorer, WordPad, Paint, Terminal, Internet Explorer, media, games, contact, projects, and system tools.',
+      '- Documentation files under Documentation/, docs/, generated DOCX files, and bundled PDF exports.',
+    ].join('\n')
+  }
+
+  if (normalized === 'package.json') {
+    return JSON.stringify(
+      {
+        name: 'windows-portfolio',
+        type: 'module',
+        scripts: { dev: 'vite', build: 'tsc -b && vite build', lint: 'eslint .', test: 'vitest run' },
+        dependencies: { react: '^19.2.6', 'react-dom': '^19.2.6', '98.css': '^0.1.21', 'js-dos': '^8.3.20' },
+      },
+      null,
+      2,
+    )
+  }
+
+  if (normalized === 'docs/README.md') {
+    return [
+      '# Documentation Index',
+      '',
+      '- Build documentation explains how the project was assembled.',
+      '- Algorithms and patterns explain state, filesystem, command, and UI patterns.',
+      '- Apps and features explains each app and how it connects to the OS shell.',
+      '- PDF exports are bundled for reading inside the portfolio OS.',
+    ].join('\n')
+  }
+
+  if (normalized === 'docs/apps/README.md') {
+    return [
+      '# App Documentation',
+      '',
+      'Each app document explains user behavior, component boundaries, OS integration, and notable implementation details.',
+    ].join('\n')
+  }
+
+  if (normalized.endsWith('.docx')) {
+    return `${name}\n\nGenerated documentation artifact stored in docs/docx in the real project.`
+  }
+
+  if (normalized === 'vite.config.ts') return "import { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\n\nexport default defineConfig({ plugins: [react()] })\n"
+  if (normalized === 'index.html') return '<div id="root"></div><script type="module" src="/src/main.tsx"></script>'
+  if (normalized === 'src/main.tsx') return "import { createRoot } from 'react-dom/client'\nimport App from './App.tsx'\nimport './index.css'\n\ncreateRoot(document.getElementById('root')!).render(<App />)\n"
+  if (normalized === 'src/App.tsx') return "export default function App() {\n  return <Desktop />\n}\n"
+  if (normalized === 'src/data/initialFilesystem.ts') return 'Seeds C:\\\\, My Documents, Projects, Windows, Program Files, media folders, and project source trees.'
+  if (normalized === 'src/os/filesystem.ts') return 'Pure immutable virtual filesystem engine with DOS-style path handling, file associations, recycle bin, and protected system paths.'
+  if (normalized === 'src/os/store.tsx') return 'React OS provider for windows, startup, persistence, filesystem operations, networking, themes, audio, and message boxes.'
+  if (normalized === 'src/os/commands.ts') return 'Command interpreter for the simulated MS-DOS Prompt.'
+
+  return [
+    name,
+    '',
+    `Path: ${normalized}`,
+    'Windows 98 Portfolio OS project file shown inside the virtual C: drive.',
+  ].join('\n')
+}
+
+function win98PortfolioFileOpts(path: string): FileOpts {
+  const relativePath = path.slice(WIN98_PORTFOLIO_ROOT.length + 1)
+  const isDocument = relativePath.toLowerCase().endsWith('.docx')
+  return {
+    content: win98PortfolioFileContent(relativePath),
+    icon: isDocument ? 'wordpad' : 'textFile',
+    fileType: win98PortfolioFileType(relativePath),
+    appId: isDocument ? 'wordpad' : 'notepad',
+    appPayload: { filePath: path },
+    modified: WIN98_PORTFOLIO_STAMP,
+  }
+}
+
+function plmunNexusPath(relativePath: string): string {
+  return `${PLMUN_NEXUS_ROOT}\\${relativePath}`
+}
+
+const PLMUN_NEXUS_FOLDER_PATHS = [
+  '.github',
+  '.github\\workflows',
+  'Backend',
+  'Backend\\config',
+  'Backend\\apps',
+  'Backend\\apps\\authentication',
+  'Backend\\apps\\authentication\\migrations',
+  'Backend\\apps\\authentication\\management',
+  'Backend\\apps\\authentication\\management\\commands',
+  'Backend\\apps\\inventory',
+  'Backend\\apps\\inventory\\migrations',
+  'Backend\\apps\\requests',
+  'Backend\\apps\\requests\\migrations',
+  'Backend\\apps\\requests\\management',
+  'Backend\\apps\\requests\\management\\commands',
+  'Backend\\apps\\messaging',
+  'Backend\\apps\\messaging\\migrations',
+  'Backend\\apps\\users',
+  'Backend\\apps\\common',
+  'frontend',
+  'frontend\\public',
+  'frontend\\src',
+  'frontend\\src\\assets',
+  'frontend\\src\\assets\\images',
+  'frontend\\src\\assets\\rive',
+  'frontend\\src\\components',
+  'frontend\\src\\components\\auth',
+  'frontend\\src\\components\\dashboard',
+  'frontend\\src\\components\\inventory',
+  'frontend\\src\\components\\layout',
+  'frontend\\src\\components\\settings',
+  'frontend\\src\\components\\ui',
+  'frontend\\src\\components\\users',
+  'frontend\\src\\pages',
+  'frontend\\src\\pages\\settings',
+  'frontend\\src\\hooks',
+  'frontend\\src\\services',
+  'frontend\\src\\store',
+  'frontend\\src\\routes',
+  'frontend\\src\\utils',
+  'frontend\\src\\data',
+  'frontend\\src\\test',
+].map(plmunNexusPath)
+
+const PLMUN_NEXUS_FILE_PATHS = [
+  '.github\\workflows\\ci.yml',
+  '.github\\workflows\\codeql.yml',
+  'Backend\\.env.example',
+  'Backend\\manage.py',
+  'Backend\\requirements.txt',
+  'Backend\\build.sh',
+  'Backend\\Procfile',
+  'Backend\\config\\settings.py',
+  'Backend\\config\\urls.py',
+  'Backend\\config\\asgi.py',
+  'Backend\\config\\wsgi.py',
+  'Backend\\config\\middleware.py',
+  'Backend\\apps\\authentication\\models.py',
+  'Backend\\apps\\authentication\\serializers.py',
+  'Backend\\apps\\authentication\\views.py',
+  'Backend\\apps\\authentication\\urls.py',
+  'Backend\\apps\\authentication\\tests.py',
+  'Backend\\apps\\authentication\\management\\commands\\seed_admin.py',
+  'Backend\\apps\\authentication\\management\\commands\\seed_demo.py',
+  'Backend\\apps\\inventory\\models.py',
+  'Backend\\apps\\inventory\\serializers.py',
+  'Backend\\apps\\inventory\\views.py',
+  'Backend\\apps\\inventory\\urls.py',
+  'Backend\\apps\\inventory\\tests.py',
+  'Backend\\apps\\requests\\models.py',
+  'Backend\\apps\\requests\\serializers.py',
+  'Backend\\apps\\requests\\views.py',
+  'Backend\\apps\\requests\\notifications.py',
+  'Backend\\apps\\requests\\overdue.py',
+  'Backend\\apps\\requests\\auto_decision.py',
+  'Backend\\apps\\requests\\urls.py',
+  'Backend\\apps\\requests\\tests.py',
+  'Backend\\apps\\requests\\management\\commands\\check_overdue.py',
+  'Backend\\apps\\requests\\management\\commands\\seed_traffic.py',
+  'Backend\\apps\\messaging\\models.py',
+  'Backend\\apps\\messaging\\views.py',
+  'Backend\\apps\\messaging\\consumers.py',
+  'Backend\\apps\\messaging\\routing.py',
+  'Backend\\apps\\messaging\\middleware.py',
+  'Backend\\apps\\messaging\\services.py',
+  'Backend\\apps\\messaging\\presence.py',
+  'Backend\\apps\\messaging\\assistant.py',
+  'Backend\\apps\\messaging\\urls.py',
+  'Backend\\apps\\messaging\\tests.py',
+  'Backend\\apps\\users\\models.py',
+  'Backend\\apps\\users\\views.py',
+  'Backend\\apps\\users\\urls.py',
+  'Backend\\apps\\users\\tests.py',
+  'Backend\\apps\\common\\drf.py',
+  'Backend\\apps\\common\\images.py',
+  'Backend\\apps\\common\\uploads.py',
+  'frontend\\.env.example',
+  'frontend\\package.json',
+  'frontend\\package-lock.json',
+  'frontend\\index.html',
+  'frontend\\vite.config.js',
+  'frontend\\tailwind.config.js',
+  'frontend\\postcss.config.js',
+  'frontend\\eslint.config.js',
+  'frontend\\public\\logo.png',
+  'frontend\\src\\main.jsx',
+  'frontend\\src\\App.jsx',
+  'frontend\\src\\index.css',
+  'frontend\\src\\pages\\Dashboard.jsx',
+  'frontend\\src\\pages\\Inventory.jsx',
+  'frontend\\src\\pages\\Requests.jsx',
+  'frontend\\src\\pages\\Messages.jsx',
+  'frontend\\src\\pages\\Reports.jsx',
+  'frontend\\src\\pages\\Users.jsx',
+  'frontend\\src\\pages\\AuditLogs.jsx',
+  'frontend\\src\\pages\\Settings.jsx',
+  'frontend\\src\\pages\\Login.jsx',
+  'frontend\\src\\pages\\Register.jsx',
+  'README.md',
+  'render.yaml',
+  'start.ps1',
+  'pyrightconfig.json',
+  'AI_ASSIST_PLAN.md',
+  'PATCH_NOTES_v2-beta-0.5-stable.md',
+].map(plmunNexusPath)
+
+const PLMUN_NEXUS_SEED_PATHS = [PLMUN_NEXUS_ROOT, ...PLMUN_NEXUS_FOLDER_PATHS, ...PLMUN_NEXUS_FILE_PATHS]
+
+function plmunNexusFileType(relativePath: string): string | undefined {
+  const lower = relativePath.toLowerCase()
+  if (lower.endsWith('.env.example')) return 'Environment Example'
+  if (lower.endsWith('.yml') || lower.endsWith('.yaml')) return 'YAML File'
+  if (lower.endsWith('.py')) return 'Python Source'
+  if (lower.endsWith('.jsx')) return 'React Component'
+  if (lower.endsWith('.js')) return 'JavaScript Source'
+  if (lower.endsWith('.json')) return 'JSON File'
+  if (lower.endsWith('.css')) return 'Style Sheet'
+  if (lower.endsWith('.sh')) return 'Shell Script'
+  if (lower.endsWith('.ps1')) return 'PowerShell Script'
+  if (lower.endsWith('procfile')) return 'Process File'
+  return undefined
+}
+
+function plmunNexusPythonContent(relativePath: string): string {
+  const modulePath = relativePath.replace(/\\/g, '/').replace(/^Backend\//, '').replace(/\.py$/, '')
+  return [
+    `"""${modulePath} module for PLMun Inventory Nexus."""`,
+    '',
+    '# Representative source file for the portfolio filesystem.',
+    '# The real capstone uses Django, DRF, Channels, JWT auth, and PostgreSQL.',
+    '',
+    'def describe() -> str:',
+    `    return "${modulePath}"`,
+    '',
+  ].join('\n')
+}
+
+function plmunNexusPageContent(relativePath: string): string {
+  const name = relativePath.slice(relativePath.lastIndexOf('\\') + 1).replace('.jsx', '')
+  return [
+    `export default function ${name}() {`,
+    '  return (',
+    `    <section className="page page-${name.toLowerCase()}">`,
+    `      <h1>${name}</h1>`,
+    '      <p>PLMun Inventory Nexus workspace screen.</p>',
+    '    </section>',
+    '  )',
+    '}',
+    '',
+  ].join('\n')
+}
+
+function plmunNexusFileContent(relativePath: string): string {
+  const normalized = relativePath.replace(/\\/g, '/')
+  const name = normalized.slice(normalized.lastIndexOf('/') + 1)
+
+  if (normalized === '.github/workflows/ci.yml') {
+    return [
+      'name: CI',
+      '',
+      'on:',
+      '  push:',
+      '  pull_request:',
+      '',
+      'jobs:',
+      '  test:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - name: Install backend dependencies',
+      '        run: pip install -r Backend/requirements.txt',
+      '      - name: Run backend tests',
+      '        run: python Backend/manage.py test',
+      '      - name: Install frontend dependencies',
+      '        run: npm ci --prefix frontend',
+      '      - name: Build frontend',
+      '        run: npm run build --prefix frontend',
+    ].join('\n')
+  }
+
+  if (normalized === '.github/workflows/codeql.yml') {
+    return [
+      'name: CodeQL',
+      '',
+      'on:',
+      '  push:',
+      '  pull_request:',
+      '',
+      'jobs:',
+      '  analyze:',
+      '    runs-on: ubuntu-latest',
+      '    permissions:',
+      '      security-events: write',
+      '      contents: read',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - uses: github/codeql-action/init@v3',
+      '        with:',
+      '          languages: javascript-typescript, python',
+      '      - uses: github/codeql-action/analyze@v3',
+    ].join('\n')
+  }
+
+  if (normalized === 'README.md') {
+    return [
+      '# PLMun Inventory Nexus',
+      '',
+      'Full-stack inventory and request management system for PLMun-style asset workflows.',
+      '',
+      '## Main areas',
+      '- Django REST Framework backend with JWT authentication.',
+      '- Inventory, requests, users, messaging, reports, and audit-focused modules.',
+      '- React and Vite frontend with dashboard pages, reusable UI, and service layers.',
+      '- WebSocket messaging support through Django Channels.',
+      '- CI, CodeQL, Render deployment config, and environment examples.',
+    ].join('\n')
+  }
+
+  if (normalized === 'Backend/.env.example') {
+    return [
+      'DJANGO_SECRET_KEY=change-me',
+      'DJANGO_DEBUG=False',
+      'DATABASE_URL=postgres://user:password@localhost:5432/plmun_nexus',
+      'ALLOWED_HOSTS=localhost,127.0.0.1',
+      'CORS_ALLOWED_ORIGINS=http://localhost:5173',
+      'GEMINI_API_KEY=optional',
+      'OLLAMA_BASE_URL=http://localhost:11434',
+    ].join('\n')
+  }
+
+  if (normalized === 'frontend/.env.example') {
+    return ['VITE_API_BASE_URL=http://localhost:8000/api', 'VITE_WS_BASE_URL=ws://localhost:8000/ws'].join('\n')
+  }
+
+  if (normalized === 'Backend/manage.py') {
+    return [
+      '#!/usr/bin/env python',
+      '"""Django management utility for PLMun Inventory Nexus."""',
+      'import os',
+      'import sys',
+      '',
+      "if __name__ == '__main__':",
+      "    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')",
+      '    from django.core.management import execute_from_command_line',
+      '    execute_from_command_line(sys.argv)',
+    ].join('\n')
+  }
+
+  if (normalized === 'Backend/requirements.txt') {
+    return [
+      'Django>=5.0',
+      'djangorestframework',
+      'djangorestframework-simplejwt',
+      'django-cors-headers',
+      'channels',
+      'channels-redis',
+      'psycopg[binary]',
+      'gunicorn',
+      'whitenoise',
+      'drf-spectacular',
+    ].join('\n')
+  }
+
+  if (normalized === 'Backend/build.sh') return ['#!/usr/bin/env bash', 'python manage.py collectstatic --noinput', 'python manage.py migrate'].join('\n')
+  if (normalized === 'Backend/Procfile') return 'web: daphne config.asgi:application --port $PORT --bind 0.0.0.0'
+
+  if (normalized === 'frontend/package.json') {
+    return JSON.stringify(
+      {
+        name: 'plmun-inventory-nexus-frontend',
+        private: true,
+        scripts: { dev: 'vite', build: 'vite build', lint: 'eslint .', test: 'vitest run' },
+        dependencies: {
+          '@vitejs/plugin-react': 'latest',
+          axios: 'latest',
+          react: 'latest',
+          'react-dom': 'latest',
+          'react-router-dom': 'latest',
+          zustand: 'latest',
+        },
+        devDependencies: { vite: 'latest', tailwindcss: 'latest', eslint: 'latest', vitest: 'latest' },
+      },
+      null,
+      2,
+    )
+  }
+
+  if (normalized === 'frontend/package-lock.json') return JSON.stringify({ name: 'plmun-inventory-nexus-frontend', lockfileVersion: 3, packages: {} }, null, 2)
+  if (normalized === 'frontend/index.html') return '<div id="root"></div><script type="module" src="/src/main.jsx"></script>'
+  if (normalized === 'frontend/vite.config.js') return "import react from '@vitejs/plugin-react'\nimport { defineConfig } from 'vite'\n\nexport default defineConfig({ plugins: [react()] })\n"
+  if (normalized === 'frontend/tailwind.config.js') return "export default { content: ['./index.html', './src/**/*.{js,jsx}'], theme: { extend: {} }, plugins: [] }\n"
+  if (normalized === 'frontend/postcss.config.js') return "export default { plugins: { tailwindcss: {}, autoprefixer: {} } }\n"
+  if (normalized === 'frontend/eslint.config.js') return "export default [{ ignores: ['dist'] }]\n"
+  if (normalized === 'frontend/src/main.jsx') return "import React from 'react'\nimport { createRoot } from 'react-dom/client'\nimport App from './App.jsx'\nimport './index.css'\n\ncreateRoot(document.getElementById('root')).render(<App />)\n"
+  if (normalized === 'frontend/src/App.jsx') return "import Dashboard from './pages/Dashboard.jsx'\n\nexport default function App() {\n  return <Dashboard />\n}\n"
+  if (normalized === 'frontend/src/index.css') return '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n'
+
+  if (normalized === 'render.yaml') return ['services:', '  - type: web', '    name: plmun-inventory-nexus-api', '    env: python', '    buildCommand: ./Backend/build.sh', '    startCommand: daphne Backend.config.asgi:application'].join('\n')
+  if (normalized === 'start.ps1') return ['Set-Location Backend', 'python manage.py runserver'].join('\n')
+  if (normalized === 'pyrightconfig.json') return JSON.stringify({ include: ['Backend'], typeCheckingMode: 'basic' }, null, 2)
+  if (normalized === 'AI_ASSIST_PLAN.md') return '# AI Assist Plan\n\nRead-only assistant support for inventory lookups, request guidance, and messaging summaries.\n'
+  if (normalized === 'PATCH_NOTES_v2-beta-0.5-stable.md') return '# Patch Notes v2 beta 0.5 stable\n\n- Stabilized dashboard flows.\n- Added request automation notes.\n- Documented assistant and messaging structure.\n'
+  if (normalized.startsWith('frontend/src/pages/') && name.endsWith('.jsx')) return plmunNexusPageContent(relativePath)
+  if (name.endsWith('.py')) return plmunNexusPythonContent(relativePath)
+
+  return [
+    name,
+    '',
+    `Path: ${normalized}`,
+    'PLMun Inventory Nexus project file inside the Windows 98 portfolio filesystem.',
+  ].join('\n')
+}
+
+function plmunNexusFileOpts(path: string): FileOpts {
+  const relativePath = path.slice(PLMUN_NEXUS_ROOT.length + 1)
+  if (relativePath === 'frontend\\public\\logo.png') {
+    return {
+      dataUrl: COVER_ART_DATA_URL,
+      icon: 'imageFile',
+      fileType: 'PNG Image',
+      appId: 'imageViewer',
+      appPayload: { filePath: path },
+      modified: PLMUN_NEXUS_STAMP,
+    }
+  }
+  return {
+    content: plmunNexusFileContent(relativePath),
+    icon: 'textFile',
+    fileType: plmunNexusFileType(relativePath),
+    appId: 'notepad',
+    appPayload: { filePath: path },
+    modified: PLMUN_NEXUS_STAMP,
+  }
+}
+
+// Local/hosted media configured in .env.local (see src/data/media.ts). Each becomes a virtual
 // file whose dataUrl is the external URL, so nothing heavy lives in this repo.
 const GALLERY_PHOTO_FILES: ScaffoldFile[] = galleryPhotos.map((item) => ({
   path: `C:\\My Pictures\\${item.name}`,
   dataUrl: item.src,
   icon: 'imageFile',
   fileType: 'Image',
+  size: 0,
+  modified: MODERN_STAMP,
+}))
+const GALLERY_MUSIC_FILES: ScaffoldFile[] = galleryMusic.map((item) => ({
+  path: `C:\\My Documents\\Music\\${item.name}`,
+  dataUrl: item.src,
+  icon: 'audioFile',
+  fileType: 'Audio File',
   size: 0,
   modified: MODERN_STAMP,
 }))
@@ -779,17 +1558,16 @@ export function createInitialFsState(): FsState {
     modified: '06/12/2026 12:05 AM',
   })
   file('C:\\My Documents\\Resume.doc', {
-    content: resumeToHtml(portfolioData.resume.documentContent),
+    content: resumeToHtml(),
     icon: 'wordpad',
     appId: 'wordpad',
     appPayload: { filePath: 'C:\\My Documents\\Resume.doc' },
     modified: '06/13/2026 12:34 AM',
   })
-  file('C:\\My Documents\\Education.txt', {
-    content: portfolioData.resume.education.join('\n'),
-    modified: '06/13/2026 12:34 AM',
-  })
   folder('C:\\My Documents\\Music', 'folder', '06/12/2026 12:07 AM')
+  for (const { path, ...opts } of GALLERY_MUSIC_FILES) {
+    file(path, opts)
+  }
   // Sound Recorder saves .wav clips here; Media Player lists them for playback.
   folder('C:\\My Documents\\My Recordings', 'folder', '06/12/2026 12:07 AM')
   // Paint saves its bitmaps here (kept out of My Pictures / the Gallery).
@@ -814,6 +1592,8 @@ export function createInitialFsState(): FsState {
   for (const project of portfolioData.projects) {
     const projectDir = `C:\\Projects\\${project.name}`
     folder(projectDir, 'folder', '06/13/2026 12:35 AM')
+    const documentationDir = `${projectDir}\\Documentation`
+    folder(documentationDir, 'folder', '06/13/2026 12:36 AM')
     file(`${projectDir}\\README.txt`, {
       content: [
         project.name,
@@ -835,6 +1615,49 @@ export function createInitialFsState(): FsState {
       size: 512,
       modified: '06/13/2026 12:35 AM',
     })
+    for (const doc of ['Overview', 'Features', 'Architecture'] as const) {
+      file(`${documentationDir}\\${doc}.md`, {
+        content: projectDocumentationContent(project, doc),
+        icon: 'textFile',
+        fileType: 'Markdown Document',
+        appId: 'notepad',
+        appPayload: { filePath: `${documentationDir}\\${doc}.md` },
+        modified: '06/13/2026 12:36 AM',
+      })
+    }
+  }
+
+  if (!nodes[PLMUN_NEXUS_ROOT]) {
+    folder(PLMUN_NEXUS_ROOT, 'folder', PLMUN_NEXUS_STAMP)
+  }
+  for (const path of PLMUN_NEXUS_FOLDER_PATHS) {
+    if (!nodes[path]) {
+      folder(path, 'folder', PLMUN_NEXUS_STAMP)
+    }
+  }
+  for (const path of PLMUN_NEXUS_FILE_PATHS) {
+    if (!nodes[path]) {
+      file(path, plmunNexusFileOpts(path))
+    }
+  }
+
+  if (!nodes[WIN98_PORTFOLIO_ROOT]) {
+    folder(WIN98_PORTFOLIO_ROOT, 'folder', WIN98_PORTFOLIO_STAMP)
+  }
+  for (const path of WIN98_PORTFOLIO_FOLDER_PATHS) {
+    if (!nodes[path]) {
+      folder(path, 'folder', WIN98_PORTFOLIO_STAMP)
+    }
+  }
+  for (const path of WIN98_PORTFOLIO_FILE_PATHS) {
+    if (!nodes[path]) {
+      file(path, win98PortfolioFileOpts(path))
+    }
+  }
+  for (const { path, ...opts } of WIN98_PORTFOLIO_PDF_FILES) {
+    if (!nodes[path]) {
+      file(path, opts)
+    }
   }
 
   folder(BETWEEN_TWO_RUINS_WEB_ROOT, 'folder', BETWEEN_TWO_RUINS_WEB_STAMP)
@@ -980,7 +1803,8 @@ export function createInitialFsState(): FsState {
   sysFile('C:\\Windows\\Desktop\\Portfolio OS.lnk', 1024, {
     icon: 'projects',
     fileType: 'Shortcut',
-    appId: 'projects',
+    appId: 'explorer',
+    appPayload: { path: WIN98_PORTFOLIO_ROOT },
     modified: '06/12/2026 12:14 AM',
   })
 
@@ -1116,7 +1940,8 @@ export function createInitialFsState(): FsState {
     size: 0,
     icon: 'world',
     fileType: 'Network Location',
-    appId: 'projects',
+    appId: 'explorer',
+    appPayload: { path: WIN98_PORTFOLIO_ROOT },
     modified: '06/12/2026 12:12 AM',
   })
   file('C:\\Network\\Ethernet Adapter', {
@@ -1145,18 +1970,25 @@ const PORTFOLIO_SEEDED_PATHS = [
   ...GALLERY_PHOTO_FILES.map((file) => file.path),
   'C:\\My Videos',
   ...GALLERY_VIDEO_FILES.map((file) => file.path),
+  'C:\\My Documents\\Music',
+  ...GALLERY_MUSIC_FILES.map((file) => file.path),
   'C:\\My Documents\\My Recordings',
   'C:\\My Documents\\Paint',
   'C:\\My Documents\\Private',
   'C:\\My Documents\\Private\\Secret Note.txt',
   'C:\\My Documents\\Resume.doc',
-  'C:\\My Documents\\Education.txt',
   'C:\\Projects',
   ...portfolioData.projects.flatMap((project) => [
     `C:\\Projects\\${project.name}`,
+    `C:\\Projects\\${project.name}\\Documentation`,
+    `C:\\Projects\\${project.name}\\Documentation\\Overview.md`,
+    `C:\\Projects\\${project.name}\\Documentation\\Features.md`,
+    `C:\\Projects\\${project.name}\\Documentation\\Architecture.md`,
     `C:\\Projects\\${project.name}\\README.txt`,
     `C:\\Projects\\${project.name}\\${project.fileName}`,
   ]),
+  ...PLMUN_NEXUS_SEED_PATHS,
+  ...WIN98_PORTFOLIO_SEED_PATHS,
   ...BETWEEN_TWO_RUINS_WEB_SEED_PATHS,
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',
   'C:\\Program Files\\Accessories\\KODAKIMG.EXE',
@@ -1176,11 +2008,14 @@ const LEGACY_ARTIFACT_PATHS = [
   'C:\\My Pictures\\portfolio-sketch.bmp',
   'C:\\My Pictures\\project-preview.url',
   'C:\\My Documents\\Resume.txt',
+  'C:\\My Documents\\Education.txt',
   ...portfolioData.projects.flatMap((project) => [
     `C:\\Projects\\${project.name}.txt`,
     `C:\\Projects\\${project.fileName}`,
   ]),
 ]
+
+const USER_MEDIA_ROOTS = ['C:\\My Pictures\\', 'C:\\My Videos\\', 'C:\\My Documents\\Music\\']
 
 function removeNodeByPath(fs: FsState, path: string): FsState {
   if (!fs.nodes[path]) return fs
@@ -1192,6 +2027,38 @@ function removeNodeByPath(fs: FsState, path: string): FsState {
     nodes[parent] = { ...parentNode, children: parentNode.children.filter((child) => child !== path) }
   }
   return { ...fs, nodes }
+}
+
+function removeSeededUserMedia(fs: FsState): FsState {
+  let next = fs
+  for (const node of Object.values(fs.nodes)) {
+    const isSeededUserMedia =
+      node.kind === 'file' &&
+      typeof node.dataUrl === 'string' &&
+      node.dataUrl.startsWith('/media/user/') &&
+      USER_MEDIA_ROOTS.some((root) => node.path.startsWith(root))
+    if (isSeededUserMedia) {
+      next = removeNodeByPath(next, node.path)
+    }
+  }
+  return next
+}
+
+function normalizePortfolioLaunchers(fs: FsState): FsState {
+  const launcherPaths = ['C:\\Windows\\Desktop\\Portfolio OS.lnk', 'C:\\Network\\Portfolio.local']
+  let changed = false
+  const nodes = { ...fs.nodes }
+  for (const path of launcherPaths) {
+    const node = nodes[path]
+    if (!node || node.appId === 'explorer' && node.appPayload?.path === WIN98_PORTFOLIO_ROOT) continue
+    nodes[path] = {
+      ...node,
+      appId: 'explorer',
+      appPayload: { path: WIN98_PORTFOLIO_ROOT },
+    }
+    changed = true
+  }
+  return changed ? { ...fs, nodes } : fs
 }
 
 function normalizeBitmapIcons(fs: FsState): FsState {
@@ -1213,6 +2080,8 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   for (const path of LEGACY_ARTIFACT_PATHS) {
     next = removeNodeByPath(next, path)
   }
+  next = removeSeededUserMedia(next)
+  next = normalizePortfolioLaunchers(next)
   for (const path of PORTFOLIO_SEEDED_PATHS) {
     const seedNode = getNode(seed, path)
     if (!seedNode) continue

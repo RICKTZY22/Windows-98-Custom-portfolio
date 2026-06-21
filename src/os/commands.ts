@@ -503,6 +503,10 @@ function sfcCommand(args: string[], ctx: CommandContext): CommandOutput {
 const START_TARGETS: Record<string, AppId> = {
   notepad: 'notepad',
   'notepad.exe': 'notepad',
+  pdfviewer: 'pdfViewer',
+  'pdfviewer.exe': 'pdfViewer',
+  acrord32: 'pdfViewer',
+  'acrord32.exe': 'pdfViewer',
   mspaint: 'paint',
   'mspaint.exe': 'paint',
   paint: 'paint',

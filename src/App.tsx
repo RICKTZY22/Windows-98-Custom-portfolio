@@ -59,6 +59,7 @@ const MinesweeperApp = lazy(() => import('./components/apps/MinesweeperApp').the
 const NetworkApp = lazy(() => import('./components/apps/NetworkApp').then((m) => ({ default: m.NetworkApp })))
 const NotepadApp = lazy(() => import('./components/apps/NotepadApp').then((m) => ({ default: m.NotepadApp })))
 const PaintApp = lazy(() => import('./components/apps/PaintApp').then((m) => ({ default: m.PaintApp })))
+const PdfViewerApp = lazy(() => import('./components/apps/PdfViewerApp').then((m) => ({ default: m.PdfViewerApp })))
 const ProjectDetailsApp = lazy(() =>
   import('./components/apps/ProjectDetailsApp').then((m) => ({ default: m.ProjectDetailsApp })),
 )
@@ -157,6 +158,8 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <NotepadApp {...props} />
     case 'wordpad':
       return <WordPadApp {...props} />
+    case 'pdfViewer':
+      return <PdfViewerApp key={win.payload?.filePath ?? win.instanceId} {...props} />
     case 'paint':
       return <PaintApp {...props} />
     case 'imageViewer':
@@ -671,6 +674,45 @@ const recoveryOptions = [
   { id: 4, label: 'Display disk information' },
 ] as const
 
+// Scans and verifications run a real-time progress sweep up to this long so they
+// feel like genuine disk work instead of finishing instantly. 2 minutes max.
+const RECOVERY_SCAN_MS = 120000
+const RECOVERY_BAR_WIDTH = 30
+// Representative protected files shown ticking past during a scan/verify sweep.
+const RECOVERY_SCAN_FILES = [
+  'C:\\WINDOWS\\SYSTEM\\KERNEL32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\USER32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\GDI32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\SHELL32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\ADVAPI32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\COMCTL32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\OLE32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\RPCRT4.DLL',
+  'C:\\WINDOWS\\SYSTEM\\WININET.DLL',
+  'C:\\WINDOWS\\SYSTEM\\VMM32.VXD',
+  'C:\\WINDOWS\\SYSTEM\\MSGSRV32.EXE',
+  'C:\\WINDOWS\\SYSTEM\\KRNL386.EXE',
+  'C:\\WINDOWS\\EXPLORER.EXE',
+  'C:\\WINDOWS\\WIN.COM',
+  'C:\\WINDOWS\\COMMAND.COM',
+  'C:\\WINDOWS\\SYSTEM.INI',
+  'C:\\WINDOWS\\WIN.INI',
+  'C:\\WINDOWS\\FONTS\\MSSANSSERIF.FON',
+  'C:\\IO.SYS',
+  'C:\\MSDOS.SYS',
+]
+
+function recoveryBar(pct: number): string {
+  const filled = Math.max(0, Math.min(RECOVERY_BAR_WIDTH, Math.round((pct / 100) * RECOVERY_BAR_WIDTH)))
+  return `[${'█'.repeat(filled)}${'░'.repeat(RECOVERY_BAR_WIDTH - filled)}]`
+}
+
+// Restore reinstalls protected components with an npm/pnpm vibe: each shows as a
+// `+ name@version` line. 4.10.1998 is the real Windows 98 build number.
+const RECOVERY_INSTALL_VERSION = '4.10.1998'
+const RECOVERY_SPINNER = ['|', '/', '-', '\\']
+const RECOVERY_INSTALL_PACKAGES = RECOVERY_SCAN_FILES.map((path) => (path.split('\\').pop() ?? path).toLowerCase())
+
 function RecoveryConsole() {
   const { state, fsOps, restart, playSound } = useOs()
   const [choice, setChoice] = useState(1)
@@ -717,12 +759,87 @@ function RecoveryConsole() {
     [stopScan],
   )
 
+  // A timed progress sweep for scans/verifications: a Courier progress bar fills in
+  // real time (anchored to Date.now, so it's immune to interval drift) over
+  // RECOVERY_SCAN_MS while file names tick past, then the result lines are revealed
+  // at 100%. label is the in-progress verb shown before each file (Checking/Verifying).
+  const runScan = useCallback(
+    (header: string, label: string, resultLines: string[]) => {
+      stopScan()
+      setScanning(true)
+      const startedAt = Date.now()
+      const tick = () => {
+        const elapsed = Math.min(RECOVERY_SCAN_MS, Date.now() - startedAt)
+        if (elapsed >= RECOVERY_SCAN_MS) {
+          stopScan()
+          setScanning(false)
+          setOutput([header, '', `${recoveryBar(100)} 100%`, '', ...resultLines])
+          return
+        }
+        const pct = Math.floor((elapsed / RECOVERY_SCAN_MS) * 100)
+        const fileIndex = Math.floor((elapsed / RECOVERY_SCAN_MS) * RECOVERY_SCAN_FILES.length) % RECOVERY_SCAN_FILES.length
+        setOutput([header, '', `${recoveryBar(pct)} ${String(pct).padStart(3, ' ')}%`, `${label} ${RECOVERY_SCAN_FILES[fileIndex]}`])
+      }
+      tick()
+      scanTimer.current = window.setInterval(tick, 250)
+    },
+    [stopScan],
+  )
+
+  // Restore (option 2) plays like an npm/pnpm reinstall: a spinner + progress bar
+  // sweep over RECOVERY_SCAN_MS while protected components reinstall one by one
+  // (green `+ pkg@ver` lines accumulating), then the real filesystem repair is
+  // applied at 100% via onDone (replaceFs + ding).
+  const runRestore = useCallback(
+    (header: string, summary: string[], onDone: () => void) => {
+      stopScan()
+      setScanning(true)
+      const packages = RECOVERY_INSTALL_PACKAGES
+      const head = [header, '', 'Resolving system components...', '']
+      const startedAt = Date.now()
+      let spin = 0
+      const tick = () => {
+        const elapsed = Math.min(RECOVERY_SCAN_MS, Date.now() - startedAt)
+        if (elapsed >= RECOVERY_SCAN_MS) {
+          stopScan()
+          setScanning(false)
+          const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000))
+          setOutput([
+            ...head,
+            ...packages.map((p) => `+ ${p}@${RECOVERY_INSTALL_VERSION}`),
+            '',
+            `${recoveryBar(100)} 100%`,
+            '',
+            `added ${packages.length} packages from RB000.CAB in ${secs}s`,
+            ...summary,
+          ])
+          onDone()
+          return
+        }
+        const pct = Math.floor((elapsed / RECOVERY_SCAN_MS) * 100)
+        const installed = Math.min(packages.length, Math.floor((elapsed / RECOVERY_SCAN_MS) * packages.length) + 1)
+        spin = (spin + 1) % RECOVERY_SPINNER.length
+        setOutput([
+          ...head,
+          ...packages.slice(0, installed).map((p) => `+ ${p}@${RECOVERY_INSTALL_VERSION}`),
+          '',
+          `${RECOVERY_SPINNER[spin]} ${recoveryBar(pct)} ${String(pct).padStart(3, ' ')}%  reinstalling ${packages[installed - 1]}`,
+        ])
+      }
+      tick()
+      scanTimer.current = window.setInterval(tick, 250)
+    },
+    [stopScan],
+  )
+
   function runChoice(id: number) {
     if (id === 1) {
-      reveal(
+      runScan(
+        'Scanning C:\\WINDOWS for required system files...',
+        'Checking',
         missing.length
-          ? ['Scanning C:\\WINDOWS for required system files...', '', ...missing.map((path) => `MISSING   ${path}`), '', `${missing.length} file(s) must be restored before Windows can start.`]
-          : ['Scanning C:\\WINDOWS for required system files...', '', 'No missing system files were found.', 'Windows should start normally.'],
+          ? [...missing.map((path) => `MISSING   ${path}`), '', `${missing.length} file(s) must be restored before Windows can start.`]
+          : ['No missing system files were found.', 'Windows should start normally.'],
       )
       return
     }
@@ -732,12 +849,9 @@ function RecoveryConsole() {
         return
       }
       const result = restoreSystemFiles(state.fs)
-      reveal(
+      runRestore(
+        'Restoring system files from registry backup RB000.CAB...',
         [
-          'Restoring system files from registry backup RB000.CAB...',
-          '',
-          ...result.restored.map((path) => `RESTORED   ${path}`),
-          '',
           `${result.restored.length} file(s) restored successfully.`,
           'Windows has fixed your registry. Press Esc, then choose Normal to start Windows.',
         ],
@@ -749,10 +863,12 @@ function RecoveryConsole() {
       return
     }
     if (id === 3) {
-      reveal(
+      runScan(
+        'Verifying the integrity of all protected system files...',
+        'Verifying',
         missing.length
-          ? ['Verifying the integrity of all protected system files...', '', ...missing.map((path) => `CORRUPT   ${path}`), '', 'Integrity violations found. Run option 2 to repair.']
-          : ['Verifying the integrity of all protected system files...', '', 'Windows resource protection did not find any integrity violations.'],
+          ? [...missing.map((path) => `CORRUPT   ${path}`), '', 'Integrity violations found. Run option 2 to repair.']
+          : ['Windows resource protection did not find any integrity violations.'],
       )
       return
     }
@@ -853,6 +969,10 @@ function RecoveryConsole() {
 // Renders one recovery output line, coloring a leading status keyword
 // (MISSING/CORRUPT in red, RESTORED/OK in green) like a real repair console.
 function RecoveryLine({ text }: { text: string }) {
+  // npm-style added-package line (green +), used by the Restore reinstall animation.
+  if (text.startsWith('+ ')) {
+    return <div className="fdisk-line fdisk-add">{text}</div>
+  }
   const match = /^(MISSING|CORRUPT|RESTORED|OK|FOUND)\s{2,}(.*)$/.exec(text)
   if (match) {
     const status = match[1]
@@ -1124,12 +1244,28 @@ function Desktop() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      const activeWindow = state.windows.find((item) => item.instanceId === state.activeWindowId)
+
+      // Alt+F4 / Ctrl+W close the focused window. Checked before the DOS-game guard
+      // below so a keyboard-captured game window can still be dismissed. Browsers
+      // reserve some of these (Ctrl+W usually closes the tab and can't be prevented);
+      // where the event reaches us we honor it, and since OS state is persisted an
+      // intercepted Ctrl+W simply reloads to the same desktop.
+      if (
+        activeWindow &&
+        !activeWindow.minimized &&
+        ((event.altKey && event.key === 'F4') || (event.ctrlKey && event.key.toLowerCase() === 'w'))
+      ) {
+        event.preventDefault()
+        closeWindow(activeWindow.instanceId)
+        return
+      }
+
       // When a DOS game window is focused it captures the keyboard entirely:
       // arrows are player movement, Ctrl/Alt/Space are fire/strafe/use, and
       // F-keys/Enter/Escape drive in-game menus. Let js-dos have every key so
       // desktop icon navigation and Windows shortcuts don't fire at the same
       // time. The user switches away by clicking the taskbar or another window.
-      const activeWindow = state.windows.find((item) => item.instanceId === state.activeWindowId)
       if (activeWindow?.appId === 'dosGame' && !activeWindow.minimized) {
         return
       }
@@ -1151,7 +1287,10 @@ function Desktop() {
         const visible = state.windows.filter((item) => !item.minimized)
         if (!visible.length) return
         const currentIndex = visible.findIndex((item) => item.instanceId === state.activeWindowId)
-        focusWindow(visible[(currentIndex + 1) % visible.length].instanceId)
+        // Shift+Alt+Tab cycles backward, like the real Windows task switcher.
+        const step = event.shiftKey ? -1 : 1
+        const nextIndex = (currentIndex + step + visible.length) % visible.length
+        focusWindow(visible[nextIndex].instanceId)
       }
       if (event.key === 'F5') {
         event.preventDefault()
@@ -1178,6 +1317,7 @@ function Desktop() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     allIconDefs,
+    closeWindow,
     focusWindow,
     findNextDesktopIcon,
     openApp,

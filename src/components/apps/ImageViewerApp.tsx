@@ -1,5 +1,5 @@
 import './ImageViewerApp.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppProps, FsNode } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { baseName, extensionOf, formatSize, getNode, listDirectory, parentPath } from '../../os/filesystem'
@@ -19,11 +19,12 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
 
   const currentNode = currentPath ? getNode(state.fs, currentPath) : undefined
   const folderPath = currentNode ? parentPath(currentNode.path) : 'C:\\My Pictures'
-  const folderImages = useMemo(
-    () => listDirectory(state.fs, folderPath).filter(isImageFile),
-    [folderPath, state.fs],
-  )
+  // The React Compiler memoizes this automatically; a manual useMemo here trips
+  // its preserve-memoization rule because state.fs is provider-owned.
+  const folderImages = listDirectory(state.fs, folderPath).filter(isImageFile)
   const currentIndex = currentNode ? folderImages.findIndex((node) => node.path === currentNode.path) : -1
+  const imageSrc = currentNode?.dataUrl ?? ''
+  const fitBackground = imageSrc ? { backgroundImage: `url("${imageSrc.replace(/"/g, '\\"')}")` } : undefined
 
   useEffect(() => {
     setWindowTitle(windowId, currentNode ? `${baseName(currentNode.path)} - Imaging Preview` : 'Imaging Preview')
@@ -86,14 +87,16 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
           Copy Path
         </button>
       </div>
-      <div className="sunken-panel image-viewer-stage">
+      <div className={`sunken-panel image-viewer-stage ${fitToWindow ? 'is-fit' : 'is-actual'}`}>
         {canShowImage ? (
-          <img
-            className={fitToWindow ? 'fit' : 'actual'}
-            src={currentNode?.dataUrl}
-            alt={currentNode?.name}
-            onError={() => setImageError(true)}
-          />
+          fitToWindow ? (
+            <>
+              <div className="image-viewer-fit-image" role="img" aria-label={currentNode?.name} style={fitBackground} />
+              <img className="image-viewer-preload" src={imageSrc} alt="" onError={() => setImageError(true)} />
+            </>
+          ) : (
+            <img className="actual" src={imageSrc} alt={currentNode?.name} onError={() => setImageError(true)} />
+          )
         ) : (
           <div className="image-viewer-empty">
             <img src={win98Icons.imageFile} alt="" />

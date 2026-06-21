@@ -1,0 +1,10 @@
+# Confidential local-only test media. Never upload these with Vercel CLI.
+public/media/user/**
+
+# Local environment files can contain private test URLs or local-only paths.
+.env
+.env.*
+!.env.example
+
+# Local dev logs.
+.vite-dev-local-media*.log

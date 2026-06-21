@@ -32,7 +32,14 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     id: 'wordpad',
     title: 'WordPad',
     icon: 'wordpad',
-    defaultRect: { x: 190, y: 86, width: 680, height: 500 },
+    defaultRect: { x: 72, y: 42, width: 860, height: 620 },
+    singleton: false,
+  },
+  pdfViewer: {
+    id: 'pdfViewer',
+    title: 'PDF Viewer',
+    icon: 'html',
+    defaultRect: { x: 86, y: 48, width: 860, height: 620 },
     singleton: false,
   },
   paint: {
@@ -133,13 +140,13 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     id: 'about',
     title: 'About Me',
     icon: 'student',
-    defaultRect: { x: 140, y: 80, width: 460, height: 360 },
+    defaultRect: { x: 80, y: 64, width: 640, height: 500 },
   },
   contact: {
     id: 'contact',
     title: 'Contact',
     icon: 'contact',
-    defaultRect: { x: 310, y: 150, width: 430, height: 330 },
+    defaultRect: { x: 220, y: 112, width: 620, height: 430 },
   },
   projects: {
     id: 'projects',
@@ -336,7 +343,6 @@ export const startMenuModel: StartMenuModel = [
     icon: 'favorites',
     items: [
       { kind: 'item', id: 'about', label: 'About Me', icon: 'student', appId: 'about' },
-      { kind: 'item', id: 'projects', label: 'Projects', icon: 'projects', appId: 'projects' },
       {
         kind: 'item',
         id: 'resume',

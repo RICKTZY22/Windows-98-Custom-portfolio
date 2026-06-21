@@ -163,6 +163,8 @@ function titleFor(appId: AppId, fs: FsState, payload?: WindowPayload): string {
       return payload?.filePath ? `${baseName(payload.filePath)} - Notepad` : 'Untitled - Notepad'
     case 'wordpad':
       return payload?.filePath ? `${baseName(payload.filePath)} - WordPad` : 'Document - WordPad'
+    case 'pdfViewer':
+      return payload?.filePath ? `${baseName(payload.filePath)} - PDF Viewer` : def.title
     case 'paint':
       return payload?.filePath ? `${baseName(payload.filePath)} - Paint` : 'untitled - Paint'
     case 'imageViewer':

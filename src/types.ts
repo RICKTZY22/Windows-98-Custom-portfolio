@@ -66,6 +66,7 @@ export type AppId =
   | 'terminal'
   | 'notepad'
   | 'wordpad'
+  | 'pdfViewer'
   | 'paint'
   | 'imageViewer'
   | 'internetExplorer'

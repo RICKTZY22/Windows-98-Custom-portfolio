@@ -118,15 +118,28 @@ describe('virtual filesystem', () => {
     fs = writeFile(fs, 'C:\\My Videos\\Demo.mp4', { dataUrl: '/media/user/demo.mp4' }).fs
     expect(openTargetFor(getNode(fs, 'C:\\My Videos\\Demo.mp4')!)?.appId).toBe('videoPlayer')
     expect(openTargetFor(getNode(fs, 'C:\\Windows\\Media\\Startup.wav')!)?.appId).toBe('mediaPlayer')
+    fs = writeFile(fs, 'C:\\My Documents\\Portfolio.pdf', { dataUrl: '/docs/pdf/final-1.pdf' }).fs
+    expect(openTargetFor(getNode(fs, 'C:\\My Documents\\Portfolio.pdf')!)?.appId).toBe('pdfViewer')
   })
 
   it('purges legacy seed artifacts and restores My Videos when topping up a migrated disk', () => {
     let fs = createInitialFsState()
     // Simulate an older disk: a demo image that used to ship in My Pictures, plus
-    // a user file that must be preserved, and a disk missing the My Videos folder.
+    // a user file that must be preserved, stale uploaded media seeds, and a disk missing the My Videos folder.
     fs = createFile(fs, 'C:\\My Pictures', 'Welcome.bmp', { content: 'old demo' }).fs
     fs = createFile(fs, 'C:\\My Pictures', 'MyPhoto.png', { content: 'mine' }).fs
     fs = createFile(fs, 'C:\\My Pictures', 'media.bmp', { content: 'saved bitmap', icon: 'imageFile' }).fs
+    fs = createFile(fs, 'C:\\My Pictures', 'Old Upload.jpg', { dataUrl: '/media/user/Old%20Upload.jpg' }).fs
+    fs = createFile(fs, 'C:\\My Videos', 'Old Upload.mp4', { dataUrl: '/media/user/Old%20Upload.mp4' }).fs
+    fs = createFile(fs, 'C:\\My Documents\\Music', 'Old Upload.mp3', { dataUrl: '/media/user/Old%20Upload.mp3' }).fs
+    fs = createFile(fs, 'C:\\My Documents', 'Education.txt', { content: 'old education seed' }).fs
+    const nodesWithOldLauncher = { ...fs.nodes }
+    nodesWithOldLauncher['C:\\Windows\\Desktop\\Portfolio OS.lnk'] = {
+      ...nodesWithOldLauncher['C:\\Windows\\Desktop\\Portfolio OS.lnk'],
+      appId: 'projects',
+      appPayload: undefined,
+    }
+    fs = { ...fs, nodes: nodesWithOldLauncher }
     const withoutVideos = { ...fs.nodes }
     delete withoutVideos['C:\\My Videos']
     fs = { ...fs, nodes: withoutVideos }
@@ -135,6 +148,13 @@ describe('virtual filesystem', () => {
     expect(getNode(cleaned, 'C:\\My Pictures\\Welcome.bmp')).toBeUndefined() // legacy artifact removed
     expect(getNode(cleaned, 'C:\\My Pictures\\MyPhoto.png')).toBeDefined() // user file kept
     expect(getNode(cleaned, 'C:\\My Pictures\\media.bmp')?.icon).toBe('paint')
+    expect(getNode(cleaned, 'C:\\My Pictures\\Old Upload.jpg')).toBeUndefined()
+    expect(getNode(cleaned, 'C:\\My Documents\\Music\\Old Upload.mp3')).toBeUndefined()
+    expect(getNode(cleaned, 'C:\\My Documents\\Education.txt')).toBeUndefined()
+    expect(getNode(cleaned, 'C:\\Windows\\Desktop\\Portfolio OS.lnk')?.appId).toBe('explorer')
+    expect(getNode(cleaned, 'C:\\Windows\\Desktop\\Portfolio OS.lnk')?.appPayload?.path).toBe(
+      'C:\\Projects\\Windows 98 Portfolio OS',
+    )
     expect(getNode(cleaned, 'C:\\My Videos')?.kind).toBe('folder') // folder restored
   })
 
@@ -164,7 +184,40 @@ describe('virtual filesystem', () => {
 
     const seeded = ensurePortfolioSeedFiles(fs)
     expect(getNode(seeded, 'C:\\My Documents\\Resume.doc')?.appId).toBe('wordpad')
+    expect(getNode(seeded, 'C:\\My Documents\\Resume.doc')?.content).toContain(
+      'data-resume-template="dark-sidebar-v1"',
+    )
+    expect(getNode(seeded, 'C:\\My Documents\\Education.txt')).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects')).toBeDefined()
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\Features.md')?.fileType).toBe(
+      'Markdown Document',
+    )
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\src\\data\\initialFilesystem.ts')?.fileType).toBe(
+      'TypeScript Source',
+    )
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\docs\\apps\\explorer.md')?.appId).toBe('notepad')
+    expect(
+      getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Build Documentation Explained.pdf')
+        ?.appId,
+    ).toBe('pdfViewer')
+    expect(
+      getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Apps and Features Reference Explained.pdf')
+        ?.dataUrl,
+    ).toBe('/docs/pdf/final-3.pdf')
+    expect(
+      openTargetFor(
+        getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Algorithms and Patterns Explained.pdf')!,
+      )?.appId,
+    ).toBe('pdfViewer')
+    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\Backend\\apps\\messaging\\consumers.py')?.appId).toBe(
+      'notepad',
+    )
+    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\frontend\\src\\pages\\Dashboard.jsx')?.fileType).toBe(
+      'React Component',
+    )
+    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\.github\\workflows\\ci.yml')?.fileType).toBe(
+      'YAML File',
+    )
     expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web\\src\\App.tsx')).toBeDefined()
     expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web\\public\\cover-art.png')?.appId).toBe(
       'imageViewer',
@@ -176,14 +229,14 @@ describe('virtual filesystem', () => {
   })
 
   it('permanently removes recycle entries when the recycle bin is emptied', () => {
-    const fs = createInitialFsState()
-    const deleted = deleteNode(fs, 'C:\\My Documents\\Education.txt')
+    const fs = createFile(createInitialFsState(), 'C:\\My Documents', 'Trash Me.txt', { content: 'temporary' }).fs
+    const deleted = deleteNode(fs, 'C:\\My Documents\\Trash Me.txt')
     expect(deleted.error).toBeNull()
     expect(deleted.fs.recycle.length).toBe(1)
 
     const emptied = emptyRecycleBin(deleted.fs)
     expect(emptied.recycle.length).toBe(0)
-    expect(getNode(emptied, 'C:\\My Documents\\Education.txt')).toBeUndefined()
+    expect(getNode(emptied, 'C:\\My Documents\\Trash Me.txt')).toBeUndefined()
   })
 })
 

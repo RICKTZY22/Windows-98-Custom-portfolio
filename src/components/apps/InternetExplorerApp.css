@@ -117,6 +117,7 @@
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
+  color-scheme: light;
   background: #fff;
   box-shadow: inset -1px -1px #fff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
 }
@@ -132,8 +133,10 @@
   flex: 1 1 auto;
   min-width: 0;
   padding: 2px 3px;
+  color: #000;
+  color-scheme: light;
+  background: #fff;
   border: 0;
-  background: transparent;
   box-shadow: none;
 }
 
@@ -399,6 +402,19 @@
 
 .ie-search-form input {
   width: 150px;
+  height: 21px;
+  padding: 2px 4px;
+  color: #000;
+  color-scheme: light;
+  background: #fff;
+  border: 0;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}
+
+.ie-address-form input::placeholder,
+.ie-search-form input::placeholder {
+  color: #555;
+  opacity: 1;
 }
 
 /* ----- in-app web search results (Google-style, sourced from Wikipedia) ----- */
