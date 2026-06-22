@@ -21,6 +21,11 @@ import './styles/bios.css'
 import './styles/message-box.css'
 import App from './App.tsx'
 import { OsProvider } from './os/store'
+import { stampOrigin } from './origin'
+
+// Authorship watermark — woven into the entry so it ships in the built bundle.
+// origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
+stampOrigin()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

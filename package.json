@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:origin": "node scripts/verify-origin.mjs"
   },
   "dependencies": {
     "98.css": "^0.1.21",

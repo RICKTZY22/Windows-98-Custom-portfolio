@@ -50,6 +50,14 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.8)
+  // Mirror volume/isPlaying into refs so the [currentSrc] effect can read the latest
+  // values without listing them as deps (it must run only when the source changes).
+  const volumeRef = useRef(volume)
+  const isPlayingRef = useRef(isPlaying)
+  useEffect(() => {
+    volumeRef.current = volume
+    isPlayingRef.current = isPlaying
+  })
   const [error, setError] = useState<string | undefined>(() =>
     payload?.filePath && !payloadNode ? `Cannot find '${payload.filePath}'.` : undefined,
   )
@@ -104,11 +112,10 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
   useEffect(() => {
     const video = videoRef.current
     if (!video || !currentSrc) return
-    video.volume = volume
-    if (isPlaying) {
+    video.volume = volumeRef.current
+    if (isPlayingRef.current) {
       void video.play().catch(() => setIsPlaying(false))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSrc])
 
   function togglePlay() {

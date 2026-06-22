@@ -54,6 +54,14 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.8)
+  // Mirror volume/isPlaying into refs so the [currentSrc] effect can read the latest
+  // values without listing them as deps (it must run only when the source changes).
+  const volumeRef = useRef(volume)
+  const isPlayingRef = useRef(isPlaying)
+  useEffect(() => {
+    volumeRef.current = volume
+    isPlayingRef.current = isPlaying
+  })
 
   const playlist = useMemo<Track[]>(() => {
     const tracks: Track[] = []
@@ -139,11 +147,10 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
   useEffect(() => {
     const media = mediaRef.current
     if (!media || !currentSrc) return
-    media.volume = volume
-    if (isPlaying) {
+    media.volume = volumeRef.current
+    if (isPlayingRef.current) {
       void media.play().catch(() => setIsPlaying(false))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSrc])
 
   useEffect(() => {
