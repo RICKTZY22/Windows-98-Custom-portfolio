@@ -3,6 +3,8 @@ import { REQUIRED_SYSTEM_FILES as REQUIRED, createInitialFsState } from '../data
 import { isProtectedPath, normalizePath } from './filesystem'
 
 export const REQUIRED_SYSTEM_FILES: string[] = REQUIRED
+export const RECOVERY_FILE_RESTORE_MS = 5000
+export const RECOVERY_MAX_RESTORE_MS = 120000
 
 let cachedInitialFs: FsState | null = null
 
@@ -20,6 +22,15 @@ function initialWindowsPaths(): string[] {
 /** Initial C:\Windows nodes that are absent from the given filesystem. */
 export function missingSystemFiles(fs: FsState): string[] {
   return initialWindowsPaths().filter((path) => !fs.nodes[path])
+}
+
+export function missingSystemFilePackages(fs: FsState): string[] {
+  return missingSystemFiles(fs).filter((path) => initialFs().nodes[path]?.kind === 'file')
+}
+
+export function recoveryInstallDurationMs(missingFileCount: number): number {
+  const scaled = Math.max(1, missingFileCount) * RECOVERY_FILE_RESTORE_MS
+  return Math.min(scaled, RECOVERY_MAX_RESTORE_MS)
 }
 
 export function isSystemHealthy(fs: FsState): boolean {

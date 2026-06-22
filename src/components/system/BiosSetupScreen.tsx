@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { BiosSettings, BootDeviceId } from '../../types'
 import { biosSetupSections, bootDeviceLabels, bootSequenceLabel, defaultBiosSettings, haltOnLabels, moveBootDevice } from '../../data/bios'
 import { useOs } from '../../os/useOs'
+import { isSystemHealthy, missingRequiredSystemFiles } from '../../os/recovery'
 
 type BiosRow = {
   label: string
@@ -29,6 +30,7 @@ export function BiosSetupScreen() {
   const [sectionIndex, setSectionIndex] = useState(0)
   const [rowIndex, setRowIndex] = useState(0)
   const section = biosSetupSections[sectionIndex]
+  const missingRequired = missingRequiredSystemFiles(state.fs)
 
   const rows = useMemo<BiosRow[]>(() => {
     const toggle = (key: keyof Pick<
@@ -110,8 +112,25 @@ export function BiosSetupScreen() {
       ]
     }
 
+    if (section.id === 'recovery') {
+      return [
+        {
+          label: 'Windows Recovery Mode',
+          value: 'Press Enter',
+          hint: 'Boot the recovery environment and reinstall missing Windows system components.',
+          onChange: () => restart('recovery', { bootProfile: 'warm' }),
+        },
+        {
+          label: 'System Status',
+          value: isSystemHealthy(state.fs) ? 'Healthy' : `${missingRequired.length} required file(s) missing`,
+        },
+        { label: 'Repair Source', value: 'RB000.CAB / protected cache' },
+        { label: 'Recovery Tools', value: 'SCANREG, SFC, package reinstall' },
+      ]
+    }
+
     if (section.id === 'defaults') {
-      return [{ label: 'Load stable defaults', value: 'Press Enter or click Load Defaults', onChange: () => setDraft(defaultBiosSettings) }]
+      return [{ label: 'Load stable defaults', value: 'Press Enter or F5', onChange: () => setDraft(defaultBiosSettings) }]
     }
 
     if (section.id === 'save') {
@@ -120,7 +139,7 @@ export function BiosSetupScreen() {
 
     return [{ label: 'Exit setup', value: 'Press Enter or Esc', onChange: () => restart('normal', { bootProfile: 'warm' }) }]
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, restart, section.id])
+  }, [draft, missingRequired.length, restart, section.id, state.fs])
 
   const safeRowIndex = Math.min(rowIndex, Math.max(0, rows.length - 1))
 
@@ -209,66 +228,71 @@ export function BiosSetupScreen() {
   }, [rowIndex, rows, restart, section.id, draft])
 
   const activeRow = rows[safeRowIndex]
+  const sectionSplit = Math.ceil(biosSetupSections.length / 2)
+  const sectionColumns = [biosSetupSections.slice(0, sectionSplit), biosSetupSections.slice(sectionSplit)]
 
   return (
     <main className="bios-setup-screen" aria-label="Award BIOS setup utility">
       <section className="bios-frame">
-        <header className="bios-title">CMOS Setup Utility - Award Software</header>
-        <div className="bios-main">
+        <header className="bios-title">CMOS Setup Utility - Copyright (C) 1984-1998 Award Software</header>
+        <div className="bios-main" aria-label="BIOS setup main menu">
           <nav className="bios-section-list" aria-label="BIOS setup sections">
-            {biosSetupSections.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                className={sectionIndex === index ? 'selected' : ''}
-                onClick={() => {
-                  setSectionIndex(index)
-                  setRowIndex(0)
-                }}
-              >
-                {item.title}
-              </button>
+            {sectionColumns.map((column, columnIndex) => (
+              <div key={columnIndex} className="bios-section-column">
+                {column.map((item, itemIndex) => {
+                  const index = columnIndex * sectionSplit + itemIndex
+                  return (
+                    <div
+                      key={item.id}
+                      className={`bios-section-item ${sectionIndex === index ? 'selected' : ''}`}
+                      aria-current={sectionIndex === index ? 'true' : undefined}
+                    >
+                      <span aria-hidden="true">{index < sectionSplit ? '►' : ' '}</span>
+                      {item.title}
+                    </div>
+                  )
+                })}
+              </div>
             ))}
           </nav>
           <section className="bios-detail" aria-label={section.title}>
             <h1>{section.title}</h1>
             <div className="bios-table">
               {rows.map((row, index) => (
-                <button
+                <div
                   key={`${row.label}-${index}`}
-                  type="button"
                   className={`bios-row ${safeRowIndex === index ? 'selected' : ''}`}
-                  onClick={() => setRowIndex(index)}
-                  onDoubleClick={() => changeCurrentRow()}
+                  aria-current={safeRowIndex === index ? 'true' : undefined}
                 >
                   <span>{row.label}</span>
                   <strong>{row.value}</strong>
-                </button>
+                </div>
               ))}
             </div>
           </section>
         </div>
         <footer className="bios-help">
-          <p>{activeRow?.hint ?? section.help}</p>
+          <div className="bios-key-help" aria-label="BIOS keyboard controls">
+            <span>Esc : Quit</span>
+            <span>↑↓→← : Select Item</span>
+            <span>Enter : Select</span>
+            <span>F5 : Defaults</span>
+            <span>F10 : Save &amp; Exit Setup</span>
+          </div>
+          <p className="bios-help-text">{activeRow?.hint ?? section.help}</p>
           <div className="bios-actions">
-            <button type="button" onClick={() => changeCurrentRow()} disabled={!activeRow?.onChange && !activeRow?.onNext}>
-              Enter: Select
-            </button>
-            <button type="button" onClick={() => changeCurrentRow(-1)} disabled={!activeRow?.onPrevious}>
+            <span className={`bios-action-key ${!activeRow?.onChange && !activeRow?.onNext ? 'disabled' : ''}`}>
+              Select
+            </span>
+            <span className={`bios-action-key ${!activeRow?.onPrevious ? 'disabled' : ''}`}>
               PgUp
-            </button>
-            <button type="button" onClick={() => changeCurrentRow(1)} disabled={!activeRow?.onNext}>
+            </span>
+            <span className={`bios-action-key ${!activeRow?.onNext ? 'disabled' : ''}`}>
               PgDn
-            </button>
-            <button type="button" onClick={() => setDraft(defaultBiosSettings)}>
-              F5 Defaults
-            </button>
-            <button type="button" onClick={saveAndExit}>
-              F10 Save
-            </button>
-            <button type="button" onClick={() => restart('normal', { bootProfile: 'warm' })}>
-              Esc Exit
-            </button>
+            </span>
+            <span className="bios-action-key">F5 Defaults</span>
+            <span className="bios-action-key">F10 Save</span>
+            <span className="bios-action-key">Esc Exit</span>
           </div>
         </footer>
       </section>

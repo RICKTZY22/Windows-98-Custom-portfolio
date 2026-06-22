@@ -73,141 +73,212 @@
   background: #000;
 }
 
-/* FDISK-style fullscreen recovery program */
-.fdisk-screen {
+/* Windows 98 recovery menu */
+.recovery-menu-screen {
   position: fixed;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 28px clamp(16px, 8vw, 90px) 18px;
-  overflow: auto;
+  overflow: hidden;
   color: #c0c0c0;
   background: #000;
   font-family: "Courier New", monospace;
-  font-size: 15px;
-  line-height: 1.35;
+  font-size: clamp(15px, 1.85vw, 23px);
+  line-height: 1.45;
 }
 
-.fdisk-screen p {
+.recovery-menu-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(18px, 4vh, 44px) clamp(18px, 7vw, 132px) clamp(18px, 3vh, 36px);
+  overflow: hidden;
+}
+
+.recovery-menu-panel p {
   margin: 0;
 }
 
-.fdisk-header {
-  text-align: center;
-  color: #fff;
+.recovery-menu-title {
+  margin-bottom: 1.4em !important;
 }
 
-.fdisk-title {
-  text-align: center;
-  color: #fff;
+.recovery-menu-status {
+  margin-bottom: 0.8em !important;
+  color: #9a9a9a;
 }
 
-.fdisk-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-height: 0;
-}
-
-.fdisk-options {
+.recovery-menu-options {
   display: grid;
-  gap: 2px;
-  margin: 4px 0;
+  gap: 0.1em;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.fdisk-options button {
+.recovery-menu-options button {
   display: block;
-  width: 100%;
+  width: fit-content;
   min-width: 0;
-  padding: 1px 6px;
+  min-height: 0;
+  padding: 0 0.5em;
   border: 0;
   background: transparent;
   box-shadow: none;
   color: #c0c0c0;
   text-align: left;
   font: inherit;
+  white-space: pre;
 }
 
-.fdisk-options button.selected {
+.recovery-menu-options button.selected {
   color: #000;
   background: #c0c0c0;
 }
 
-.fdisk-choice {
-  margin-top: 10px;
-  color: #fff;
+.recovery-menu-choice {
+  margin-top: 1.2em !important;
 }
 
-.fdisk-cursor {
+.recovery-menu-choice span,
+.recovery-scan-cursor {
   display: inline-block;
-  width: 9px;
-  height: 15px;
-  margin-left: 4px;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 0.2em;
   vertical-align: text-bottom;
   background: #c0c0c0;
-  animation: fdisk-blink 1s steps(1, end) infinite;
+  animation: recovery-blink 1s steps(1, end) infinite;
 }
 
-@keyframes fdisk-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-.fdisk-output {
-  margin: 12px 0 0;
-  flex: 1;
-  min-height: 90px;
-  overflow: auto;
-  padding: 8px 10px;
-  border: 1px solid #555;
-  background: #050505;
+.recovery-menu-output {
+  flex: 1 1 auto;
+  min-height: 110px;
+  margin-top: 0.85em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 0.8em;
+  padding-right: 0.7em;
+  padding-bottom: 0.45em;
+  border-top: 1px solid #555;
   color: #c0c0c0;
   white-space: pre-wrap;
-  font: inherit;
+  scrollbar-color: #777 #111;
+  scrollbar-width: thin;
 }
 
-.fdisk-status {
+.recovery-line {
+  min-height: 1.45em;
+}
+
+.recovery-menu-output::-webkit-scrollbar {
+  width: 10px;
+}
+
+.recovery-menu-output::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.recovery-menu-output::-webkit-scrollbar-thumb {
+  background: #777;
+}
+
+.recovery-status {
   display: inline-block;
   min-width: 10ch;
   font-weight: bold;
 }
 
-.fdisk-status-bad {
-  color: #ff5555;
+.recovery-status-bad {
+  color: #ff7777;
 }
 
-.fdisk-status-good {
-  color: #33dd55;
+.recovery-status-good,
+.recovery-add {
+  color: #66ff88;
 }
 
-.fdisk-add {
-  color: #33dd55;
+.recovery-menu-footer {
+  flex: 0 0 auto;
+  margin-top: 0.45em;
+  padding-top: 0.45em;
+  padding-bottom: 0.12em;
+  border-top: 1px solid #555;
+  color: #9a9a9a;
+  font-size: 0.72em;
+  line-height: 1.25;
+  white-space: normal;
 }
 
-.fdisk-scan-cursor {
-  display: inline-block;
-  width: 9px;
-  height: 15px;
-  vertical-align: text-bottom;
-  background: #c0c0c0;
-  animation: fdisk-blink 1s steps(1, end) infinite;
+@keyframes recovery-blink {
+  50% {
+    opacity: 0;
+  }
 }
 
-.fdisk-footer {
-  border-top: 1px solid #c0c0c0;
-  padding-top: 8px;
+.load-failure-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #c0c0c0;
+  background: #000;
+  font-family: "Courier New", monospace;
+  font-size: clamp(15px, 2.15vw, 27px);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.load-failure-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 6vh 7vw;
+}
+
+.load-failure-panel p {
+  margin: 0 0 0.45em;
+}
+
+.load-failure-lead,
+.load-failure-path,
+.load-failure-panel > p:nth-last-of-type(2),
+.load-failure-panel > p:nth-last-of-type(3) {
   color: #fff;
 }
 
-.fdisk-footer b {
-  background: #c0c0c0;
-  color: #000;
-  padding: 0 4px;
+.load-failure-path {
+  margin-bottom: 1.6em !important;
+  padding-left: 2ch;
+}
+
+.load-failure-fault {
+  margin: 1em 0 1.6em;
+  padding-top: 1em;
+  border-top: 1px solid #555;
+  color: #9a9a9a;
+}
+
+.load-failure-fault p {
+  margin-bottom: 0;
+}
+
+.load-failure-restart {
+  display: flex;
+  align-items: center;
+  gap: 0.6ch;
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+  color: #ffd23f;
+}
+
+.load-failure-restart i {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  background: #ffd23f;
+  vertical-align: -0.12em;
+  animation: recovery-blink 1s steps(1, end) infinite;
 }
 
 .shutdown-screen {
@@ -215,12 +286,13 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 48px;
   text-align: center;
-  color: #ffa733;
+  color: #ffa63f;
   background: #000;
   font-family: "Courier New", monospace;
-  font-size: clamp(17px, 4vw, 28px);
+  font-size: 24px;
+  line-height: 1.35;
 }
 
 .shutdown-screen p {
@@ -234,31 +306,27 @@
 }
 
 .shutdown-wait {
-  background:
-    radial-gradient(circle at 50% 42%, rgba(0, 64, 128, 0.55) 0 26%, transparent 60%),
-    repeating-conic-gradient(#0a0a0a 0% 25%, #111 0% 50%) 0 0 / 4px 4px,
-    #050505;
+  background: #000;
 }
 
-.shutdown-wait-card {
+.shutdown-wait-copy {
   display: grid;
   justify-items: center;
-  gap: 10px;
-  color: #fff;
+  gap: 8px;
+  color: #ffa63f;
   animation: shutdown-fade-in 600ms ease-out;
 }
 
-.shutdown-wait-card img {
-  width: 64px;
-  height: 64px;
-  image-rendering: pixelated;
-  animation: shutdown-logo-pulse 1.4s ease-in-out infinite;
+.shutdown-wait-copy p {
+  color: #b36f24;
+  font-size: 18px;
 }
 
-.shutdown-wait-card h1 {
+.shutdown-wait-copy h1 {
   margin: 0;
-  font-size: clamp(26px, 6vw, 40px);
-  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+  color: #ffa63f;
+  font-size: 44px;
+  font-weight: 400;
 }
 
 .shutdown-dots::after {
@@ -271,13 +339,6 @@
   25% { content: '.'; }
   50% { content: '..'; }
   75% { content: '...'; }
-}
-
-@keyframes shutdown-logo-pulse {
-  50% {
-    transform: scale(1.06);
-    filter: brightness(1.25);
-  }
 }
 
 @keyframes shutdown-fade-in {
@@ -313,13 +374,14 @@
 }
 
 .shutdown-safe .shutdown-safe-copy {
+  color: #ffa63f;
+  font-size: 58px;
   animation: shutdown-flicker-in 900ms steps(6, end);
 }
 
-.shutdown-credit {
-  margin-top: 14px;
-  color: #8a5a1d;
-  font-size: clamp(12px, 2vw, 16px);
+.shutdown-safe .shutdown-safe-copy button {
+  margin-top: 28px;
+  color: #000;
 }
 
 @keyframes shutdown-flicker-in {

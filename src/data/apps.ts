@@ -1,5 +1,16 @@
 import type { AppDefinition, AppId, DesktopIconDef, IconKey, WindowPayload } from '../types'
 
+const SYSTEM32 = 'C:\\Windows\\System32'
+const system32 = (...files: string[]) => files.map((file) => `${SYSTEM32}\\${file}`)
+
+const EXPLORER_DEPS = system32('shell32.dll', 'user32.dll')
+const WORDPAD_DEPS = system32('user32.dll', 'riched20.dll', 'riched32.dll', 'ole32.dll', 'comdlg32.dll')
+const NOTEPAD_DEPS = system32('user32.dll', 'comdlg32.dll')
+const IE_DEPS = system32('shdocvw.dll', 'mshtml.dll', 'urlmon.dll', 'wininet.dll')
+const PAINT_DEPS = system32('gdi32.dll', 'comdlg32.dll')
+const MEDIA_DEPS = system32('winmm.dll', 'mmsystem.dll', 'dsound.dll')
+const NETWORK_DEPS = system32('winsock.dll', 'wsock32.dll', 'netcfg.dll')
+
 export const appDefinitions: Record<AppId, AppDefinition> = {
   explorer: {
     id: 'explorer',
@@ -7,6 +18,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'computer',
     defaultRect: { x: 130, y: 72, width: 650, height: 450 },
     singleton: false,
+    systemDependencies: EXPLORER_DEPS,
   },
   recycleBin: {
     id: 'recycleBin',
@@ -27,6 +39,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'notepad',
     defaultRect: { x: 220, y: 112, width: 560, height: 400 },
     singleton: false,
+    systemDependencies: NOTEPAD_DEPS,
   },
   wordpad: {
     id: 'wordpad',
@@ -34,6 +47,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'wordpad',
     defaultRect: { x: 72, y: 42, width: 860, height: 620 },
     singleton: false,
+    systemDependencies: WORDPAD_DEPS,
   },
   pdfViewer: {
     id: 'pdfViewer',
@@ -41,12 +55,14 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'html',
     defaultRect: { x: 86, y: 48, width: 860, height: 620 },
     singleton: false,
+    systemDependencies: IE_DEPS,
   },
   paint: {
     id: 'paint',
     title: 'Paint',
     icon: 'paint',
     defaultRect: { x: 170, y: 80, width: 680, height: 500 },
+    systemDependencies: PAINT_DEPS,
   },
   imageViewer: {
     id: 'imageViewer',
@@ -54,6 +70,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'imageFile',
     defaultRect: { x: 230, y: 76, width: 620, height: 480 },
     singleton: false,
+    systemDependencies: PAINT_DEPS,
   },
   internetExplorer: {
     id: 'internetExplorer',
@@ -61,6 +78,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'internet',
     defaultRect: { x: 190, y: 84, width: 700, height: 480 },
     safeModeAvailable: false,
+    systemDependencies: IE_DEPS,
   },
   mediaPlayer: {
     id: 'mediaPlayer',
@@ -69,6 +87,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     defaultRect: { x: 320, y: 110, width: 470, height: 440 },
     singleton: false,
     safeModeAvailable: false,
+    systemDependencies: MEDIA_DEPS,
   },
   videoPlayer: {
     id: 'videoPlayer',
@@ -77,6 +96,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     defaultRect: { x: 240, y: 86, width: 640, height: 470 },
     singleton: false,
     safeModeAvailable: false,
+    systemDependencies: MEDIA_DEPS,
   },
   gallery: {
     id: 'gallery',
@@ -90,6 +110,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'soundRecorder',
     defaultRect: { x: 330, y: 150, width: 440, height: 260 },
     safeModeAvailable: false,
+    systemDependencies: MEDIA_DEPS,
   },
   controlPanel: {
     id: 'controlPanel',
@@ -103,6 +124,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'network',
     defaultRect: { x: 300, y: 120, width: 520, height: 380 },
     safeModeAvailable: false,
+    systemDependencies: NETWORK_DEPS,
   },
   run: {
     id: 'run',
@@ -135,6 +157,20 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     defaultRect: { x: 60, y: 30, width: 860, height: 640 },
     singleton: false,
     safeModeAvailable: false,
+  },
+  antivirus: {
+    id: 'antivirus',
+    title: 'Antivirus 98',
+    icon: 'sysFile',
+    defaultRect: { x: 190, y: 82, width: 680, height: 500 },
+    safeModeAvailable: false,
+  },
+  setupSafety: {
+    id: 'setupSafety',
+    title: 'setup.bat',
+    icon: 'batchFile',
+    defaultRect: { x: 120, y: 44, width: 780, height: 560 },
+    singleton: false,
   },
   about: {
     id: 'about',

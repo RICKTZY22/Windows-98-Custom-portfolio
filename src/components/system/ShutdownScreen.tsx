@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { win98Icons } from '../../data/icons'
-import { osCreditName, osCreditYear, osProductName, shutdownLines } from '../../data/system'
+import { osProductName, shutdownLines } from '../../data/system'
 import { useOs } from '../../os/useOs'
 
 export function ShutdownScreen() {
@@ -21,10 +20,10 @@ export function ShutdownScreen() {
   if (stage === 'wait') {
     return (
       <main className="shutdown-screen shutdown-wait">
-        <div className="shutdown-wait-card">
-          <img src={win98Icons.windows} alt="" />
-          <h1>{osProductName}</h1>
-          <p className="shutdown-dots">Windows is shutting down</p>
+        <div className="shutdown-wait-copy">
+          <p>{osProductName}</p>
+          <h1 className="shutdown-dots">Windows is shutting down</h1>
+          <p>Please wait while your portfolio computer powers down.</p>
         </div>
       </main>
     )
@@ -44,9 +43,6 @@ export function ShutdownScreen() {
         {shutdownLines.map((line) => (
           <p key={line}>{line}</p>
         ))}
-        <p className="shutdown-credit">
-          {osCreditName} - {osCreditYear}
-        </p>
         <button type="button" onClick={() => restart('normal')}>
           Turn on again
         </button>

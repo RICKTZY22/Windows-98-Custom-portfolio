@@ -2,7 +2,7 @@
 .start-menu {
   position: absolute;
   left: 2px;
-  bottom: 34px;
+  bottom: 0;
   z-index: 9999;
   display: grid;
   grid-template-columns: 36px 220px;

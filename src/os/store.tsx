@@ -200,6 +200,13 @@ function iconFor(appId: AppId, payload?: WindowPayload) {
   return appDefinitions[appId].icon
 }
 
+// Exported for unit testing app launch dependency rules.
+// eslint-disable-next-line react-refresh/only-export-components
+export function missingAppDependency(appId: AppId, fs: FsState): string | null {
+  const dependencies = appDefinitions[appId].systemDependencies ?? []
+  return dependencies.map(normalizePath).find((path) => !fs.nodes[path]) ?? null
+}
+
 function protectionCrash(path: string): CrashState {
   return {
     title: 'Windows protection error',
@@ -217,6 +224,17 @@ function safeModeCrash(missing: string[]): CrashState {
     message: 'Windows cannot start in Safe Mode because multiple protected system files are missing.',
     detail: `Safe Mode requires the core VxD, shell, and display stack. Missing files: ${drivers || 'unknown system files'}. Use Command Prompt Only or Recovery to run SCANREG /RESTORE or SFC /SCANNOW.`,
     stopCode: '0E : 0028 : C0005338',
+    crashedAt: nowStamp(),
+  }
+}
+
+function safetyTrainingCrash(): CrashState {
+  return {
+    title: 'Windows protection error',
+    message: 'Windows has become unstable because an unknown setup script exhausted system resources.',
+    detail:
+      'While initializing device USER32: setup.bat opened repeated modal dialogs inside the Portfolio OS sandbox. No real files, network requests, downloads, or host system commands were executed.',
+    stopCode: '0E : 0028 : C0DEF00D',
     crashedAt: nowStamp(),
   }
 }
@@ -241,6 +259,7 @@ function createDefaultState(): OsState {
     cursorScheme: persisted?.cursorScheme ?? 'win98',
     audio: { enabled: true, muted: false, volume: persisted?.audio.volume ?? 0.7 },
     crash: null,
+    pendingSafetyTraining: false,
     desktopIcons:
       persisted?.desktopIcons && Object.keys(persisted.desktopIcons).length
         ? persisted.desktopIcons
@@ -279,9 +298,10 @@ type Action =
   | { type: 'SET_CURSOR_SCHEME'; scheme: CursorSchemeId }
   | { type: 'SET_AUDIO'; audio: AudioState }
   | { type: 'ENTER_BIOS_SETUP' }
-  | { type: 'ENTER_BOOT_DEVICE_MENU' }
   | { type: 'SET_BIOS'; bios: BiosSettings }
   | { type: 'CRASH'; crash: CrashState }
+  | { type: 'START_SAFETY_TRAINING_CRASH'; crash: CrashState }
+  | { type: 'COMPLETE_SAFETY_TRAINING' }
   | {
       type: 'RESTART'
       target: 'normal' | 'safe' | 'dos' | 'recovery' | 'bootMenu'
@@ -444,15 +464,6 @@ export function reducer(state: OsState, action: Action): OsState {
         messageBoxes: [],
         startMenuOpen: false,
       }
-    case 'ENTER_BOOT_DEVICE_MENU':
-      return {
-        ...state,
-        phase: 'bootDeviceMenu',
-        windows: [],
-        activeWindowId: undefined,
-        messageBoxes: [],
-        startMenuOpen: false,
-      }
     case 'SET_BIOS':
       return { ...state, bios: action.bios }
     case 'CRASH':
@@ -460,6 +471,28 @@ export function reducer(state: OsState, action: Action): OsState {
         ...state,
         phase: 'crashed',
         crash: action.crash,
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
+    case 'START_SAFETY_TRAINING_CRASH':
+      return {
+        ...state,
+        phase: 'crashed',
+        crash: action.crash,
+        pendingSafetyTraining: true,
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
+    case 'COMPLETE_SAFETY_TRAINING':
+      return {
+        ...state,
+        phase: 'desktop',
+        bootMode: 'normal',
+        pendingSafetyTraining: false,
         windows: [],
         activeWindowId: undefined,
         messageBoxes: [],
@@ -494,7 +527,27 @@ export function reducer(state: OsState, action: Action): OsState {
       switch (state.bootTarget) {
         case 'normal':
           if (!isSystemHealthy(state.fs)) {
-            return { ...state, phase: 'bootMenu', bootTarget: 'normal' }
+            return {
+              ...state,
+              phase: 'loadFailed',
+              bootTarget: 'normal',
+              windows: [],
+              activeWindowId: undefined,
+              messageBoxes: [],
+              startMenuOpen: false,
+            }
+          }
+          if (state.pendingSafetyTraining) {
+            return {
+              ...state,
+              phase: 'safetyTraining',
+              bootMode: 'normal',
+              pendingSafetyTraining: false,
+              windows: [],
+              activeWindowId: undefined,
+              messageBoxes: [],
+              startMenuOpen: false,
+            }
           }
           return { ...state, phase: 'desktop', bootMode: 'normal' }
         case 'safe':
@@ -629,6 +682,17 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     (appId: AppId, payload?: WindowPayload) => {
       const current = stateRef.current
       const def = appDefinitions[appId]
+      const missingDependency = missingAppDependency(appId, current.fs)
+      if (missingDependency) {
+        showMessageBox({
+          title: def.title,
+          message: `Windows cannot run ${def.title} because ${baseName(missingDependency)} is missing.`,
+          detail: 'Run Recovery Mode from BIOS Setup.',
+          icon: 'error',
+          buttons: ['ok'],
+        })
+        return
+      }
       if (current.bootMode === 'safe' && current.phase === 'desktop' && def.safeModeAvailable === false) {
         showMessageBox({
           title: def.title,
@@ -752,12 +816,18 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     [playSound],
   )
 
+  const triggerSafetyTrainingCrash = useCallback(() => {
+    playSound('error')
+    dispatch({ type: 'START_SAFETY_TRAINING_CRASH', crash: safetyTrainingCrash() })
+  }, [playSound])
+
+  const completeSafetyTraining = useCallback(() => {
+    playSound('ding')
+    dispatch({ type: 'COMPLETE_SAFETY_TRAINING' })
+  }, [playSound])
+
   const enterBiosSetup = useCallback(() => {
     dispatch({ type: 'ENTER_BIOS_SETUP' })
-  }, [])
-
-  const enterBootDeviceMenu = useCallback(() => {
-    dispatch({ type: 'ENTER_BOOT_DEVICE_MENU' })
   }, [])
 
   const setBiosSettings = useCallback((bios: BiosSettings) => {
@@ -1055,8 +1125,9 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       setAudioVolume,
       playSound,
       crashSystem,
+      triggerSafetyTrainingCrash,
+      completeSafetyTraining,
       enterBiosSetup,
-      enterBootDeviceMenu,
       setBiosSettings,
       restart,
       shutDown,
@@ -1089,8 +1160,9 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       setAudioVolume,
       playSound,
       crashSystem,
+      triggerSafetyTrainingCrash,
+      completeSafetyTraining,
       enterBiosSetup,
-      enterBootDeviceMenu,
       setBiosSettings,
       restart,
       shutDown,

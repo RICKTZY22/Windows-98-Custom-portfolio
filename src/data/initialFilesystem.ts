@@ -1771,6 +1771,19 @@ export function createInitialFsState(): FsState {
   // Command
   folder('C:\\Windows\\Command', 'dos', RETRO_STAMP)
   sysFile('C:\\Windows\\Command\\COMMAND.COM', 93890, { appId: 'terminal' })
+  file('C:\\Windows\\Command\\setup.bat', {
+    content: [
+      '@ECHO OFF',
+      'REM Setup Safety Check - simulated training launcher',
+      'REM This file opens a local browser-OS safety lesson only.',
+      'REM It cannot run commands outside the portfolio app.',
+      'ECHO Starting setup safety check...',
+    ].join('\n'),
+    icon: 'batchFile',
+    fileType: 'MS-DOS Batch File',
+    appId: 'setupSafety',
+    modified: '06/22/2026 12:45 PM',
+  })
   sysFile('C:\\Windows\\Command\\PING.EXE', 24576)
   sysFile('C:\\Windows\\Command\\IPCONFIG.EXE', 28672)
   sysFile('C:\\Windows\\Command\\SCANREG.EXE', 151024)
@@ -1993,6 +2006,7 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',
   'C:\\Program Files\\Accessories\\KODAKIMG.EXE',
   'C:\\Program Files\\Accessories\\VIDPLAY.EXE',
+  'C:\\Windows\\Command\\setup.bat',
   'C:\\Program Files\\Games',
   'C:\\Program Files\\Games\\WOLF3D.EXE',
   'C:\\Program Files\\Games\\DOOM.EXE',
@@ -2007,6 +2021,7 @@ const LEGACY_ARTIFACT_PATHS = [
   'C:\\My Pictures\\desktop-clouds.bmp',
   'C:\\My Pictures\\portfolio-sketch.bmp',
   'C:\\My Pictures\\project-preview.url',
+  'C:\\Windows\\Desktop\\setup.bat',
   'C:\\My Documents\\Resume.txt',
   'C:\\My Documents\\Education.txt',
   ...portfolioData.projects.flatMap((project) => [

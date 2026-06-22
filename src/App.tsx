@@ -8,8 +8,9 @@ import { BootScreen } from './components/system/BootScreen'
 import { CrashScreen } from './components/system/CrashScreen'
 import { BiosSetupScreen } from './components/system/BiosSetupScreen'
 import { BootMenu } from './components/system/BootMenu'
-import { BootDeviceQuickMenu } from './components/system/BootDeviceQuickMenu'
 import { RecoveryConsole } from './components/system/RecoveryConsole'
+import { LoadFailureScreen } from './components/system/LoadFailureScreen'
+import { SafetyTrainingScreen } from './components/system/SafetyTrainingScreen'
 import { ShutdownScreen } from './components/system/ShutdownScreen'
 import { DesktopContextMenu } from './components/shell/DesktopContextMenu'
 import { DesktopIcon } from './components/shell/DesktopIcon'
@@ -49,12 +50,16 @@ const ProjectDetailsApp = lazy(() =>
 const ProjectsApp = lazy(() => import('./components/apps/ProjectsApp').then((m) => ({ default: m.ProjectsApp })))
 const RecycleBinApp = lazy(() => import('./components/apps/RecycleBinApp').then((m) => ({ default: m.RecycleBinApp })))
 const RunDialogApp = lazy(() => import('./components/apps/RunDialogApp').then((m) => ({ default: m.RunDialogApp })))
+const SetupSafetyApp = lazy(() =>
+  import('./components/apps/SetupSafetyApp').then((m) => ({ default: m.SetupSafetyApp })),
+)
 const SoundRecorderApp = lazy(() =>
   import('./components/apps/SoundRecorderApp').then((m) => ({ default: m.SoundRecorderApp })),
 )
 const TaskManagerApp = lazy(() => import('./components/apps/TaskManagerApp').then((m) => ({ default: m.TaskManagerApp })))
 const TerminalApp = lazy(() => import('./components/apps/TerminalApp').then((m) => ({ default: m.TerminalApp })))
 const VideoPlayerApp = lazy(() => import('./components/apps/VideoPlayerApp').then((m) => ({ default: m.VideoPlayerApp })))
+const AntivirusApp = lazy(() => import('./components/apps/AntivirusApp').then((m) => ({ default: m.AntivirusApp })))
 const WordPadApp = lazy(() => import('./components/apps/WordPadApp').then((m) => ({ default: m.WordPadApp })))
 
 const desktopIconWidth = 88
@@ -162,7 +167,7 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
     case 'network':
       return <NetworkApp />
     case 'run':
-      return <RunDialogApp />
+      return <RunDialogApp {...props} />
     case 'taskManager':
       return <TaskManagerApp />
     case 'calculator':
@@ -171,6 +176,10 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <MinesweeperApp />
     case 'dosGame':
       return <JsDosGameApp {...props} />
+    case 'antivirus':
+      return <AntivirusApp {...props} />
+    case 'setupSafety':
+      return <SetupSafetyApp {...props} />
     case 'about':
       return <AboutApp />
     case 'contact':
@@ -307,6 +316,19 @@ function Desktop() {
       .map((icon) => icon.id)
   }, [allIconDefs, iconPositions])
 
+  const handleCloseWindow = useCallback(
+    (instanceId: string) => {
+      const target = state.windows.find((item) => item.instanceId === instanceId)
+      if (target?.appId === 'setupSafety') {
+        focusWindow(instanceId)
+        window.dispatchEvent(new Event('setup-safety-close-attempt'))
+        return
+      }
+      closeWindow(instanceId)
+    },
+    [closeWindow, focusWindow, state.windows],
+  )
+
   const findNextDesktopIcon = useCallback((currentId: string, key: string): string => {
     const current = iconPositions[currentId] ?? { x: 10, y: 12 }
     const currentCenter = {
@@ -438,7 +460,7 @@ function Desktop() {
         ((event.altKey && event.key === 'F4') || (event.ctrlKey && event.key.toLowerCase() === 'w'))
       ) {
         event.preventDefault()
-        closeWindow(activeWindow.instanceId)
+        handleCloseWindow(activeWindow.instanceId)
         return
       }
 
@@ -498,9 +520,9 @@ function Desktop() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     allIconDefs,
-    closeWindow,
     focusWindow,
     findNextDesktopIcon,
+    handleCloseWindow,
     openApp,
     keyboardAnchorIcon,
     primarySelectedIcon,
@@ -615,7 +637,7 @@ function Desktop() {
               window={windowState}
               active={state.activeWindowId === windowState.instanceId}
               onFocus={focusWindow}
-              onClose={closeWindow}
+              onClose={handleCloseWindow}
               onMinimize={minimizeWindow}
               onToggleMaximize={toggleMaximize}
               onMove={moveWindow}
@@ -684,8 +706,6 @@ function App() {
       return <BootScreen />
     case 'biosSetup':
       return <BiosSetupScreen />
-    case 'bootDeviceMenu':
-      return <BootDeviceQuickMenu />
     case 'bootMenu':
       return <BootMenu />
     case 'desktop':
@@ -705,7 +725,11 @@ function App() {
         detail: 'A simulated fatal exception occurred.',
         stopCode: '0E : 0028 : C0011E36',
         crashedAt: new Date().toLocaleString(),
-      }} onRestart={() => restart('bootMenu')} />
+      }} onRestart={() => restart('normal', { bootProfile: 'warm' })} />
+    case 'loadFailed':
+      return <LoadFailureScreen />
+    case 'safetyTraining':
+      return <SafetyTrainingScreen />
     case 'shutdown':
       return <ShutdownScreen />
     default:

@@ -526,6 +526,8 @@ const START_TARGETS: Record<string, AppId> = {
   videoplayer: 'videoPlayer',
   sndrec32: 'soundRecorder',
   'sndrec32.exe': 'soundRecorder',
+  setup: 'setupSafety',
+  'setup.bat': 'setupSafety',
 }
 
 function dosModeBlocked(ctx: CommandContext): CommandOutput | null {
@@ -826,6 +828,9 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
       return { lines: [args.length ? args.join(' ') : 'ECHO is on.'] }
     case 'start':
       return startCommand(args, ctx)
+    case 'setup':
+    case 'setup.bat':
+      return appCommand('setupSafety', undefined, ctx)
     case 'notepad':
       return appCommand('notepad', args[0], ctx)
     case 'mspaint':

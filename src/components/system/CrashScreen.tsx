@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { CrashState } from '../../types'
 import { useOs } from '../../os/useOs'
 
@@ -7,16 +7,38 @@ type CrashScreenProps = {
   onRestart: () => void
 }
 
+const MIN_CRASH_DISPLAY_MS = 3800
+
+function exceptionFromStopCode(stopCode: string): { code: string; address: string } {
+  const match = stopCode.match(/([0-9a-f]{2})\s*:\s*([0-9a-f]{4})\s*:\s*([0-9a-f]{8})/i)
+  if (!match) return { code: '0E', address: '0028:C0011E36' }
+  return { code: match[1].toUpperCase(), address: `${match[2].toUpperCase()}:${match[3].toUpperCase()}` }
+}
+
 export function CrashScreen({ crash, onRestart }: CrashScreenProps) {
   const { playSound } = useOs()
+  const [canContinue, setCanContinue] = useState(false)
+  const exception = exceptionFromStopCode(crash.stopCode)
+
+  const continueIfReady = useCallback(() => {
+    if (canContinue) {
+      onRestart()
+    }
+  }, [canContinue, onRestart])
 
   useEffect(() => {
-    function handleKeyDown() {
-      onRestart()
+    const timer = window.setTimeout(() => setCanContinue(true), MIN_CRASH_DISPLAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [crash.crashedAt])
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      event.preventDefault()
+      continueIfReady()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onRestart])
+  }, [continueIfReady])
 
   useEffect(() => {
     // Classic PC-speaker style panic beeps: three harsh error tones.
@@ -30,24 +52,28 @@ export function CrashScreen({ crash, onRestart }: CrashScreenProps) {
   }, [])
 
   return (
-    <main className="crash-screen" role="alert" aria-label="Windows protection error">
+    <main className="crash-screen" role="alert" aria-label="Windows fatal exception screen" onClick={continueIfReady}>
+      <p className="crash-title">Windows</p>
+
       <div className="crash-panel">
-        <p className="crash-title">{crash.title}</p>
-        <p>{crash.message}</p>
-        <p>{crash.detail}</p>
         <p>
-          STOP: <strong>{crash.stopCode}</strong>
+          A fatal exception {exception.code} has occurred at {exception.address} in VXD VMM(01) + 00010E36. The current
+          application will be terminated.
         </p>
-        <p className="crash-muted">
-          A fatal exception occurred at {crash.crashedAt}. The current application will be terminated.
+
+        <p className="crash-bullet">Press any key to terminate the current application.</p>
+        <p className="crash-bullet">
+          Press CTRL+ALT+DEL again to restart your computer. You will lose any unsaved information in all applications.
         </p>
-        <p className="crash-muted">Press any key to restart, or use the button below.</p>
-        <div className="crash-actions">
-          <button type="button" onClick={onRestart}>
-            Restart to Startup Menu
-          </button>
-        </div>
+
+        <p className="crash-detail">{crash.message}</p>
+        <p className="crash-detail">{crash.detail}</p>
+        <p className="crash-detail">Reference: {crash.title} at {crash.crashedAt}</p>
       </div>
+
+      <p className="crash-continue">
+        {canContinue ? 'Press any key to continue' : 'System halted. Please wait...'} <span aria-hidden="true" />
+      </p>
     </main>
   )
 }

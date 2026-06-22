@@ -1,6 +1,6 @@
 import './RunDialogApp.css'
 import { useState } from 'react'
-import type { AppId } from '../../types'
+import type { AppId, AppProps } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { getNode, normalizePath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
@@ -28,10 +28,14 @@ const commands: Record<string, { appId: AppId; path?: string; url?: string; file
   mplayer: { appId: 'mediaPlayer' },
   vidplay: { appId: 'videoPlayer' },
   videoplayer: { appId: 'videoPlayer' },
+  antivirus: { appId: 'antivirus' },
+  av98: { appId: 'antivirus' },
+  scan: { appId: 'antivirus' },
+  viruslab: { appId: 'antivirus' },
 }
 
-export function RunDialogApp() {
-  const { state, openApp, openNode } = useOs()
+export function RunDialogApp({ windowId }: AppProps) {
+  const { state, closeWindow, openApp, openNode } = useOs()
   const [command, setCommand] = useState('')
   const [message] = useState('Type the name of a program, folder, document, command, or Internet resource.')
 
@@ -42,23 +46,27 @@ export function RunDialogApp() {
     const target = commands[lower]
     if (target) {
       openApp(target.appId, { path: target.path, url: target.url, filePath: target.filePath })
+      closeWindow(windowId)
       return
     }
 
     if (/^https?:\/\//i.test(value) || value.toLowerCase().startsWith('www.')) {
       openApp('internetExplorer', { url: value })
+      closeWindow(windowId)
       return
     }
 
     const node = getNode(state.fs, normalizePath(value))
     if (node) {
       openNode(node.path)
+      closeWindow(windowId)
       return
     }
 
     // Not an app/URL/file — hand it to the command prompt and run it there, so any
     // shell command (dir, ipconfig, echo, ping, ...) works like a PowerShell/Run combo.
     openApp('terminal', { command: value })
+    closeWindow(windowId)
   }
 
   return (
@@ -85,7 +93,7 @@ export function RunDialogApp() {
         <button type="button" className="default" onClick={run}>
           OK
         </button>
-        <button type="button" onClick={() => setCommand('')}>
+        <button type="button" onClick={() => closeWindow(windowId)}>
           Cancel
         </button>
       </div>

@@ -1,0 +1,274 @@
+.safety-training-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: #000;
+  background: #008080;
+  font-family: "MS Sans Serif", Tahoma, sans-serif;
+  cursor: default;
+}
+
+.safety-training-window {
+  display: flex;
+  flex-direction: column;
+  width: min(1080px, 100%);
+  max-height: 100%;
+  padding: 3px;
+  background: #c0c0c0;
+  box-shadow:
+    inset 1px 1px #dfdfdf,
+    inset -1px -1px #404040,
+    inset 2px 2px #fff,
+    inset -2px -2px #808080;
+}
+
+.safety-training-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 5px 4px 7px;
+  color: #fff;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  font-weight: 700;
+}
+
+.safety-training-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.safety-training-icon,
+.safety-training-warn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffcc00;
+  color: #000;
+  font-weight: 900;
+}
+
+.safety-training-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+
+.safety-training-controls {
+  display: flex;
+  gap: 3px;
+}
+
+.safety-training-controls span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 16px;
+  color: #000;
+  background: #c0c0c0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+  font-size: 11px;
+}
+
+.safety-training-menu {
+  display: flex;
+  gap: 2px;
+  padding: 3px 4px;
+  font-size: 13px;
+}
+
+.safety-training-menu span {
+  padding: 2px 8px;
+}
+
+.safety-training-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 7px;
+  border-bottom: 1px solid #808080;
+  box-shadow: 0 1px 0 #fff;
+  font-size: 13px;
+}
+
+.safety-training-address div {
+  flex: 1;
+  padding: 4px 7px;
+  background: #fff;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #fff, inset 2px 2px #404040;
+}
+
+.safety-training-document {
+  flex: 1;
+  min-height: 0;
+  margin: 6px 3px 3px;
+  overflow: auto;
+  background: #fff;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #fff, inset 2px 2px #404040;
+}
+
+.safety-training-hero {
+  display: flex;
+  gap: 18px;
+  padding: 20px 24px;
+  background: #fffbdd;
+  border-bottom: 1px solid #e3d27a;
+}
+
+.safety-training-warn {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  padding-top: 10px;
+  font-size: 26px;
+}
+
+.safety-training-hero h1 {
+  margin: 0;
+  color: #000;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.safety-training-hero p {
+  max-width: 820px;
+  margin: 8px 0 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.safety-training-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 24px 24px 0;
+}
+
+.safety-training-card {
+  padding: 16px 18px;
+  border: 2px groove #dfdfdf;
+}
+
+.safety-training-card h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.safety-training-card p,
+.safety-training-steps p {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 9px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.safety-training-card b {
+  flex: none;
+  min-width: 24px;
+  color: #fff;
+  text-align: center;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.safety-training-do {
+  background: #f3f8f3;
+}
+
+.safety-training-do h2 {
+  color: #1a6b2e;
+}
+
+.safety-training-do b {
+  background: #1a8a3c;
+}
+
+.safety-training-dont {
+  background: #fbf4f4;
+}
+
+.safety-training-dont h2 {
+  color: #a32020;
+}
+
+.safety-training-dont b {
+  background: #c0271f;
+}
+
+.safety-training-recovery {
+  margin: 20px 24px 24px;
+  background: #f3f6fb;
+}
+
+.safety-training-recovery h2 {
+  color: #1c3f73;
+}
+
+.safety-training-recovery b {
+  width: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  background: #1c3f73;
+}
+
+.safety-training-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 26px;
+}
+
+.safety-training-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 8px 4px;
+}
+
+.safety-training-actions button {
+  min-width: 170px;
+  padding: 5px 14px;
+  color: #000;
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+  font: inherit;
+}
+
+.safety-training-actions button.default {
+  font-weight: 700;
+}
+
+.safety-training-status {
+  display: flex;
+  gap: 6px;
+  padding: 3px;
+}
+
+.safety-training-status span {
+  flex: 1;
+  padding: 3px 10px;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #fff;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .safety-training-grid,
+  .safety-training-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .safety-training-hero {
+    padding: 16px;
+  }
+
+  .safety-training-hero h1 {
+    font-size: 23px;
+  }
+}

@@ -81,6 +81,8 @@ export type AppId =
   | 'calculator'
   | 'minesweeper'
   | 'dosGame'
+  | 'antivirus'
+  | 'setupSafety'
   | 'about'
   | 'contact'
   | 'projects'
@@ -133,6 +135,7 @@ export type AppDefinition = {
   defaultRect: WindowRect
   singleton?: boolean // default true
   safeModeAvailable?: boolean // default true; network/media/sound apps set false
+  systemDependencies?: string[] // protected system files required before the app can launch
 }
 
 // ---------- filesystem ----------
@@ -209,12 +212,13 @@ export type BiosSettings = {
 export type OsPhase =
   | 'boot'
   | 'biosSetup'
-  | 'bootDeviceMenu'
   | 'bootMenu'
   | 'desktop'
   | 'dosOnly'
   | 'recovery'
   | 'crashed'
+  | 'loadFailed'
+  | 'safetyTraining'
   | 'shutdown'
 export type BootMode = 'normal' | 'safe'
 export type BootProfile = 'cold' | 'warm'
@@ -297,6 +301,7 @@ export type OsState = {
   cursorScheme: CursorSchemeId
   audio: AudioState
   crash: CrashState | null
+  pendingSafetyTraining: boolean
   desktopIcons: Record<string, Point> // DesktopIconDef.id -> position
   clipboard: ClipboardState
   messageBoxes: MessageBoxRequest[]

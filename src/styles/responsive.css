@@ -120,20 +120,30 @@
   }
 
   .bios-frame {
-    inset: 6px;
-    font-size: 11px;
+    padding: 10px 8px;
+    font-size: 13px;
   }
 
   .bios-main {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
-    padding: 6px;
   }
 
   .bios-section-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-height: 126px;
+    grid-template-columns: 1fr;
+    max-height: 150px;
     overflow: auto;
+    border-right: 0;
+    border-bottom: 3px double #fff;
+    padding: 8px;
+  }
+
+  .bios-detail {
+    padding: 8px;
+  }
+
+  .bios-detail h1 {
+    font-size: 13px;
   }
 
   .bios-section-list button {
@@ -145,8 +155,17 @@
     gap: 1px;
   }
 
-  .boot-device-quick-panel button {
-    grid-template-columns: 1fr;
-    gap: 1px;
+  .bios-key-help {
+    justify-content: flex-start;
+  }
+
+  .shutdown-screen {
+    padding: 24px;
+    font-size: 18px;
+  }
+
+  .shutdown-wait-copy h1,
+  .shutdown-safe .shutdown-safe-copy {
+    font-size: 34px;
   }
 }

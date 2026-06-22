@@ -1,68 +1,89 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOs } from '../../os/useOs'
-import { missingSystemFiles, restoreSystemFiles } from '../../os/recovery'
-import { osCreditLine, osProductName } from '../../data/system'
+import {
+  missingSystemFilePackages,
+  missingSystemFiles,
+  recoveryInstallDurationMs,
+  restoreSystemFiles,
+} from '../../os/recovery'
 
 const recoveryOptions = [
   { id: 1, label: 'Scan for missing system files' },
-  { id: 2, label: 'Restore missing system files (ScanReg /Restore)' },
-  { id: 3, label: 'Verify protected system files (SFC /SCANNOW)' },
+  { id: 2, label: 'Restore missing system files' },
+  { id: 3, label: 'Verify protected system files' },
   { id: 4, label: 'Display disk information' },
+  { id: 5, label: 'Restart Windows 98' },
 ] as const
 
-// Scans and verifications run a real-time progress sweep up to this long so they
-// feel like genuine disk work instead of finishing instantly. 2 minutes max.
 const RECOVERY_SCAN_MS = 120000
 const RECOVERY_BAR_WIDTH = 30
 const RECOVERY_TICK_MS = 250
-// Representative protected files shown ticking past during a scan/verify sweep.
 const RECOVERY_SCAN_FILES = [
-  'C:\\WINDOWS\\SYSTEM\\KERNEL32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\USER32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\GDI32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\SHELL32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\ADVAPI32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\COMCTL32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\OLE32.DLL',
-  'C:\\WINDOWS\\SYSTEM\\RPCRT4.DLL',
-  'C:\\WINDOWS\\SYSTEM\\WININET.DLL',
-  'C:\\WINDOWS\\SYSTEM\\VMM32.VXD',
-  'C:\\WINDOWS\\SYSTEM\\MSGSRV32.EXE',
-  'C:\\WINDOWS\\SYSTEM\\KRNL386.EXE',
+  'C:\\WINDOWS\\SYSTEM32\\KERNEL32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\USER32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\GDI32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\SHELL32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\ADVAPI32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\COMCTL32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\OLE32.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\WININET.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\VMM32.VXD',
+  'C:\\WINDOWS\\SYSTEM32\\KRNL386.EXE',
+  'C:\\WINDOWS\\SYSTEM32\\USER.EXE',
+  'C:\\WINDOWS\\SYSTEM32\\DISPLAY.DRV',
   'C:\\WINDOWS\\EXPLORER.EXE',
   'C:\\WINDOWS\\WIN.COM',
   'C:\\WINDOWS\\COMMAND.COM',
   'C:\\WINDOWS\\SYSTEM.INI',
   'C:\\WINDOWS\\WIN.INI',
-  'C:\\WINDOWS\\FONTS\\MSSANSSERIF.FON',
   'C:\\IO.SYS',
   'C:\\MSDOS.SYS',
 ]
 
+const RECOVERY_INSTALL_VERSION = '4.10.1998'
+const RECOVERY_SPINNER = ['|', '/', '-', '\\']
+const RECOVERY_FINAL_PACKAGE_LINES = 4
+
 function recoveryBar(pct: number): string {
   const filled = Math.max(0, Math.min(RECOVERY_BAR_WIDTH, Math.round((pct / 100) * RECOVERY_BAR_WIDTH)))
-  return `[${'█'.repeat(filled)}${'░'.repeat(RECOVERY_BAR_WIDTH - filled)}]`
+  return `[${'#'.repeat(filled)}${'.'.repeat(RECOVERY_BAR_WIDTH - filled)}]`
 }
 
 function formatPct(pct: number): string {
   return `${String(pct).padStart(3, ' ')}%`
 }
 
-// Restore reinstalls protected components with an npm/pnpm vibe: each shows as a
-// `+ name@version` line. 4.10.1998 is the real Windows 98 build number.
-const RECOVERY_INSTALL_VERSION = '4.10.1998'
-const RECOVERY_SPINNER = ['|', '/', '-', '\\']
-const RECOVERY_INSTALL_PACKAGES = RECOVERY_SCAN_FILES.map((path) => (path.split('\\').pop() ?? path).toLowerCase())
-const RECOVERY_INSTALL_SECONDS = Math.round(RECOVERY_SCAN_MS / 1000)
+function packageName(path: string): string {
+  return (path.split('\\').pop() ?? path).toLowerCase()
+}
+
+function installLine(path: string): string {
+  return `+ ${packageName(path)}@${RECOVERY_INSTALL_VERSION}`
+}
+
+function compactInstallLines(packagePaths: string[]): string[] {
+  if (packagePaths.length <= RECOVERY_FINAL_PACKAGE_LINES) {
+    return packagePaths.map(installLine)
+  }
+  return [
+    `... ${packagePaths.length - RECOVERY_FINAL_PACKAGE_LINES} additional package(s) installed`,
+    ...packagePaths.slice(-RECOVERY_FINAL_PACKAGE_LINES).map(installLine),
+  ]
+}
 
 export function RecoveryConsole() {
   const { state, fsOps, restart, playSound } = useOs()
   const [choice, setChoice] = useState(1)
-  const [output, setOutput] = useState<string[]>([])
+  const [output, setOutput] = useState<string[]>([
+    'Windows did not load correctly.',
+    'Use Restore missing system files to reinstall protected components.',
+  ])
   const [scanning, setScanning] = useState(false)
   const missing = missingSystemFiles(state.fs)
   const choiceRef = useRef(choice)
   const scanTimer = useRef<number | null>(null)
+  const outputRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
     choiceRef.current = choice
   }, [choice])
@@ -74,12 +95,14 @@ export function RecoveryConsole() {
     }
   }, [])
 
-  // Clear any running scan when the recovery console unmounts.
   useEffect(() => () => stopScan(), [stopScan])
 
-  // Reveal output one line at a time so a scan/restore feels like real work
-  // instead of dumping the whole list instantly. onDone fires after the last
-  // line (used to apply the filesystem repair only once the animation ends).
+  useEffect(() => {
+    const node = outputRef.current
+    if (!node) return
+    node.scrollTop = node.scrollHeight
+  }, [output])
+
   const reveal = useCallback(
     (lines: string[], onDone?: () => void) => {
       stopScan()
@@ -101,23 +124,20 @@ export function RecoveryConsole() {
     [stopScan],
   )
 
-  // Drive a RECOVERY_SCAN_MS progress sweep, anchored to Date.now so it's immune to
-  // interval drift: onFrame(pct, elapsed) renders each step; onDone() renders the
-  // finished state and runs any side effects (e.g. the filesystem repair).
   const runSweep = useCallback(
-    (onFrame: (pct: number, elapsed: number) => void, onDone: () => void) => {
+    (durationMs: number, onFrame: (pct: number, elapsed: number) => void, onDone: () => void) => {
       stopScan()
       setScanning(true)
       const startedAt = Date.now()
       const tick = () => {
-        const elapsed = Math.min(RECOVERY_SCAN_MS, Date.now() - startedAt)
-        if (elapsed >= RECOVERY_SCAN_MS) {
+        const elapsed = Math.min(durationMs, Date.now() - startedAt)
+        if (elapsed >= durationMs) {
           stopScan()
           setScanning(false)
           onDone()
           return
         }
-        onFrame(Math.floor((elapsed / RECOVERY_SCAN_MS) * 100), elapsed)
+        onFrame(Math.floor((elapsed / durationMs) * 100), elapsed)
       }
       tick()
       scanTimer.current = window.setInterval(tick, RECOVERY_TICK_MS)
@@ -125,11 +145,10 @@ export function RecoveryConsole() {
     [stopScan],
   )
 
-  // Scan / Verify: a progress bar fills while system file names tick past, then the
-  // result lines are revealed at 100%. label is the in-progress verb (Checking/Verifying).
   const runScan = useCallback(
     (header: string, label: string, resultLines: string[]) => {
       runSweep(
+        RECOVERY_SCAN_MS,
         (pct, elapsed) => {
           const fileIndex =
             Math.floor((elapsed / RECOVERY_SCAN_MS) * RECOVERY_SCAN_FILES.length) % RECOVERY_SCAN_FILES.length
@@ -141,34 +160,36 @@ export function RecoveryConsole() {
     [runSweep],
   )
 
-  // Restore (option 2) plays like an npm/pnpm reinstall: a spinner + progress bar
-  // sweep while protected components reinstall one by one (green `+ pkg@ver` lines
-  // accumulating), then the real filesystem repair is applied at 100% via onDone.
   const runRestore = useCallback(
-    (header: string, summary: string[], onDone: () => void) => {
-      const packages = RECOVERY_INSTALL_PACKAGES
+    (header: string, packagePaths: string[], summary: string[], onDone: () => void) => {
       const head = [header, '', 'Resolving system components...', '']
-      const installLine = (count: number) => packages.slice(0, count).map((p) => `+ ${p}@${RECOVERY_INSTALL_VERSION}`)
+      const durationMs = recoveryInstallDurationMs(packagePaths.length)
+      const durationSeconds = Math.round(durationMs / 1000)
+      const completedLines = (count: number) => packagePaths.slice(0, count).map(installLine)
       let spin = 0
       runSweep(
+        durationMs,
         (pct, elapsed) => {
-          const installed = Math.min(packages.length, Math.floor((elapsed / RECOVERY_SCAN_MS) * packages.length) + 1)
+          const installed = Math.min(packagePaths.length, Math.floor((elapsed / durationMs) * packagePaths.length))
+          const activePackage = packagePaths[Math.min(installed, Math.max(0, packagePaths.length - 1))]
           spin = (spin + 1) % RECOVERY_SPINNER.length
           setOutput([
             ...head,
-            ...installLine(installed),
+            ...completedLines(installed),
             '',
-            `${RECOVERY_SPINNER[spin]} ${recoveryBar(pct)} ${formatPct(pct)}  reinstalling ${packages[installed - 1]}`,
+            `${RECOVERY_SPINNER[spin]} ${recoveryBar(pct)} ${formatPct(pct)}  reinstalling ${
+              activePackage ? packageName(activePackage) : 'protected-cache'
+            }`,
           ])
         },
         () => {
           setOutput([
             ...head,
-            ...installLine(packages.length),
+            ...compactInstallLines(packagePaths),
             '',
             `${recoveryBar(100)} ${formatPct(100)}`,
             '',
-            `added ${packages.length} packages from RB000.CAB in ${RECOVERY_INSTALL_SECONDS}s`,
+            `added ${packagePaths.length} package(s) from RB000.CAB in ${durationSeconds}s`,
             ...summary,
           ])
           onDone()
@@ -179,27 +200,33 @@ export function RecoveryConsole() {
   )
 
   function runChoice(id: number) {
+    if (scanning) return
+
     if (id === 1) {
       runScan(
         'Scanning C:\\WINDOWS for required system files...',
         'Checking',
         missing.length
-          ? [...missing.map((path) => `MISSING   ${path}`), '', `${missing.length} file(s) must be restored before Windows can start.`]
+          ? [...missing.map((path) => `MISSING   ${path}`), '', `${missing.length} item(s) must be restored before Windows can start.`]
           : ['No missing system files were found.', 'Windows should start normally.'],
       )
       return
     }
+
     if (id === 2) {
       if (!missing.length) {
         reveal(['Nothing to restore. All required system files are present.'])
         return
       }
+      const packagePaths = missingSystemFilePackages(state.fs)
       const result = restoreSystemFiles(state.fs)
       runRestore(
         'Restoring system files from registry backup RB000.CAB...',
+        packagePaths,
         [
-          `${result.restored.length} file(s) restored successfully.`,
-          'Windows has fixed your registry. Press Esc, then choose Normal to start Windows.',
+          `${packagePaths.length} file package(s) reinstalled; ${result.restored.length - packagePaths.length} folder item(s) rebuilt.`,
+          `${result.restored.length} protected item(s) restored successfully.`,
+          'Press Esc or choose Restart Windows 98 to boot normally.',
         ],
         () => {
           fsOps.replaceFs(result.fs)
@@ -208,6 +235,7 @@ export function RecoveryConsole() {
       )
       return
     }
+
     if (id === 3) {
       runScan(
         'Verifying the integrity of all protected system files...',
@@ -218,26 +246,33 @@ export function RecoveryConsole() {
       )
       return
     }
-    reveal([
-      'Current fixed disk drive: 1',
-      '',
-      'Partition   Status   Type      Volume Label   Mbytes   System   Usage',
-      ' C: 1          A      PRI DOS   PORTFOLIO       2047    FAT16     100%',
-      '',
-      'Total fixed disk space is 2047 Mbytes (1 Mbyte = 1048576 bytes)',
-    ])
+
+    if (id === 4) {
+      reveal([
+        'Current fixed disk drive: 1',
+        '',
+        'Partition   Status   Type      Volume Label   Mbytes   System   Usage',
+        ' C: 1          A      PRI DOS   PORTFOLIO       2047    FAT16     100%',
+        '',
+        'Total fixed disk space is 2047 Mbytes (1 Mbyte = 1048576 bytes)',
+      ])
+      return
+    }
+
+    restart('normal', { bootProfile: 'warm' })
   }
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault()
-        restart('bootMenu')
+        restart('normal', { bootProfile: 'warm' })
         return
       }
-      if (event.key >= '1' && event.key <= '4') {
-        choiceRef.current = Number(event.key)
-        setChoice(Number(event.key))
+      if (event.key >= '1' && event.key <= String(recoveryOptions.length)) {
+        const next = Number(event.key)
+        choiceRef.current = next
+        setChoice(next)
         return
       }
       if (event.key === 'ArrowDown') {
@@ -258,22 +293,16 @@ export function RecoveryConsole() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.fs, restart])
+  }, [scanning, state.fs, restart])
 
   return (
-    <main className="fdisk-screen">
-      <header className="fdisk-header">
-        <p>{osProductName}</p>
-        <p>System Recovery Program</p>
-        <p>{osCreditLine}</p>
-      </header>
-      <p className="fdisk-title">RECOVERY Options</p>
-      <div className="fdisk-body">
-        <p>Current fixed disk drive: 1</p>
-        <p>System status: {missing.length ? `${missing.length} required file(s) missing` : 'healthy'}</p>
-        <p>&nbsp;</p>
-        <p>Choose one of the following:</p>
-        <ol className="fdisk-options">
+    <main className="recovery-menu-screen" aria-label="Windows 98 recovery menu">
+      <section className="recovery-menu-panel">
+        <p className="recovery-menu-title">Microsoft Windows 98 Recovery Menu</p>
+        <p className="recovery-menu-status">
+          System status: {missing.length ? `${missing.length} protected item(s) missing` : 'ready to boot'}
+        </p>
+        <ol className="recovery-menu-options">
           {recoveryOptions.map((option) => (
             <li key={option.id}>
               <button
@@ -290,45 +319,38 @@ export function RecoveryConsole() {
             </li>
           ))}
         </ol>
-        <p className="fdisk-choice">
-          Enter choice: [{choice}]
-          {!scanning && <span className="fdisk-cursor" aria-hidden="true" />}
+        <p className="recovery-menu-choice">
+          Enter a choice: {choice}
+          {!scanning && <span aria-hidden="true" />}
         </p>
-        {(output.length > 0 || scanning) && (
-          <div className="fdisk-output" role="log" aria-live="polite">
-            {output.map((line, index) => (
-              <RecoveryLine key={index} text={line} />
-            ))}
-            {scanning && <span className="fdisk-scan-cursor" aria-hidden="true" />}
-          </div>
-        )}
-      </div>
-      <footer className="fdisk-footer">
-        <p>
-          Press <b>Esc</b> to exit Recovery and return to the Startup Menu
-        </p>
-      </footer>
+        <div ref={outputRef} className="recovery-menu-output" role="log" aria-live="polite">
+          {output.map((line, index) => (
+            <RecoveryLine key={`${index}-${line}`} text={line} />
+          ))}
+          {scanning && <span className="recovery-scan-cursor" aria-hidden="true" />}
+        </div>
+        <footer className="recovery-menu-footer">
+          F5=Safe Mode&nbsp;&nbsp;Shift+F5=Command Prompt&nbsp;&nbsp;Esc=Restart&nbsp;&nbsp;Enter=Run
+        </footer>
+      </section>
     </main>
   )
 }
 
-// Renders one recovery output line, coloring a leading status keyword
-// (MISSING/CORRUPT in red, RESTORED/OK in green) like a real repair console.
 function RecoveryLine({ text }: { text: string }) {
-  // npm-style added-package line (green +), used by the Restore reinstall animation.
   if (text.startsWith('+ ')) {
-    return <div className="fdisk-line fdisk-add">{text}</div>
+    return <div className="recovery-line recovery-add">{text}</div>
   }
   const match = /^(MISSING|CORRUPT|RESTORED|OK|FOUND)\s{2,}(.*)$/.exec(text)
   if (match) {
     const status = match[1]
     const bad = status === 'MISSING' || status === 'CORRUPT'
     return (
-      <div className="fdisk-line">
-        <span className={`fdisk-status ${bad ? 'fdisk-status-bad' : 'fdisk-status-good'}`}>{status}</span>
+      <div className="recovery-line">
+        <span className={`recovery-status ${bad ? 'recovery-status-bad' : 'recovery-status-good'}`}>{status}</span>
         {match[2]}
       </div>
     )
   }
-  return <div className="fdisk-line">{text === '' ? ' ' : text}</div>
+  return <div className="recovery-line">{text || ' '}</div>
 }

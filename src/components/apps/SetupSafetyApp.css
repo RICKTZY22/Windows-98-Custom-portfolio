@@ -1,0 +1,218 @@
+.setup-safety-app {
+  display: grid;
+  grid-template-rows: auto minmax(130px, 1fr) auto auto;
+  gap: 10px;
+  height: 100%;
+  padding: 14px;
+  color: #000;
+  background: #c0c0c0;
+  box-sizing: border-box;
+}
+
+.setup-safety-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.setup-safety-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-top: 3px;
+  color: #000;
+  background: #ffcc00;
+  border: 2px solid #000;
+  font-weight: 900;
+  font-size: 24px;
+}
+
+.setup-safety-header h2,
+.setup-safety-header p {
+  margin: 0;
+}
+
+.setup-safety-header h2 {
+  font-size: 18px;
+}
+
+.setup-safety-header p {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.setup-safety-console {
+  min-height: 0;
+  padding: 10px;
+  overflow: hidden;
+  color: #00ff66;
+  background: #000;
+  box-shadow: inset 1px 1px #404040, inset -1px -1px #fff;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.setup-safety-warn {
+  margin-top: 8px;
+  color: #ffff55;
+}
+
+.setup-safety-meter {
+  height: 18px;
+  padding: 2px;
+  background: #fff;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #fff, inset 2px 2px #404040;
+}
+
+.setup-safety-meter div {
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    #000080 0,
+    #000080 9px,
+    #1084d0 9px,
+    #1084d0 18px
+  );
+  transition: width 180ms steps(3, end);
+}
+
+.setup-safety-status {
+  display: flex;
+  gap: 6px;
+}
+
+.setup-safety-status span {
+  flex: 1;
+  padding: 3px 8px;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #fff;
+  font-size: 12px;
+}
+
+.setup-dialog-layer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 34px;
+  z-index: 12050;
+  pointer-events: none;
+}
+
+.setup-spam-dialog {
+  position: absolute;
+  width: 320px;
+  padding: 3px;
+  pointer-events: auto;
+  background: #c0c0c0;
+  box-shadow:
+    inset 1px 1px #dfdfdf,
+    inset -1px -1px #404040,
+    inset 2px 2px #fff,
+    inset -2px -2px #808080,
+    2px 2px 0 rgba(0, 0, 0, 0.35);
+  animation: setup-dialog-pop 110ms ease-out;
+}
+
+.setup-spam-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 4px 3px 6px;
+  color: #fff;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.setup-spam-titlebar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-spam-titlebar button,
+.setup-spam-actions button {
+  color: #000;
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+  font: inherit;
+}
+
+.setup-spam-titlebar button {
+  flex: none;
+  width: 18px;
+  height: 16px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.setup-spam-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 50px;
+  padding: 16px 14px 6px;
+}
+
+.setup-spam-body p {
+  margin: 0;
+  padding-top: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.setup-spam-icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  background: radial-gradient(circle at 35% 30%, #ff6b6b, #d40000 70%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.setup-spam-actions {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 14px;
+}
+
+.setup-spam-actions button {
+  min-width: 74px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.setup-spam-titlebar button:active,
+.setup-spam-actions button:active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+}
+
+@keyframes setup-dialog-pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-spam-dialog {
+    animation: none;
+  }
+}

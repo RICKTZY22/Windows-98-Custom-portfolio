@@ -18,20 +18,6 @@ export const bootDeviceLabels: Record<BootDeviceId, string> = {
   network: 'PCI Ethernet Boot ROM',
 }
 
-export const bootDeviceShortLabels: Record<BootDeviceId, string> = {
-  hardDisk: 'Hard Disk',
-  cdrom: 'CD-ROM',
-  floppy: 'Floppy',
-  network: 'Network',
-}
-
-export const bootDeviceDosNames: Record<BootDeviceId, string> = {
-  hardDisk: 'C:',
-  cdrom: 'D:',
-  floppy: 'A:',
-  network: 'PXE',
-}
-
 export const haltOnLabels: Record<BiosSettings['haltOn'], string> = {
   allErrors: 'All Errors',
   noErrors: 'No Errors',
@@ -44,6 +30,7 @@ export type BiosSetupSectionId =
   | 'peripherals'
   | 'boot'
   | 'power'
+  | 'recovery'
   | 'defaults'
   | 'save'
   | 'exit'
@@ -77,6 +64,11 @@ export const biosSetupSections: Array<{
     id: 'power',
     title: 'POWER MANAGEMENT SETUP',
     help: 'Legacy APM-style power status for the simulated portfolio computer.',
+  },
+  {
+    id: 'recovery',
+    title: 'RECOVERY MODE',
+    help: 'Start Windows Recovery Mode to repair missing protected system files.',
   },
   {
     id: 'defaults',

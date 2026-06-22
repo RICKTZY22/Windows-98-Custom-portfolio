@@ -1,0 +1,167 @@
+.antivirus-app {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.antivirus-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #808080;
+  background: #fff;
+}
+
+.antivirus-banner img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.antivirus-banner h2,
+.antivirus-banner p,
+.antivirus-current-step,
+.antivirus-current-path,
+.antivirus-progress-label {
+  margin: 0;
+}
+
+.antivirus-banner h2 {
+  font-size: 16px;
+}
+
+.antivirus-grid {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.antivirus-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  overflow: auto;
+}
+
+.antivirus-sidebar button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 4px;
+  text-align: left;
+}
+
+.antivirus-sidebar button.selected {
+  background: #000080;
+  color: #fff;
+}
+
+.antivirus-sidebar img {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+}
+
+.antivirus-sidebar span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.antivirus-sidebar strong,
+.antivirus-sidebar small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.antivirus-main {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.antivirus-main fieldset {
+  margin: 0;
+}
+
+.antivirus-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+
+.antivirus-current-step {
+  font-weight: 700;
+}
+
+.antivirus-current-path {
+  overflow: hidden;
+  margin-top: 3px;
+  font-family: "Courier New", monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.antivirus-progress {
+  height: 18px;
+  margin-top: 7px;
+  border: 2px inset #fff;
+  background: #fff;
+}
+
+.antivirus-progress span {
+  display: block;
+  height: 100%;
+  background:
+    repeating-linear-gradient(90deg, #000080 0 8px, #1084d0 8px 16px);
+  transition: width 180ms linear;
+}
+
+.antivirus-progress-label {
+  margin-top: 4px;
+}
+
+.sunken-panel.antivirus-log {
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+  color: #00ff66;
+}
+
+.antivirus-log pre {
+  margin: 0;
+  height: 100%;
+  padding: 10px;
+  overflow: auto;
+  background: #000;
+  font: 12px/1.45 "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
+.antivirus-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .antivirus-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .antivirus-sidebar {
+    max-height: 140px;
+  }
+
+  .antivirus-status-grid {
+    grid-template-columns: 1fr;
+  }
+}

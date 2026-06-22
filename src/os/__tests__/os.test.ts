@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BootDeviceId, OsState, WindowState } from '../../types'
-import { reducer } from '../store'
+import { missingAppDependency, reducer } from '../store'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../../data/initialFilesystem'
 import { executeCommand } from '../commands'
 import {
@@ -15,7 +15,14 @@ import {
   writeFile,
 } from '../filesystem'
 import { defaultNetworkState, pingReport, releasedNetworkState } from '../network'
-import { isSystemHealthy, shouldSafeModeBlueScreen, restoreSystemFiles } from '../recovery'
+import {
+  RECOVERY_MAX_RESTORE_MS,
+  isSystemHealthy,
+  missingSystemFilePackages,
+  recoveryInstallDurationMs,
+  shouldSafeModeBlueScreen,
+  restoreSystemFiles,
+} from '../recovery'
 import { scheduleSound, soundCatalog } from '../audio'
 import {
   bootSequenceLabel,
@@ -98,6 +105,29 @@ describe('virtual filesystem', () => {
     expect(isSystemHealthy(restored.fs)).toBe(true)
   })
 
+  it('restores only one missing protected file when a single DLL is deleted', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32\\kernel32.dll')
+    expect(deleted.criticalDeleted).toBe(true)
+
+    const restored = restoreSystemFiles(deleted.fs)
+    expect(restored.restored).toEqual(['C:\\Windows\\System32\\kernel32.dll'])
+    expect(getNode(restored.fs, 'C:\\Windows\\System32\\kernel32.dll')).toBeDefined()
+  })
+
+  it('recovery counts only files as packages and caps a System32 reinstall at two minutes', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32')
+
+    const packages = missingSystemFilePackages(deleted.fs)
+    const restored = restoreSystemFiles(deleted.fs)
+
+    expect(packages.length).toBeGreaterThan(24)
+    expect(restored.restored.length).toBeGreaterThan(packages.length)
+    expect(recoveryInstallDurationMs(packages.length)).toBe(RECOVERY_MAX_RESTORE_MS)
+    expect(isSystemHealthy(restored.fs)).toBe(true)
+  })
+
   it('lets one missing boot file attempt Safe Mode but blue-screens after severe damage', () => {
     const fs = createInitialFsState()
     const oneMissing = deleteNode(fs, 'C:\\Windows\\System32\\kernel32.dll')
@@ -120,6 +150,22 @@ describe('virtual filesystem', () => {
     expect(openTargetFor(getNode(fs, 'C:\\Windows\\Media\\Startup.wav')!)?.appId).toBe('mediaPlayer')
     fs = writeFile(fs, 'C:\\My Documents\\Portfolio.pdf', { dataUrl: '/docs/pdf/final-1.pdf' }).fs
     expect(openTargetFor(getNode(fs, 'C:\\My Documents\\Portfolio.pdf')!)?.appId).toBe('pdfViewer')
+  })
+
+  it('blocks WordPad documents when a required rich edit dependency is missing', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32\\riched20.dll')
+
+    expect(openTargetFor(getNode(deleted.fs, 'C:\\My Documents\\Resume.doc')!)?.appId).toBe('wordpad')
+    expect(missingAppDependency('wordpad', deleted.fs)).toBe('C:\\Windows\\System32\\riched20.dll')
+  })
+
+  it('allows unrelated apps when their dependencies are intact', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32\\riched20.dll')
+
+    expect(missingAppDependency('notepad', deleted.fs)).toBeNull()
+    expect(missingAppDependency('calculator', deleted.fs)).toBeNull()
   })
 
   it('purges legacy seed artifacts and restores My Videos when topping up a migrated disk', () => {
@@ -289,6 +335,39 @@ describe('window reducer', () => {
     expect(reopened.windows[0].minimized).toBe(false)
     expect(reopened.activeWindowId).toBe('internetExplorer')
   })
+
+  it('routes setup safety crashes through reboot into safety training before returning to desktop', () => {
+    const crash = {
+      title: 'Windows protection error',
+      message: 'Simulated setup failure.',
+      detail: 'No real files were touched.',
+      stopCode: '0E : 0028 : C0DEF00D',
+      crashedAt: '06/22/2026 5:00 PM',
+    }
+    const initial = {
+      ...baseState(),
+      phase: 'desktop',
+      bootTarget: 'normal',
+      bootMode: 'normal',
+      bootProfile: 'warm',
+      fs: createInitialFsState(),
+      messageBoxes: [],
+      clipboard: null,
+      pendingSafetyTraining: false,
+    } as OsState
+
+    const crashed = reducer(initial, { type: 'START_SAFETY_TRAINING_CRASH', crash })
+    expect(crashed.phase).toBe('crashed')
+    expect(crashed.pendingSafetyTraining).toBe(true)
+
+    const rebooting = reducer(crashed, { type: 'RESTART', target: 'normal', bootProfile: 'warm' })
+    const training = reducer(rebooting, { type: 'FINISH_BOOT' })
+    expect(training.phase).toBe('safetyTraining')
+    expect(training.pendingSafetyTraining).toBe(false)
+
+    const desktop = reducer(training, { type: 'COMPLETE_SAFETY_TRAINING' })
+    expect(desktop.phase).toBe('desktop')
+  })
 })
 
 describe('BIOS settings helpers', () => {
@@ -333,6 +412,14 @@ describe('command processor', () => {
     expect(executeCommand('chkdsk', ctx).lines.join('\n')).toContain('FAT16')
     expect(executeCommand('format c:', ctx).lines.join('\n')).toContain('disabled')
     expect(executeCommand('winver', ctx).lines.join('\n')).toContain('Portfolio Shell')
+  })
+
+  it('opens the local setup safety lesson from the command prompt only', () => {
+    const fs = createInitialFsState()
+    const ctx = { cwd: 'C:\\', fs, network: defaultNetworkState, bootMode: 'normal' as const, dosOnly: false }
+
+    expect(executeCommand('setup.bat', ctx).effects).toEqual([{ type: 'openApp', appId: 'setupSafety' }])
+    expect(executeCommand('setup', ctx).effects).toEqual([{ type: 'openApp', appId: 'setupSafety' }])
   })
 
   it('guards terminal del of protected system paths behind /Y', () => {

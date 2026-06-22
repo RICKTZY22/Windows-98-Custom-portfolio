@@ -1,93 +1,97 @@
 
-/* === BIOS setup + one-time boot menu ===================================== */
+/* === BIOS setup =========================================================== */
 
-.bios-setup-screen,
-.boot-device-quick-screen {
+.bios-setup-screen {
   position: fixed;
   inset: 0;
   overflow: hidden;
   color: #fff;
-  background: #000;
+  background: #0000a8;
   font-family: "Courier New", Consolas, monospace;
+  cursor: default;
 }
 
-.bios-setup-screen button,
-.boot-device-quick-screen button {
-  min-width: 0;
-  min-height: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
+.bios-setup-screen * {
+  cursor: default;
 }
 
 .bios-frame {
   position: absolute;
-  inset: 12px;
+  inset: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
-  color: #f8f8f8;
+  padding: min(3.5vh, 28px) min(4vw, 42px);
+  color: #fff;
   background: #0000a8;
-  border: 2px solid #d8d8d8;
-  box-shadow: inset 0 0 0 2px #00006a;
-  font-size: clamp(12px, 1.7vw, 16px);
+  font-size: 20px;
+  line-height: 1.35;
 }
 
 .bios-title {
-  padding: 4px 8px;
-  color: #0000a8;
-  background: #d8d8d8;
+  margin: 0 auto 16px;
+  color: #fff;
   text-align: center;
   font-weight: 700;
 }
 
 .bios-main {
   display: grid;
-  grid-template-columns: minmax(230px, 32%) minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
   min-height: 0;
-  padding: 10px;
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  border: 3px double #fff;
 }
 
 .bios-section-list,
 .bios-detail {
   min-height: 0;
-  border: 1px solid #d8d8d8;
-  box-shadow: inset 0 0 0 1px #00006a;
 }
 
 .bios-section-list {
   display: grid;
-  align-content: start;
-  gap: 1px;
-  padding: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 18px 16px;
+  border-right: 3px double #fff;
 }
 
-.bios-section-list button {
-  padding: 3px 6px;
+.bios-section-column {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.bios-section-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 4px;
+  padding: 0 6px;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.bios-section-list button.selected,
+.bios-section-item.selected,
 .bios-row.selected {
-  color: #0000a8;
-  background: #d8d8d8;
+  color: #fff;
+  background: #a80000;
 }
 
 .bios-detail {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  padding: 8px;
+  padding: 18px 18px 14px;
   overflow: hidden;
 }
 
 .bios-detail h1 {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: #ffff55;
-  font-size: 1em;
+  font-size: 20px;
   text-align: center;
 }
 
@@ -100,10 +104,12 @@
 
 .bios-row {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(120px, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.9fr);
+  gap: 18px;
   width: 100%;
-  padding: 2px 6px;
+  padding: 1px 6px;
+  color: inherit;
+  font: inherit;
 }
 
 .bios-row strong {
@@ -113,94 +119,44 @@
 
 .bios-help {
   display: grid;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 10px;
+  width: min(1080px, 100%);
+  margin: 14px auto 0;
   color: #ffff55;
-  border-top: 1px solid #d8d8d8;
 }
 
-.bios-help p {
+.bios-key-help {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 18px;
+}
+
+.bios-help p,
+.bios-help-text {
   margin: 0;
+}
+
+.bios-help-text {
+  padding-top: 10px;
+  color: #00ffff;
+  text-align: center;
+  border-top: 3px double #fff;
 }
 
 .bios-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  justify-content: center;
+  gap: 4px 12px;
   color: #fff;
 }
 
-.bios-actions button {
-  padding: 1px 4px;
+.bios-action-key {
+  padding: 0 4px;
   color: #fff;
 }
 
-.bios-actions button:hover,
-.bios-actions button:focus {
-  color: #0000a8;
-  background: #d8d8d8;
-}
-
-.bios-actions button:disabled {
+.bios-action-key.disabled {
   color: #8080d0;
-  background: transparent;
-}
-
-.boot-device-quick-screen {
-  display: grid;
-  place-items: start center;
-  padding: clamp(28px, 8vw, 76px) 16px;
-  color: #c8c8c8;
-  text-shadow: 0 0 2px #777;
-}
-
-.boot-device-quick-panel {
-  display: grid;
-  gap: 10px;
-  width: min(760px, 100%);
-}
-
-.boot-device-quick-panel h1,
-.boot-device-quick-panel p {
-  margin: 0;
-}
-
-.boot-device-quick-panel h1 {
-  color: #fff;
-  font-size: 19px;
-  border-bottom: 1px solid #c8c8c8;
-  padding-bottom: 6px;
-}
-
-.boot-device-quick-panel ol {
-  display: grid;
-  gap: 2px;
-  margin: 4px 0;
-  padding: 0;
-  list-style: none;
-}
-
-.boot-device-quick-panel button {
-  display: grid;
-  grid-template-columns: minmax(150px, 0.65fr) minmax(0, 1fr);
-  gap: 12px;
-  width: 100%;
-  padding: 2px 8px;
-}
-
-.boot-device-quick-panel button.selected {
-  color: #000;
-  background: #c8c8c8;
-  text-shadow: none;
-}
-
-.boot-device-quick-panel pre {
-  margin: 8px 0 0;
-  padding: 0;
-  border: 0;
-  color: #fff;
-  background: transparent;
-  box-shadow: none;
-  font: inherit;
-  white-space: pre-wrap;
 }
