@@ -12,6 +12,7 @@ import { RecoveryConsole } from './components/system/RecoveryConsole'
 import { LoadFailureScreen } from './components/system/LoadFailureScreen'
 import { SafetyTrainingScreen } from './components/system/SafetyTrainingScreen'
 import { ShutdownScreen } from './components/system/ShutdownScreen'
+import { BootDisclaimer } from './components/system/BootDisclaimer'
 import { DesktopContextMenu } from './components/shell/DesktopContextMenu'
 import { DesktopIcon } from './components/shell/DesktopIcon'
 import { StartMenu } from './components/shell/StartMenu'
@@ -672,6 +673,7 @@ function Desktop() {
           />
         )}
         <MessageBoxHost />
+        <BootDisclaimer />
       </div>
       <Taskbar
         windows={state.windows}

@@ -73,6 +73,7 @@ export type OsContextValue = {
   triggerSafetyTrainingCrash(): void
   completeSafetyTraining(): void
   enterBiosSetup(): void
+  enterRecoveryMode(): void
   setBiosSettings(settings: BiosSettings): void
   restart(target?: 'normal' | 'safe' | 'dos' | 'recovery' | 'bootMenu', opts?: { bootProfile?: BootProfile }): void
   shutDown(): void

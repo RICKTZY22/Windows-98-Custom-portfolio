@@ -1,4 +1,3 @@
-
 .file-list {
   display: grid;
   align-content: start;
@@ -8,85 +7,256 @@
 }
 
 .file-manager-app {
-  grid-template-rows: auto auto 1fr auto;
+  position: relative;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  gap: 0;
+  background: silver;
 }
 
-.file-manager-toolbar {
-  align-items: center;
+.file-manager-app .os-menu-bar {
+  min-height: 22px;
+  margin: -2px -2px 0;
+  padding: 1px 4px 2px;
+  border-bottom: 1px solid #808080;
+  box-shadow: 0 1px #fff;
 }
 
-.file-manager-toolbar button {
+.file-manager-commandbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  align-content: flex-start;
+  gap: 0;
   min-width: 0;
-  padding: 3px 10px;
-}
-
-.file-manager-toolbar input {
-  min-width: 0;
-}
-
-.address-form {
-  display: grid;
-  grid-template-columns: auto minmax(120px, 1fr);
-  align-items: center;
-  flex: 1 1 100%;
-  gap: 6px;
-}
-
-.address-form input {
-  width: 100%;
-  min-width: 0;
-  height: 22px;
+  min-height: 54px;
   padding: 2px 4px;
+  overflow: hidden;
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid #808080;
+}
+
+.file-command-button {
+  display: inline-flex;
+  flex: 0 1 58px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 50px;
+  min-height: 48px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: #000;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.file-command-button:hover:not(:disabled),
+.file-command-button:focus-visible:not(:disabled) {
+  border-color: #fff #404040 #404040 #fff;
+  outline: 0;
+}
+
+.file-command-button:active:not(:disabled) {
+  border-color: #404040 #fff #fff #404040;
+}
+
+.file-command-button:disabled {
+  color: #808080;
+  text-shadow: 1px 1px #fff;
+}
+
+.file-command-button:disabled .file-command-icon {
+  opacity: 0.42;
+}
+
+.file-command-button span:last-child {
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-command-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+}
+
+.file-command-arrow,
+.file-command-cut {
+  background: silver;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #fff;
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.file-command-cut {
+  color: #404040;
+  font-size: 13px;
+}
+
+.file-command-separator {
+  flex: 0 0 auto;
+  width: 1px;
+  margin: 4px 5px;
+  background: #808080;
+  border-right: 1px solid #fff;
+}
+
+.file-view-picker {
+  display: inline-flex;
+  flex: 0 0 106px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 106px;
+  margin-left: 6px;
+  padding-left: 6px;
+  color: #000;
+  font-size: 11px;
+}
+
+.file-view-select {
+  width: 102px;
+  min-width: 102px;
+  height: 22px;
   color: #000;
   color-scheme: light;
+}
+
+.file-manager-addressbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid #808080;
+  box-shadow: 0 1px #fff;
+}
+
+.file-address-input-wrap {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  height: 23px;
   background: #fff;
-  border: 0;
   box-shadow: inset -1px -1px #fff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}
+
+.file-address-input-wrap img {
+  justify-self: center;
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.file-address-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  height: 19px;
+  padding: 1px 4px 0;
+  border: 0;
+  background: transparent;
+  color: #000;
+  color-scheme: light;
+  box-shadow: none;
 }
 
 .file-manager-layout {
   display: grid;
-  grid-template-columns: minmax(120px, 158px) minmax(118px, 152px) minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: minmax(154px, 194px) minmax(144px, 178px) minmax(260px, 1fr);
+  gap: 3px;
   min-height: 0;
   min-width: 0;
+  padding: 3px;
+}
+
+.file-tree-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  background: silver;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+}
+
+.file-tree-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 22px;
+  padding: 2px 6px;
+  border-bottom: 1px solid #808080;
+  box-shadow: 0 1px #fff;
+  font-weight: 700;
 }
 
 .file-tree {
   min-height: 0;
+  margin: 0;
   overflow: auto;
+  background: #fff;
 }
 
-/* Win98 "View as Web Page" info panel: teal header + selected-item details. */
+.file-tree details {
+  padding: 4px 2px;
+}
+
+.file-tree summary {
+  min-height: 18px;
+  padding: 1px 2px;
+  color: #000;
+}
+
+.file-tree ul {
+  margin-top: 2px;
+}
+
+/* Win98 "View as Web Page" info panel: blue header plus selected-item details. */
 .file-webinfo {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   color: #fff;
-  background: linear-gradient(160deg, #000080 0%, #1084d0 58%, #62b6ef 100%);
-  box-shadow: inset -1px -1px #fff, inset 1px 1px #808080;
+  background: linear-gradient(160deg, #27489d 0%, #17306f 58%, #102052 100%);
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040;
 }
 
 .file-webinfo-header {
-  padding: 8px 8px 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-  font-size: 13px;
+  padding: 13px 12px 7px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.42);
+  font-size: 17px;
   font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .file-webinfo-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
+  gap: 7px;
+  min-height: 0;
+  padding: 14px 10px;
+  overflow: auto;
   text-align: center;
 }
 
 .file-webinfo-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   image-rendering: pixelated;
 }
 
@@ -100,58 +270,74 @@
 
 .file-webinfo-name {
   margin: 0;
+  font-size: 14px;
   font-weight: 700;
-  word-break: break-word;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .file-webinfo-detail {
   margin: 0;
-  font-size: 11px;
-  color: #e6f0ff;
-  word-break: break-word;
+  color: #d5def5;
+  font-size: 12px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .file-webinfo-blurb {
   margin: 8px 0 0;
-  font-size: 11px;
-  color: #d6e6ff;
+  color: #c4d0ed;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .rich-file-list {
   display: grid;
-  grid-template-rows: auto;
-  align-content: start;
-  overflow: auto;
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rich-file-list.view-details {
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .file-header,
 .file-row.file-manager-row {
   display: grid;
-  grid-template-columns: minmax(130px, 1.6fr) minmax(80px, 1fr) 64px minmax(104px, 1.1fr);
+  grid-template-columns: minmax(150px, 1.7fr) minmax(110px, 0.9fr) 74px minmax(126px, 1fr);
   align-items: center;
-  gap: 8px;
 }
 
 .file-header {
   position: sticky;
   top: 0;
   z-index: 1;
+  min-height: 22px;
+  border-bottom: 1px solid #808080;
   background: silver;
-  min-height: 20px;
-  padding: 1px 6px 1px 2px;
 }
 
 .file-header button {
   min-width: 0;
+  min-height: 21px;
+  padding: 2px 7px;
   text-align: left;
-  padding: 1px 6px;
+  background: silver;
+  box-shadow: inset -1px -1px #404040, inset 1px 1px #fff;
 }
 
-.file-name-cell {
-  display: inline-flex;
-  align-items: center;
+.file-header button[aria-sort] {
+  font-weight: 700;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040;
+}
+
+.file-list-body {
   min-width: 0;
-  gap: 6px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .file-row {
@@ -163,10 +349,30 @@
   min-height: 28px;
   min-width: 0;
   padding: 2px 6px;
-  text-align: left;
+  border: 1px solid transparent;
   background: transparent;
   box-shadow: none;
   color: #111;
+  text-align: left;
+}
+
+.file-row.file-manager-row {
+  gap: 0;
+  min-height: 25px;
+  padding: 0;
+  border: 0;
+}
+
+.file-row.file-manager-row > span {
+  min-width: 0;
+  padding: 0 7px;
+}
+
+.file-name-cell {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
 }
 
 .file-row:hover,
@@ -174,6 +380,11 @@
 .file-row.selected {
   background: #000080;
   color: #fff;
+}
+
+.file-row:focus {
+  outline: 1px dotted #fff;
+  outline-offset: -2px;
 }
 
 .file-row img {
@@ -193,41 +404,30 @@
 }
 
 /* ----- Explorer view modes (Large/Small Icons, List, Details, Thumbnails) ----- */
-.file-view-select {
-  min-width: 104px;
-}
-
-.file-list-body {
-  min-width: 0;
-}
-
-/* List + Small Icons: reflow into columns, icon beside name, no detail columns. */
 .view-list .file-list-body,
 .view-smallIcons .file-list-body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   align-content: start;
-  padding: 2px;
+  padding: 3px;
 }
 
-/* Large Icons + Thumbnails: a grid of centred tiles. */
 .view-largeIcons .file-list-body,
 .view-thumbnails .file-list-body {
   display: grid;
   align-content: start;
   gap: 8px;
-  padding: 8px;
+  padding: 10px;
 }
 
 .view-largeIcons .file-list-body {
-  grid-template-columns: repeat(auto-fill, 90px);
+  grid-template-columns: repeat(auto-fill, 92px);
 }
 
 .view-thumbnails .file-list-body {
-  grid-template-columns: repeat(auto-fill, 118px);
+  grid-template-columns: repeat(auto-fill, 120px);
 }
 
-/* Non-details rows drop the 4-column grid and hide Type/Size/Modified. */
 .view-list .file-row,
 .view-smallIcons .file-row,
 .view-largeIcons .file-row,
@@ -235,7 +435,8 @@
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 22px;
+  min-height: 23px;
+  padding: 2px 4px;
 }
 
 .view-list .file-row > span:not(.file-name-cell),
@@ -250,13 +451,12 @@
   width: 100%;
 }
 
-/* Large Icons + Thumbnails: icon stacked above a wrapping, centred name. */
 .view-largeIcons .file-row,
 .view-thumbnails .file-row {
   flex-direction: column;
   gap: 4px;
   min-height: 0;
-  padding: 6px 2px;
+  padding: 7px 2px;
   text-align: center;
 }
 
@@ -264,11 +464,11 @@
 .view-thumbnails .file-name-cell {
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
-  white-space: normal;
   overflow: visible;
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .view-largeIcons .file-row img {
@@ -288,10 +488,4 @@
   background: #fff;
   box-shadow: inset 0 0 0 1px #808080;
   image-rendering: auto;
-}
-
-/* === Explorer context menu + inline rename ============================== */
-
-.file-manager-app {
-  position: relative;
 }

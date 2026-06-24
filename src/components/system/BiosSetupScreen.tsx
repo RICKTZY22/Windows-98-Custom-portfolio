@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BiosSettings, BootDeviceId } from '../../types'
-import { biosSetupSections, bootDeviceLabels, bootSequenceLabel, defaultBiosSettings, haltOnLabels, moveBootDevice } from '../../data/bios'
+import {
+  biosSetupSections,
+  bootDeviceLabels,
+  bootSequenceLabel,
+  defaultBiosSettings,
+  displayModeLabels,
+  haltOnLabels,
+  moveBootDevice,
+  powerManagementLabels,
+  softOffModeLabels,
+  videoOffMethodLabels,
+} from '../../data/bios'
 import { useOs } from '../../os/useOs'
 import { isSystemHealthy, missingRequiredSystemFiles } from '../../os/recovery'
+import { driverStatusLabel, missingDriverFiles, systemStatusLabel } from '../../os/systemHealth'
 
 type BiosRow = {
   label: string
@@ -17,6 +29,15 @@ function yesNo(value: boolean): string {
   return value ? 'Enabled' : 'Disabled'
 }
 
+function deviceStatus(enabled: boolean, status: string): string {
+  if (!enabled) return 'Disabled'
+  return status === 'Detected' ? 'Enabled / Detected' : `Enabled / ${status}`
+}
+
+function healthCount(status: string, count: number): string {
+  return count ? `${status} (${count} missing)` : status
+}
+
 function bootDeviceEnabled(settings: BiosSettings, device: BootDeviceId): boolean {
   if (device === 'floppy') return settings.floppyEnabled
   if (device === 'cdrom') return settings.cdromEnabled
@@ -25,7 +46,7 @@ function bootDeviceEnabled(settings: BiosSettings, device: BootDeviceId): boolea
 }
 
 export function BiosSetupScreen() {
-  const { state, setBiosSettings, restart } = useOs()
+  const { state, setBiosSettings, restart, enterRecoveryMode } = useOs()
   const [draft, setDraft] = useState<BiosSettings>(state.bios)
   const [sectionIndex, setSectionIndex] = useState(0)
   const [rowIndex, setRowIndex] = useState(0)
@@ -35,9 +56,24 @@ export function BiosSetupScreen() {
   const rows = useMemo<BiosRow[]>(() => {
     const toggle = (key: keyof Pick<
       BiosSettings,
-      'quickPost' | 'floppyEnabled' | 'cdromEnabled' | 'networkBootEnabled' | 'soundEnabled' | 'virusWarning'
+      | 'quickPost'
+      | 'floppyEnabled'
+      | 'cdromEnabled'
+      | 'networkBootEnabled'
+      | 'soundEnabled'
+      | 'virusWarning'
+      | 'pnpOsInstalled'
+      | 'resetConfigurationData'
+      | 'assignIrqForVga'
+      | 'apmEnabled'
     >) => {
       setDraft((current) => ({ ...current, [key]: !current[key] }))
+    }
+    const cycle = <Key extends keyof BiosSettings>(key: Key, values: BiosSettings[Key][]) => {
+      setDraft((current) => {
+        const index = values.indexOf(current[key])
+        return { ...current, [key]: values[(index + 1) % values.length] }
+      })
     }
     const cycleHaltOn = () => {
       const order: BiosSettings['haltOn'][] = ['allErrors', 'allButKeyboard', 'noErrors']
@@ -52,15 +88,44 @@ export function BiosSetupScreen() {
 
     if (section.id === 'standard') {
       return [
-        { label: 'Date (mm:dd:yy)', value: '06/14/26' },
-        { label: 'Time (hh:mm:ss)', value: new Date().toLocaleTimeString('en-US', { hour12: false }) },
+        {
+          label: 'Date (mm:dd:yy)',
+          value: draft.cmosDate,
+          hint: 'Press Enter to cycle safe simulated CMOS dates.',
+          onChange: () => cycle('cmosDate', ['06/14/26', '06/23/26', '05/11/98']),
+        },
+        {
+          label: 'Time (hh:mm:ss)',
+          value: draft.cmosTime,
+          hint: 'Press Enter to sync the simulated CMOS clock to the browser time.',
+          onChange: () =>
+            setDraft((current) => ({
+              ...current,
+              cmosTime: new Date().toLocaleTimeString('en-US', { hour12: false }),
+            })),
+        },
         { label: 'Primary Master', value: 'VIRTUAL_DISK_98 2.1GB' },
         { label: 'Primary Slave', value: 'None' },
-        { label: 'Secondary Master', value: draft.cdromEnabled ? 'PORTFOLIO CD-ROM 24X' : 'None' },
-        { label: 'Drive A', value: draft.floppyEnabled ? '1.44M, 3.5 in.' : 'None' },
+        {
+          label: 'Secondary Master',
+          value: draft.cdromEnabled ? 'PORTFOLIO CD-ROM 24X' : 'None',
+          hint: 'Press Enter to enable or disable the simulated CD-ROM controller.',
+          onChange: () => toggle('cdromEnabled'),
+        },
+        {
+          label: 'Drive A',
+          value: draft.floppyEnabled ? '1.44M, 3.5 in.' : 'None',
+          hint: 'Press Enter to enable or disable the simulated floppy controller.',
+          onChange: () => toggle('floppyEnabled'),
+        },
         { label: 'Base Memory', value: '640K' },
         { label: 'Extended Memory', value: '64512K' },
-        { label: 'Display', value: 'EGA/VGA' },
+        {
+          label: 'Display',
+          value: displayModeLabels[draft.displayMode],
+          hint: 'Press Enter to cycle the simulated display adapter mode.',
+          onChange: () => cycle('displayMode', ['egaVga', 'cga80', 'mono']),
+        },
       ]
     }
 
@@ -78,14 +143,85 @@ export function BiosSetupScreen() {
     }
 
     if (section.id === 'peripherals') {
+      const networkStatus = driverStatusLabel(state.fs, 'network')
+      const audioStatus = driverStatusLabel(state.fs, 'audio')
       return [
         { label: 'Onboard IDE-1 Controller', value: 'Enabled' },
         { label: 'Onboard IDE-2 Controller', value: yesNo(draft.cdromEnabled), onChange: () => toggle('cdromEnabled') },
         { label: 'Onboard FDC Controller', value: yesNo(draft.floppyEnabled), onChange: () => toggle('floppyEnabled') },
         { label: 'Onboard Serial Port 1', value: '3F8/IRQ4' },
         { label: 'Onboard Parallel Port', value: '378/IRQ7' },
-        { label: 'Sound Blaster 16', value: yesNo(draft.soundEnabled), onChange: () => toggle('soundEnabled') },
-        { label: 'PCI Ethernet Boot ROM', value: yesNo(draft.networkBootEnabled), onChange: () => toggle('networkBootEnabled') },
+        { label: 'Sound Blaster 16', value: deviceStatus(draft.soundEnabled, audioStatus), onChange: () => toggle('soundEnabled') },
+        {
+          label: 'PCI Ethernet Boot ROM',
+          value: deviceStatus(draft.networkBootEnabled, networkStatus),
+          onChange: () => toggle('networkBootEnabled'),
+        },
+      ]
+    }
+
+    if (section.id === 'pnp') {
+      return [
+        { label: 'PNP OS Installed', value: yesNo(draft.pnpOsInstalled), onChange: () => toggle('pnpOsInstalled') },
+        { label: 'Resources Controlled By', value: draft.pnpOsInstalled ? 'Auto (ESCD)' : 'Manual' },
+        {
+          label: 'Reset Configuration Data',
+          value: yesNo(draft.resetConfigurationData),
+          onChange: () => toggle('resetConfigurationData'),
+          hint: 'Clears simulated browser-only ESCD records on the next portfolio OS boot.',
+        },
+        { label: 'Assign IRQ For VGA', value: yesNo(draft.assignIrqForVga), onChange: () => toggle('assignIrqForVga') },
+        { label: 'PCI Slot 1 Ethernet', value: driverStatusLabel(state.fs, 'network') },
+        { label: 'PCI Slot 2 VGA Display', value: driverStatusLabel(state.fs, 'video') },
+        { label: 'ISA Slot Sound Blaster 16', value: driverStatusLabel(state.fs, 'audio') },
+        { label: 'PS/2 Keyboard / Mouse', value: driverStatusLabel(state.fs, 'input') },
+      ]
+    }
+
+    if (section.id === 'systemHealth') {
+      const networkMissing = missingDriverFiles(state.fs, 'network').length
+      const audioMissing = missingDriverFiles(state.fs, 'audio').length
+      const videoMissing = missingDriverFiles(state.fs, 'video').length
+      const inputMissing = missingDriverFiles(state.fs, 'input').length
+      const totalDriverMissing = networkMissing + audioMissing + videoMissing + inputMissing
+      const openRecovery = () => enterRecoveryMode()
+      return [
+        {
+          label: 'Core System Files',
+          value: systemStatusLabel(state.fs),
+          hint: 'Press Enter to open Recovery Mode and verify protected files.',
+          onChange: openRecovery,
+        },
+        {
+          label: 'Network Drivers',
+          value: healthCount(driverStatusLabel(state.fs, 'network'), networkMissing),
+          hint: 'Press Enter to open Recovery Mode and restore simulated drivers if needed.',
+          onChange: openRecovery,
+        },
+        {
+          label: 'Audio Drivers',
+          value: healthCount(driverStatusLabel(state.fs, 'audio'), audioMissing),
+          hint: 'Press Enter to open Recovery Mode and restore simulated drivers if needed.',
+          onChange: openRecovery,
+        },
+        {
+          label: 'Video Drivers',
+          value: healthCount(driverStatusLabel(state.fs, 'video'), videoMissing),
+          hint: 'Press Enter to open Recovery Mode and restore simulated drivers if needed.',
+          onChange: openRecovery,
+        },
+        {
+          label: 'Input Drivers',
+          value: healthCount(driverStatusLabel(state.fs, 'input'), inputMissing),
+          hint: 'Press Enter to open Recovery Mode. Input drivers only warn; real keyboard/mouse stay usable.',
+          onChange: openRecovery,
+        },
+        {
+          label: 'Recovery Recommendation',
+          value: missingRequired.length || totalDriverMissing ? 'Run Recovery Mode' : 'No action needed',
+          hint: 'Recovery Mode restores simulated files from the portfolio OS protected cache.',
+          onChange: openRecovery,
+        },
       ]
     }
 
@@ -103,12 +239,42 @@ export function BiosSetupScreen() {
 
     if (section.id === 'power') {
       return [
-        { label: 'Power Management', value: 'User Define' },
-        { label: 'PM Control by APM', value: 'Yes' },
-        { label: 'Video Off Method', value: 'V/H SYNC+Blank' },
-        { label: 'MODEM Use IRQ', value: '3' },
-        { label: 'Soft-Off by PWR-BTTN', value: 'Instant-Off' },
-        { label: 'Resume by LAN', value: draft.networkBootEnabled ? 'Enabled' : 'Disabled' },
+        {
+          label: 'Power Management',
+          value: powerManagementLabels[draft.powerManagement],
+          hint: 'Press Enter to cycle power profiles.',
+          onChange: () => cycle('powerManagement', ['userDefine', 'maxSaving', 'minSaving', 'disabled']),
+        },
+        {
+          label: 'PM Control by APM',
+          value: draft.apmEnabled ? 'Yes' : 'No',
+          hint: 'Press Enter to toggle simulated APM support.',
+          onChange: () => toggle('apmEnabled'),
+        },
+        {
+          label: 'Video Off Method',
+          value: videoOffMethodLabels[draft.videoOffMethod],
+          hint: 'Press Enter to cycle simulated display power-down behavior.',
+          onChange: () => cycle('videoOffMethod', ['vhSyncBlank', 'blankScreen', 'dpms']),
+        },
+        {
+          label: 'MODEM Use IRQ',
+          value: draft.modemIrq,
+          hint: 'Press Enter to cycle legacy modem IRQ assignments.',
+          onChange: () => cycle('modemIrq', ['3', '4', '5', '7', 'NA']),
+        },
+        {
+          label: 'Soft-Off by PWR-BTTN',
+          value: softOffModeLabels[draft.softOffMode],
+          hint: 'Press Enter to toggle simulated power-button behavior.',
+          onChange: () => cycle('softOffMode', ['instantOff', 'delay4Sec']),
+        },
+        {
+          label: 'Resume by LAN',
+          value: draft.networkBootEnabled ? 'Enabled' : 'Disabled',
+          hint: 'Press Enter to toggle LAN wake/resume support.',
+          onChange: () => toggle('networkBootEnabled'),
+        },
       ]
     }
 
@@ -117,8 +283,8 @@ export function BiosSetupScreen() {
         {
           label: 'Windows Recovery Mode',
           value: 'Press Enter',
-          hint: 'Boot the recovery environment and reinstall missing Windows system components.',
-          onChange: () => restart('recovery', { bootProfile: 'warm' }),
+          hint: 'Boot the recovery environment and restore missing portfolio OS files from the protected cache.',
+          onChange: () => enterRecoveryMode(),
         },
         {
           label: 'System Status',
@@ -139,7 +305,7 @@ export function BiosSetupScreen() {
 
     return [{ label: 'Exit setup', value: 'Press Enter or Esc', onChange: () => restart('normal', { bootProfile: 'warm' }) }]
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, missingRequired.length, restart, section.id, state.fs])
+  }, [draft, enterRecoveryMode, missingRequired.length, restart, section.id, state.fs])
 
   const safeRowIndex = Math.min(rowIndex, Math.max(0, rows.length - 1))
 
@@ -228,8 +394,8 @@ export function BiosSetupScreen() {
   }, [rowIndex, rows, restart, section.id, draft])
 
   const activeRow = rows[safeRowIndex]
-  const sectionSplit = Math.ceil(biosSetupSections.length / 2)
-  const sectionColumns = [biosSetupSections.slice(0, sectionSplit), biosSetupSections.slice(sectionSplit)]
+  const sectionSplit = biosSetupSections.length
+  const sectionColumns = [biosSetupSections]
 
   return (
     <main className="bios-setup-screen" aria-label="Award BIOS setup utility">

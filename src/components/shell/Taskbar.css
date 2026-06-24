@@ -11,8 +11,9 @@
   gap: 4px;
   height: 33px;
   padding: 3px 4px;
-  background: silver;
-  box-shadow: inset 0 1px #fff, inset 0 2px #dfdfdf;
+  color: var(--w98-text, #111);
+  background: var(--w98-surface, silver);
+  box-shadow: inset 0 1px var(--button-highlight, #fff), inset 0 2px var(--button-face, #dfdfdf);
 }
 
 .start-button {
@@ -23,7 +24,7 @@
   min-height: 26px;
   padding: 2px 8px;
   font-weight: 700;
-  color: #111;
+  color: var(--w98-text, #111);
 }
 
 .start-button img {
@@ -53,7 +54,7 @@
   max-width: 180px;
   min-height: 24px;
   padding: 2px 8px;
-  color: #111;
+  color: var(--w98-text, #111);
 }
 
 .task-button img {
@@ -178,12 +179,12 @@
   align-items: center;
   gap: 6px;
   padding: 8px 6px 6px;
-  background: silver;
+  background: var(--w98-surface, silver);
   box-shadow:
-    inset -1px -1px #0a0a0a,
-    inset 1px 1px #fff,
-    inset -2px -2px grey,
-    inset 2px 2px #dfdfdf;
+    inset -1px -1px var(--window-frame, #0a0a0a),
+    inset 1px 1px var(--button-highlight, #fff),
+    inset -2px -2px var(--button-shadow, grey),
+    inset 2px 2px var(--button-face, #dfdfdf);
 }
 
 .volume-flyout-title,

@@ -3,8 +3,13 @@
   position: absolute;
   z-index: 10001;
   width: 210px;
-  background: silver;
-  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff;
+  color: var(--w98-text, #111);
+  background: var(--w98-surface, silver);
+  box-shadow:
+    inset -1px -1px var(--window-frame, #0a0a0a),
+    inset 1px 1px var(--button-face, #dfdfdf),
+    inset -2px -2px var(--button-shadow, grey),
+    inset 2px 2px var(--button-highlight, #fff);
   padding: 3px;
 }
 
@@ -30,7 +35,7 @@
   border: 0;
   background: transparent;
   box-shadow: none;
-  color: #111;
+  color: var(--w98-text, #111);
   text-align: left;
 }
 
@@ -44,8 +49,8 @@
 .desktop-context-menu button:focus,
 .context-row:hover,
 .context-row:focus {
-  color: #fff;
-  background: #000080;
+  color: var(--w98-highlight-text, #fff);
+  background: var(--w98-highlight, #000080);
   outline: none;
 }
 
@@ -55,8 +60,12 @@
   top: 0;
   display: none;
   width: 150px;
-  background: silver;
-  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff;
+  background: var(--w98-surface, silver);
+  box-shadow:
+    inset -1px -1px var(--window-frame, #0a0a0a),
+    inset 1px 1px var(--button-face, #dfdfdf),
+    inset -2px -2px var(--button-shadow, grey),
+    inset 2px 2px var(--button-highlight, #fff);
 }
 
 .has-submenu:hover > .context-submenu,
@@ -67,6 +76,6 @@
 .context-separator {
   height: 1px;
   margin: 4px 6px;
-  background: grey;
-  border-bottom: 1px solid #fff;
+  background: var(--button-shadow, grey);
+  border-bottom: 1px solid var(--button-highlight, #fff);
 }

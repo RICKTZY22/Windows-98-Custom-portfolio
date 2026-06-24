@@ -23,7 +23,7 @@
     grid-template-columns: 1fr;
   }
 
-  .file-tree,
+  .file-tree-shell,
   .file-webinfo {
     display: none;
   }
@@ -146,8 +146,8 @@
     font-size: 13px;
   }
 
-  .bios-section-list button {
-    white-space: normal;
+  .bios-section-item {
+    white-space: nowrap;
   }
 
   .bios-row {

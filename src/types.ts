@@ -136,14 +136,17 @@ export type AppDefinition = {
   singleton?: boolean // default true
   safeModeAvailable?: boolean // default true; network/media/sound apps set false
   systemDependencies?: string[] // protected system files required before the app can launch
+  driverDependencies?: DriverType[] // simulated driver categories required before the app can launch
 }
 
 // ---------- filesystem ----------
 export type FsNodeKind = 'folder' | 'file'
+export type DriverType = 'network' | 'audio' | 'video' | 'input' | 'storage'
 
 export type FsAttributes = {
   system?: boolean // shown as System file, lives under C:\Windows
   critical?: boolean // deleting it crashes Windows / blocks normal boot
+  driverType?: DriverType // simulated device driver category; missing drivers degrade related portfolio OS features only
   readOnly?: boolean
   hidden?: boolean
   passcode?: string // folders only: opening prompts for this code before contents show
@@ -205,6 +208,17 @@ export type BiosSettings = {
   networkBootEnabled: boolean
   soundEnabled: boolean
   virusWarning: boolean
+  pnpOsInstalled: boolean
+  resetConfigurationData: boolean
+  assignIrqForVga: boolean
+  cmosDate: string
+  cmosTime: string
+  displayMode: 'egaVga' | 'cga80' | 'mono'
+  powerManagement: 'userDefine' | 'maxSaving' | 'minSaving' | 'disabled'
+  apmEnabled: boolean
+  videoOffMethod: 'vhSyncBlank' | 'blankScreen' | 'dpms'
+  modemIrq: '3' | '4' | '5' | '7' | 'NA'
+  softOffMode: 'instantOff' | 'delay4Sec'
   haltOn: 'allErrors' | 'noErrors' | 'allButKeyboard'
   bootOrder: BootDeviceId[]
 }
@@ -239,6 +253,8 @@ export type MessageBoxRequest = {
   detail?: string
   icon: 'error' | 'warning' | 'info' | 'question'
   buttons: MessageBoxButton[] // e.g. ['yes','no'] or ['ok']
+  errorCode?: string
+  recoveryHint?: string
   onResult?: (button: MessageBoxButton) => void
 }
 
@@ -257,6 +273,7 @@ export type DesktopIconDef = {
 export type ThemeDefinition = {
   id: string
   name: string
+  description?: string
   vars: Record<string, string> // CSS custom property name -> value
   wallpaperId?: string // default wallpaper for the theme
 }
@@ -264,6 +281,7 @@ export type ThemeDefinition = {
 export type WallpaperDefinition = {
   id: string
   name: string
+  description?: string
   css: string // value for the desktop `background` shorthand
 }
 

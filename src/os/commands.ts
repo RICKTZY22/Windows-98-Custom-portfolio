@@ -1,4 +1,4 @@
-import type { AppId, BootMode, FsState, NetworkState, WindowPayload } from '../types'
+import type { AppId, BootMode, DriverType, FsState, NetworkState, WindowPayload } from '../types'
 import {
   baseName,
   copyNode,
@@ -19,6 +19,13 @@ import {
 import { osProductName } from '../data/system'
 import { pingReport, randomDhcpLease, releasedNetworkState, resolveHostIp } from './network'
 import { missingSystemFiles, restoreSystemFiles, scanregLines, sfcLines } from './recovery'
+import {
+  driverDeviceLabels,
+  driverErrorCodes,
+  driverHealthy,
+  driverRecoveryHint,
+  missingDriverFiles,
+} from './systemHealth'
 
 export type CommandEffect =
   | { type: 'openApp'; appId: AppId; payload?: WindowPayload }
@@ -51,6 +58,16 @@ const BAD_COMMAND = 'Bad command or file name'
 const VOLUME_LABEL = 'PORTFOLIO'
 const VOLUME_SERIAL = '1998-0612'
 const FREE_BYTES = 261_562_368
+
+function driverMissingCommandLines(type: DriverType, feature: string, missing: string[] = []): string[] {
+  const missingNames = missing.length ? missing.map(baseName).join(', ') : 'driver package'
+  return [
+    driverErrorCodes[type],
+    `${feature} is unavailable because the simulated ${driverDeviceLabels[type].toLowerCase()} driver is missing.`,
+    `Missing: ${missingNames}`,
+    driverRecoveryHint(type),
+  ]
+}
 
 // ---------------------------------------------------------------------------
 // Parsing
@@ -394,6 +411,9 @@ function pingCommand(args: string[], ctx: CommandContext): CommandOutput {
       ],
     }
   }
+  if (!driverHealthy(ctx.fs, 'network')) {
+    return { lines: driverMissingCommandLines('network', 'PING', missingDriverFiles(ctx.fs, 'network')) }
+  }
   const report = pingReport(host, ctx.network)
   const ip = resolveHostIp(host, ctx.network)
   if (!ip) {
@@ -414,7 +434,7 @@ function pingCommand(args: string[], ctx: CommandContext): CommandOutput {
   }
 }
 
-function ipconfigLines(network: NetworkState, all: boolean): string[] {
+function ipconfigLines(network: NetworkState, all: boolean, networkDriverMissing = false): string[] {
   const lines = ['', 'Windows 98 IP Configuration', '']
   if (all) {
     lines.push(
@@ -432,6 +452,13 @@ function ipconfigLines(network: NetworkState, all: boolean): string[] {
       `        Physical Address. . . . . . : ${network.macAddress}`,
       `        DHCP Enabled. . . . . . . . : ${network.dhcp ? 'Yes' : 'No'}`,
     )
+  }
+  if (networkDriverMissing) {
+    lines.push(
+      '        Media State . . . . . . . . : Media disconnected',
+      '        Driver State. . . . . . . . : Simulated network driver missing',
+    )
+    return lines
   }
   lines.push(
     `        IP Address. . . . . . . . . : ${network.ipAddress}`,
@@ -452,6 +479,19 @@ function ipconfigCommand(args: string[], ctx: CommandContext): CommandOutput {
       lines: ['', `IP address successfully released for adapter "${ctx.network.adapterName}".`],
       effects: [{ type: 'setNetwork', network: released }],
     }
+  }
+  if (!driverHealthy(ctx.fs, 'network')) {
+    const released = releasedNetworkState()
+    if (flag === '/renew') {
+      return {
+        lines: driverMissingCommandLines('network', 'IPCONFIG /RENEW', missingDriverFiles(ctx.fs, 'network')),
+        effects: [{ type: 'setNetwork', network: released }],
+      }
+    }
+    if (flag && flag !== '/all') {
+      return { lines: [`Unknown option: ${flag}`, 'Usage: ipconfig [/all | /release | /renew]'] }
+    }
+    return { lines: ipconfigLines(released, flag === '/all', true) }
   }
   if (flag === '/renew') {
     const lease = randomDhcpLease()
@@ -526,8 +566,8 @@ const START_TARGETS: Record<string, AppId> = {
   videoplayer: 'videoPlayer',
   sndrec32: 'soundRecorder',
   'sndrec32.exe': 'soundRecorder',
-  setup: 'setupSafety',
-  'setup.bat': 'setupSafety',
+  testdontouch: 'setupSafety',
+  'testdontouch.exe': 'setupSafety',
 }
 
 function dosModeBlocked(ctx: CommandContext): CommandOutput | null {
@@ -828,8 +868,8 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
       return { lines: [args.length ? args.join(' ') : 'ECHO is on.'] }
     case 'start':
       return startCommand(args, ctx)
-    case 'setup':
-    case 'setup.bat':
+    case 'testdontouch':
+    case 'testdontouch.exe':
       return appCommand('setupSafety', undefined, ctx)
     case 'notepad':
       return appCommand('notepad', args[0], ctx)

@@ -7,6 +7,17 @@ export const defaultBiosSettings: BiosSettings = {
   networkBootEnabled: false,
   soundEnabled: true,
   virusWarning: true,
+  pnpOsInstalled: true,
+  resetConfigurationData: false,
+  assignIrqForVga: true,
+  cmosDate: '06/14/26',
+  cmosTime: '09:42:47',
+  displayMode: 'egaVga',
+  powerManagement: 'userDefine',
+  apmEnabled: true,
+  videoOffMethod: 'vhSyncBlank',
+  modemIrq: '3',
+  softOffMode: 'instantOff',
   haltOn: 'allButKeyboard',
   bootOrder: ['hardDisk', 'cdrom', 'floppy', 'network'],
 }
@@ -24,10 +35,36 @@ export const haltOnLabels: Record<BiosSettings['haltOn'], string> = {
   allButKeyboard: 'All, But Keyboard',
 }
 
+export const displayModeLabels: Record<BiosSettings['displayMode'], string> = {
+  egaVga: 'EGA/VGA',
+  cga80: 'CGA 80',
+  mono: 'Mono',
+}
+
+export const powerManagementLabels: Record<BiosSettings['powerManagement'], string> = {
+  userDefine: 'User Define',
+  maxSaving: 'Max Saving',
+  minSaving: 'Min Saving',
+  disabled: 'Disabled',
+}
+
+export const videoOffMethodLabels: Record<BiosSettings['videoOffMethod'], string> = {
+  vhSyncBlank: 'V/H SYNC+Blank',
+  blankScreen: 'Blank Screen',
+  dpms: 'DPMS Support',
+}
+
+export const softOffModeLabels: Record<BiosSettings['softOffMode'], string> = {
+  instantOff: 'Instant-Off',
+  delay4Sec: 'Delay 4 Sec.',
+}
+
 export type BiosSetupSectionId =
   | 'standard'
   | 'features'
   | 'peripherals'
+  | 'pnp'
+  | 'systemHealth'
   | 'boot'
   | 'power'
   | 'recovery'
@@ -54,6 +91,16 @@ export const biosSetupSections: Array<{
     id: 'peripherals',
     title: 'INTEGRATED PERIPHERALS',
     help: 'Enable or disable simulated floppy, CD-ROM, sound, and Ethernet boot ROM devices.',
+  },
+  {
+    id: 'pnp',
+    title: 'PNP/PCI CONFIGURATION',
+    help: 'View simulated PCI devices and reset browser-only driver configuration data.',
+  },
+  {
+    id: 'systemHealth',
+    title: 'SYSTEM HEALTH STATUS',
+    help: 'Review protected core files and simulated portfolio OS driver status.',
   },
   {
     id: 'boot',

@@ -9,8 +9,8 @@ type Dialog = { id: number; x: number; y: number; title: string; message: string
 const DIALOG_TITLES = ['Fatal Error', 'System Error', 'Warning', 'Error', 'Critical Error', 'Windows']
 const DIALOG_MESSAGES = [
   'A fatal exception 0E has occurred in USER32.',
-  'SETUP.EXE has performed an illegal operation and will be shut down.',
-  'Cannot close SETUP.BAT: system resources are busy.',
+  'TESTDONTOUCH.EXE has performed an illegal operation and will be shut down.',
+  'Cannot close TESTDONTOUCH.EXE: system resources are busy.',
   'The application failed to respond to the close request.',
   'Memory could not be read at address 0xC0DEDBAD.',
   'WIN.COM has stopped responding.',
@@ -19,7 +19,7 @@ const DIALOG_MESSAGES = [
 ]
 
 const SETUP_LINES = [
-  'C:\\WINDOWS\\COMMAND> setup.bat',
+  'C:\\MY DOCUMENTS\\PRIVATE> testdontouch.exe',
   'Portfolio Setup Utility 4.10.1998',
   'Checking package manifest...',
   'Extracting desktop component...',
@@ -82,7 +82,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
   const crashTimer = useRef<number | null>(null)
 
   useEffect(() => {
-    setWindowTitle(windowId, 'setup.bat - Running')
+    setWindowTitle(windowId, 'testdontouch.exe - Running')
   }, [setWindowTitle, windowId])
 
   const scheduleCrash = useCallback(
@@ -125,7 +125,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
     () => {
       const currentCount = dialogs.length
       growDialogsTo(currentCount ? currentCount * 2 : 1)
-      playSound('warn')
+      playSound('error')
     },
     [dialogs.length, growDialogsTo, playSound],
   )
@@ -206,7 +206,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
         </div>
 
         <div className="setup-safety-status">
-          <span>Running setup.bat</span>
+          <span>Running testdontouch.exe</span>
           <span>{dialogs.length ? `${dialogs.length} dialog(s)` : 'Preparing'}</span>
         </div>
       </div>

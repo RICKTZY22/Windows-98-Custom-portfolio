@@ -1,21 +1,598 @@
+.credits-app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
 
-.credits-list .credits-section-title {
-  margin: 12px 0 6px;
+/* ---- Animations ---- */
+@keyframes credits-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes credits-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes credits-roll-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-135%);
+  }
+}
+
+@keyframes credits-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 0.86;
+  }
+  96% {
+    opacity: 1;
+  }
+}
+
+/* ---- Blue header band ---- */
+.credits-hero {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #000080 0%, #0b4ea2 48%, #1084c4 100%);
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px #7fbfff, inset -1px -1px #001a4d;
+}
+
+.credits-hero .identity-row {
+  margin: 0;
+}
+
+.credits-hero h2,
+.credits-hero p {
+  color: #fff;
+}
+
+/* ---- Scroll body ---- */
+.credits-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+/* Children with their own overflow get an auto-min-size of 0, so flex-shrink
+   would collapse them (the CRT screen and the credits list). Pin shrink off so
+   every block keeps its natural height and the column itself scrolls. */
+.credits-scroll > * {
+  flex-shrink: 0;
+}
+
+/* ---- CRT screen ---- */
+.crt-screen {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 18px;
+  background: #020402;
+  box-shadow: inset -1px -1px #fdfdfd, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+  animation: credits-flicker 6s infinite;
+}
+
+.crt-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.28) 2px 4px);
+}
+
+.crt-boot {
+  position: relative;
+  z-index: 3;
+  margin: 0;
+  padding: 0;
+  /* override 98.css <pre> white field background — the CRT must stay black */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.2;
+  color: #36ff6a;
+  text-shadow: 0 0 5px rgba(54, 255, 106, 0.55);
+  white-space: pre-wrap;
+}
+
+.crt-cursor {
+  animation: credits-blink 1.05s step-end infinite;
+}
+
+.crt-reveal {
+  position: relative;
+  z-index: 3;
+  margin-top: 12px;
+  text-align: center;
+  font-family: "Courier New", Consolas, monospace;
+  animation: credits-fade-up 0.7s ease both;
+}
+
+.crt-now-starring {
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #9dff9d;
+}
+
+.crt-star-name {
+  margin-top: 4px;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 0 10px #36ff6a, 0 0 24px #1b9e3e;
+}
+
+.crt-role {
+  margin-top: 6px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #36ff6a;
+}
+
+/* ---- Controls ---- */
+.credits-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.credits-controls button {
+  min-width: 0;
+  padding: 4px 12px;
+}
+
+.credits-hint {
   font-size: 11px;
-  font-weight: bold;
+  color: #404040;
+}
+
+/* ---- Logo cards ---- */
+.credits-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.credits-logo-card {
+  display: grid;
+  grid-template-rows: auto 60px auto auto;
+  gap: 6px;
+  min-height: 150px;
+  padding: 10px;
+  color: #000;
+  text-decoration: none;
+  background: #f4f4f4;
+  border: 1px solid #808080;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040;
+}
+
+.credits-logo-card:hover,
+.credits-logo-card.is-revealed {
+  background: #fff;
+}
+
+.credits-logo-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #000080;
 }
 
-.credits-list .credits-section-title:first-child {
+.credits-logo-mark {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.credits-logo-mark img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(220px, 100%);
+  max-height: 46px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.credits-logo-co {
+  font-size: 13px;
+}
+
+.credits-logo-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #333;
+  animation: credits-fade-up 0.25s ease both;
+}
+
+/* ---- Brand badges ---- */
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.logo-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.logo-badge-text strong {
+  display: block;
+  font-size: 13px;
+}
+
+.logo-badge-text small {
+  display: block;
+  font-size: 9px;
+}
+
+.anthropic-badge {
+  background: #1c1c1c;
+  border: 1px solid #333;
+  box-shadow: inset 1px 1px #444, inset -1px -1px #000;
+}
+
+.anthropic-badge .logo-badge-icon {
+  font-size: 20px;
+  font-weight: 900;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: #c96442;
+  background: #0d0d0d;
+  border: 1px solid #444;
+}
+
+.anthropic-badge .logo-badge-text strong {
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.anthropic-badge .logo-badge-text small {
+  color: #c96442;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gemini-badge {
+  background: #fff;
+  border: 1px solid #dadce0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #c0c0c0;
+}
+
+.gemini-badge .logo-badge-icon {
+  font-size: 22px;
+  background: linear-gradient(135deg, #4285f4 0%, #a855f7 50%, #ea4335 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gemini-badge .logo-badge-text strong {
+  color: #1a1a1a;
+  letter-spacing: 0.02em;
+}
+
+.gemini-badge .logo-badge-text small {
+  color: #5f6368;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Trademark note ---- */
+.credits-disclaimer {
+  padding: 8px 10px;
+  background: #ffffcc;
+  line-height: 1.4;
+}
+
+/* ---- Tech stack columns ---- */
+.credits-stack-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.credits-stack-head {
+  padding: 4px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #000080, #1c7ad6);
+}
+
+.credits-stack-list {
+  padding: 2px;
+  background: #fff;
+}
+
+.credits-stack-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px dotted #dcdcdc;
+}
+
+.credits-stack-row:hover,
+.credits-stack-row.is-open {
+  color: #fff;
+  background: #000080;
+}
+
+.credits-stack-row:focus {
+  outline: 1px dotted #000;
+  outline-offset: -3px;
+}
+
+.credits-stack-chip {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: repeating-linear-gradient(45deg, #eaeaea 0 4px, #d4d4d4 4px 8px);
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #9a9a9a;
+}
+
+.credits-stack-name {
+  flex: 1;
+}
+
+.credits-stack-mark {
+  font-size: 13px;
+  font-weight: 700;
+  color: #000080;
+}
+
+.credits-stack-row:hover .credits-stack-mark,
+.credits-stack-row.is-open .credits-stack-mark {
+  color: #fff;
+}
+
+.credits-stack-detail {
+  padding: 5px 8px 7px 27px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #333;
+  background: #fffbe2;
+  animation: credits-fade-up 0.2s ease both;
+}
+
+/* ---- Detailed list + special thanks ---- */
+.credits-list,
+.credits-thanks {
+  padding: 10px;
+  background: #fff;
+}
+
+.credits-list .credits-section-title,
+.credits-thanks .credits-section-title {
+  margin: 12px 0 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+  background: #000080;
+}
+
+.credits-list .credits-section-title:first-child,
+.credits-thanks .credits-section-title:first-child {
   margin-top: 0;
 }
 
-.credits-list article + article {
-  border-top: 1px dotted #808080;
-  padding-top: 8px;
+.credits-list article,
+.credits-thanks article {
+  display: grid;
+  gap: 3px;
+  padding: 7px 4px;
 }
 
-.credits-list p {
-  margin: 4px 0 0;
+.credits-list article + article,
+.credits-thanks article + article {
+  border-top: 1px dotted #808080;
+}
+
+.credits-list p,
+.credits-thanks p {
+  margin: 0;
   line-height: 1.4;
+}
+
+.credits-thanks {
+  border: 1px solid #808080;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040;
+}
+
+/* ---- Cinematic credits roll ---- */
+.credits-roll-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.credits-roll-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.credits-roll-fade-top,
+.credits-roll-fade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 60px;
+  pointer-events: none;
+}
+
+.credits-roll-fade-top {
+  top: 0;
+  background: linear-gradient(#020402, rgba(2, 4, 2, 0));
+}
+
+.credits-roll-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(rgba(2, 4, 2, 0), #020402);
+}
+
+.credits-roll-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Start flush with the viewport's bottom edge so the first line rises into
+     view immediately, instead of being pushed far below a tall track. */
+  top: 100%;
+  padding: 0 30px;
+  text-align: center;
+  font-family: "Courier New", Consolas, monospace;
+  color: #cfffcf;
+  animation: credits-roll-up 32s linear infinite;
+}
+
+.credits-roll-track.is-paused,
+.credits-roll-stage:hover .credits-roll-track {
+  animation-play-state: paused;
+}
+
+.roll-label {
+  margin-top: 30px;
+  font-size: 15px;
+  letter-spacing: 4px;
+  color: #7dff7d;
+}
+
+.roll-label:first-child {
+  margin-top: 6px;
+}
+
+.roll-star {
+  margin: 2px 0 14px;
+  font-size: 32px;
+  color: #fff;
+  text-shadow: 0 0 8px #36ff6a;
+}
+
+.roll-block {
+  margin: 14px 0;
+}
+
+.roll-role {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #5fbf5f;
+}
+
+.roll-co {
+  font-size: 24px;
+  color: #fff;
+}
+
+.roll-note {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.25;
+  color: #9dde9d;
+}
+
+.roll-item {
+  margin: 4px 0;
+  font-size: 20px;
+  color: #eaffea;
+}
+
+.roll-end {
+  margin: 36px 0 8px;
+  font-size: 32px;
+  color: #fff;
+  text-shadow: 0 0 10px #36ff6a;
+}
+
+.roll-sign {
+  margin-bottom: 40px;
+  font-size: 15px;
+  color: #7dff7d;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 860px) {
+  .credits-logo-grid,
+  .credits-stack-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .credits-logo-grid,
+  .credits-stack-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-screen,
+  .crt-cursor,
+  .crt-reveal,
+  .credits-logo-desc,
+  .credits-stack-detail {
+    animation: none;
+  }
+
+  .credits-roll-track {
+    position: static;
+    animation: none;
+  }
+
+  .credits-roll-stage {
+    overflow: auto;
+  }
 }

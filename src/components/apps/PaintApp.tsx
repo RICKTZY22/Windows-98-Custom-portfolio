@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import type { AppProps } from '../../types'
 import { baseName, getNode, joinPath, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
+import { driverFailureBox, requiredDriverMissing } from '../../os/systemHealth'
 
 type PaintTool = 'pencil' | 'brush' | 'eraser' | 'line' | 'rect' | 'ellipse' | 'fill' | 'text' | 'picker'
 
@@ -168,6 +169,8 @@ export function PaintApp({ windowId, payload }: AppProps) {
   const [format, setFormat] = useState<PaintFormat>('bmp')
   const [hist, setHist] = useState({ undo: 0, redo: 0 })
   const file = payload?.filePath ? getNode(state.fs, payload.filePath) : undefined
+  const videoDriverMissing = requiredDriverMissing(state.fs, ['video'])
+  const videoDriverReady = !videoDriverMissing
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -194,6 +197,12 @@ export function PaintApp({ windowId, payload }: AppProps) {
     return canvasRef.current?.getContext('2d') ?? null
   }
 
+  function ensureVideoDriver() {
+    if (!videoDriverMissing) return true
+    showMessageBox(driverFailureBox('video', 'Paint', videoDriverMissing.missing))
+    return false
+  }
+
   function syncHist() {
     setHist({ undo: undoStackRef.current.length, redo: redoStackRef.current.length })
   }
@@ -210,6 +219,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   }
 
   function undo() {
+    if (!ensureVideoDriver()) return
     const ctx = context2d()
     const canvas = canvasRef.current
     if (!ctx || !canvas) return
@@ -222,6 +232,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   }
 
   function redo() {
+    if (!ensureVideoDriver()) return
     const ctx = context2d()
     const canvas = canvasRef.current
     if (!ctx || !canvas) return
@@ -240,6 +251,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   }
 
   function begin(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!ensureVideoDriver()) return
     const context = context2d()
     const canvas = canvasRef.current
     if (!context || !canvas) return
@@ -275,6 +287,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   }
 
   function draw(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!videoDriverReady) return
     const context = context2d()
     const canvas = canvasRef.current
     const start = startPointRef.current
@@ -327,6 +340,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   }
 
   function clearCanvas() {
+    if (!ensureVideoDriver()) return
     const canvas = canvasRef.current
     const context = context2d()
     if (!canvas || !context) return
@@ -339,6 +353,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
   // Encode the canvas to match the target's extension (.bmp = Paint's native bitmap, .jpg, else .png),
   // write it, and adopt the path so subsequent saves go to the file we just wrote.
   function writeImage(target: string) {
+    if (!ensureVideoDriver()) return
     const canvas = canvasRef.current
     if (!canvas) return
     const enc = formatForExtension(target)
@@ -390,15 +405,15 @@ export function PaintApp({ windowId, payload }: AppProps) {
         <li>Help</li>
       </ul>
       <div className="paint-toolbar">
-        <button type="button" onClick={undo} disabled={hist.undo === 0} title="Undo">
+        <button type="button" onClick={undo} disabled={hist.undo === 0 || !videoDriverReady} title="Undo">
           ↶ Undo
         </button>
-        <button type="button" onClick={redo} disabled={hist.redo === 0} title="Redo">
+        <button type="button" onClick={redo} disabled={hist.redo === 0 || !videoDriverReady} title="Redo">
           ↷ Redo
         </button>
-        <button type="button" onClick={clearCanvas}>Clear</button>
-        <button type="button" onClick={save}>Save</button>
-        <button type="button" onClick={saveAs}>Save As</button>
+        <button type="button" onClick={clearCanvas} disabled={!videoDriverReady}>Clear</button>
+        <button type="button" onClick={save} disabled={!videoDriverReady}>Save</button>
+        <button type="button" onClick={saveAs} disabled={!videoDriverReady}>Save As</button>
         <label className="paint-size">
           Size
           <select value={size} onChange={(event) => setSize(Number(event.target.value))} aria-label="Brush size">
@@ -429,6 +444,12 @@ export function PaintApp({ windowId, payload }: AppProps) {
         </label>
         <input value={saveAsName} onChange={(event) => setSaveAsName(event.target.value)} aria-label="Paint save name" />
       </div>
+      {!videoDriverReady && (
+        <div className="paint-driver-warning sunken-panel">
+          VGA Display: Driver Missing. Paint tools are unavailable until Recovery Mode restores the simulated video
+          driver from the protected cache.
+        </div>
+      )}
       <div className="paint-layout classic-paint-layout">
         <div className="paint-toolbox">
           {tools.map((item) => (

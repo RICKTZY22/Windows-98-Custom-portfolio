@@ -1,4 +1,5 @@
 import './SafetyTrainingScreen.css'
+import { useEffect } from 'react'
 import { useOs } from '../../os/useOs'
 
 const DO_LIST = [
@@ -26,7 +27,13 @@ const RECOVERY_STEPS = [
 ]
 
 export function SafetyTrainingScreen() {
-  const { completeSafetyTraining } = useOs()
+  const { completeSafetyTraining, playSound } = useOs()
+
+  useEffect(() => {
+    // Celebratory "gotcha" chime when the safety lesson appears (TADA.WAV).
+    playSound('tada')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <main className="safety-training-screen" aria-label="Unknown file safety training">

@@ -2,47 +2,150 @@ import './HelpApp.css'
 import { useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { portfolioData } from '../../data/portfolioData'
+import type { IconKey } from '../../types'
 
-type Topic = 'start' | 'programs' | 'commands'
+type Topic = 'start' | 'programs' | 'files' | 'safety' | 'recovery' | 'commands' | 'troubleshooting'
 
-const TOPICS: Array<{ id: Topic; label: string }> = [
-  { id: 'start', label: 'Getting Started' },
-  { id: 'programs', label: 'The Programs' },
-  { id: 'commands', label: 'MS-DOS Prompt Commands' },
+const TOPICS: Array<{ id: Topic; label: string; hint: string; icon: IconKey }> = [
+  { id: 'start', label: 'Getting Started', hint: 'Desktop, windows, sound, and navigation.', icon: 'windows' },
+  { id: 'programs', label: 'The Programs', hint: 'What each app is for.', icon: 'programGroup' },
+  { id: 'files', label: 'Files and Drivers', hint: 'Virtual C: drive, Recycle Bin, and simulated drivers.', icon: 'hardDrive' },
+  { id: 'safety', label: 'Safety Guide', hint: 'Educational simulations and what is never real.', icon: 'help' },
+  { id: 'recovery', label: 'BIOS and Recovery', hint: 'Boot setup, protected cache, and system repair.', icon: 'gears' },
+  { id: 'commands', label: 'MS-DOS Commands', hint: 'Prompt commands supported by the portfolio OS.', icon: 'terminal' },
+  { id: 'troubleshooting', label: 'Troubleshooting', hint: 'Common fixes when something looks broken.', icon: 'search' },
+]
+
+const QUICK_START = [
+  'Double-click a desktop icon, or select it and press Enter, to open an app.',
+  'Use the Start button for Programs, Documents, Settings, Run, Help, and Credits.',
+  'Drag a window title bar to move it. Drag an edge or corner to resize it.',
+  'Use the taskbar buttons to switch between open apps.',
+  'Right-click the desktop for refresh, arrange icons, and display options.',
+]
+
+const PROGRAMS = [
+  {
+    name: 'My Computer / File Manager',
+    icon: 'computer' as IconKey,
+    text: 'Browse the virtual C: drive, create folders, rename items, copy, move, delete, and inspect simulated system files.',
+  },
+  {
+    name: 'Network Neighborhood',
+    icon: 'network' as IconKey,
+    text: 'Classic network browser with safe sample hosts. It depends on simulated network drivers and never touches the real network.',
+  },
+  {
+    name: 'Internet Explorer',
+    icon: 'internet' as IconKey,
+    text: 'Retro browser surface for archive-style browsing. Network-driver checks keep the educational simulation consistent.',
+  },
+  {
+    name: 'Paint',
+    icon: 'paint' as IconKey,
+    text: 'Draw with pencil, brush, shapes, fill, picker, and text. Save browser-only images into the virtual Paint folder.',
+  },
+  {
+    name: 'Media Player / Sound Recorder / Video Player',
+    icon: 'mediaPlayer' as IconKey,
+    text: 'Audio and video surfaces demonstrate driver dependencies without accessing your real device drivers.',
+  },
+  {
+    name: 'MS-DOS Prompt',
+    icon: 'terminal' as IconKey,
+    text: 'A simulated command line for file commands, network checks, system file scans, app launching, and help output.',
+  },
+  {
+    name: 'Control Panel',
+    icon: 'controlPanel' as IconKey,
+    text: 'Change wallpaper, colors, pointer style, sounds, display settings, and network status inside the portfolio OS.',
+  },
+  {
+    name: 'Recycle Bin',
+    icon: 'recycleBin' as IconKey,
+    text: 'Deleted virtual files go here first. Restore them safely or empty the bin to test recovery behavior.',
+  },
+]
+
+const DRIVER_RULES = [
+  {
+    name: 'Network drivers',
+    files: 'winsock.dll, wsock32.dll, netcfg.dll, ndis.vxd, tcpip.sys, el90xnd3.sys',
+    result: 'Network Neighborhood, Internet Explorer networking, ping, ipconfig, and network status become unavailable.',
+  },
+  {
+    name: 'Audio drivers',
+    files: 'sound.drv, wdmaud.drv',
+    result: 'Startup sounds, Media Player sound, Sound Recorder, and sound settings enter a disabled state.',
+  },
+  {
+    name: 'Video drivers',
+    files: 'display.drv, vga.drv, gpu.vxd, ddraw.dll',
+    result: 'Paint, image preview, video rendering, gallery previews, and display settings can be blocked.',
+  },
+  {
+    name: 'Core System32 files',
+    files: 'Protected shell, kernel, registry, and boot files',
+    result: 'Missing critical files can trigger load failure, crash screens, or safe-mode failure.',
+  },
 ]
 
 const DOS_COMMANDS: Array<{ cmd: string; desc: string }> = [
-  { cmd: 'dir', desc: 'List the files and folders in the current directory.' },
+  { cmd: 'dir', desc: 'List files and folders in the current directory.' },
   { cmd: 'cd / chdir', desc: 'Change directory. Use "cd .." to go up one level.' },
   { cmd: 'tree', desc: 'Show the folder structure as a tree.' },
   { cmd: 'type', desc: 'Print a text file to the screen.' },
   { cmd: 'md / mkdir', desc: 'Create a new folder.' },
   { cmd: 'rd / rmdir', desc: 'Remove a folder.' },
-  { cmd: 'del / erase', desc: 'Delete a file (sent to the Recycle Bin).' },
-  { cmd: 'copy', desc: 'Copy a file to another location.' },
-  { cmd: 'move', desc: 'Move a file to another location.' },
+  { cmd: 'del / erase', desc: 'Delete a virtual file and send it to the Recycle Bin when possible.' },
+  { cmd: 'copy', desc: 'Copy a file to another virtual location.' },
+  { cmd: 'move', desc: 'Move a file to another virtual location.' },
   { cmd: 'ren / rename', desc: 'Rename a file or folder.' },
-  { cmd: 'attrib', desc: 'Show file attributes (read-only, system, hidden).' },
-  { cmd: 'cls', desc: 'Clear the screen.' },
+  { cmd: 'attrib', desc: 'Show read-only, hidden, system, and critical attributes.' },
+  { cmd: 'cls', desc: 'Clear the prompt screen.' },
   { cmd: 'echo', desc: 'Print text back to the screen.' },
-  { cmd: 'ver / winver', desc: 'Show the Windows version.' },
-  { cmd: 'date / time', desc: 'Show the current date or time.' },
+  { cmd: 'ver / winver', desc: 'Show the simulated Windows version.' },
+  { cmd: 'date / time', desc: 'Show the current simulated date or time.' },
   { cmd: 'mem', desc: 'Show simulated memory usage.' },
-  { cmd: 'chkdsk / scandisk', desc: 'Check the simulated disk for errors.' },
-  { cmd: 'format', desc: 'Pretend to format a drive (it is only simulated!).' },
-  { cmd: 'ping', desc: 'Ping a host through the simulated Ethernet adapter.' },
-  { cmd: 'ipconfig / winipcfg', desc: 'Show the network adapter configuration.' },
-  { cmd: 'scanreg', desc: 'Scan or restore the registry (system recovery).' },
-  { cmd: 'sfc', desc: 'System File Checker — verify protected system files.' },
-  { cmd: 'start <name>', desc: 'Launch a program, e.g. "start notepad".' },
-  { cmd: 'notepad / mspaint / calc / iexplore', desc: 'Open that accessory directly.' },
-  { cmd: 'win', desc: 'Return to the Windows desktop (from the DOS-only screen).' },
-  { cmd: 'help', desc: 'List the available commands inside the prompt.' },
-  { cmd: 'exit', desc: 'Close the MS-DOS Prompt.' },
+  { cmd: 'chkdsk / scandisk', desc: 'Check the simulated disk for problems.' },
+  { cmd: 'format', desc: 'Show a safe fake format flow. It does not touch the real computer.' },
+  { cmd: 'ping', desc: 'Ping through the simulated network adapter when network drivers are present.' },
+  { cmd: 'ipconfig / winipcfg', desc: 'Show simulated TCP/IP adapter details.' },
+  { cmd: 'scanreg', desc: 'Scan or restore simulated registry health.' },
+  { cmd: 'sfc', desc: 'Verify protected system files and report missing critical files or drivers.' },
+  { cmd: 'start <name>', desc: 'Launch an app, for example "start notepad" or "start paint".' },
+  { cmd: 'notepad / mspaint / calc / iexplore', desc: 'Open a classic accessory directly.' },
+  { cmd: 'win', desc: 'Return to the Windows desktop from DOS-only mode.' },
+  { cmd: 'help', desc: 'List supported commands inside the prompt.' },
+  { cmd: 'exit', desc: 'Close MS-DOS Prompt.' },
+]
+
+const TROUBLESHOOTING = [
+  {
+    issue: 'An app says a driver is missing',
+    fix: 'Open BIOS Setup or Recovery Mode and restore missing simulated drivers from the protected cache.',
+  },
+  {
+    issue: 'The system fails to boot after deleting files',
+    fix: 'Use Recovery Mode. Missing critical System32 files are intentionally treated as boot-breaking in the simulation.',
+  },
+  {
+    issue: 'Audio does not play',
+    fix: 'Click once anywhere on the desktop first. Browsers block sound until the page receives user interaction.',
+  },
+  {
+    issue: 'Paint or video preview is blocked',
+    fix: 'Check video drivers in BIOS System Health or run Recovery Mode to restore display.drv, vga.drv, gpu.vxd, or ddraw.dll.',
+  },
+  {
+    issue: 'Network Neighborhood or ping is unavailable',
+    fix: 'Restore network drivers such as winsock.dll, wsock32.dll, netcfg.dll, ndis.vxd, tcpip.sys, or el90xnd3.sys.',
+  },
 ]
 
 export function HelpApp() {
   const [topic, setTopic] = useState<Topic>('start')
+  const activeTopic = TOPICS.find((item) => item.id === topic) ?? TOPICS[0]
 
   return (
     <div className="app-content help-app">
@@ -53,6 +156,13 @@ export function HelpApp() {
         <li>Options</li>
         <li>Help</li>
       </ul>
+      <div className="help-header">
+        <img src={win98Icons[activeTopic.icon]} alt="" />
+        <div>
+          <h2>{activeTopic.label}</h2>
+          <p>{activeTopic.hint}</p>
+        </div>
+      </div>
       <div className="help-layout">
         <div className="sunken-panel help-nav">
           <p className="help-nav-title">
@@ -66,7 +176,11 @@ export function HelpApp() {
                   className={`help-nav-btn ${topic === item.id ? 'selected' : ''}`}
                   onClick={() => setTopic(item.id)}
                 >
-                  {item.label}
+                  <img src={win98Icons[item.icon]} alt="" />
+                  <span>
+                    <strong>{item.label}</strong>
+                    <small>{item.hint}</small>
+                  </span>
                 </button>
               </li>
             ))}
@@ -77,53 +191,149 @@ export function HelpApp() {
             <article className="help-article">
               <h2>Welcome to {portfolioData.profile.name}'s Windows 98 Portfolio</h2>
               <p>
-                This whole page is a simulated Windows 98 desktop running in your browser. Everything below works
-                like the real thing — explore it the way you would an old PC.
+                This is a simulated Windows 98-style desktop running in the browser. It behaves like a tiny portfolio
+                operating system, but it is still just a React app with a virtual filesystem.
               </p>
-              <h3>Opening things</h3>
+              <div className="help-callout">
+                Nothing here can read, change, delete, download, or repair files on the real computer. All risky-looking
+                behavior stays inside the portfolio OS simulation.
+              </div>
+              <h3>Quick start</h3>
               <ul className="help-list">
-                <li><b>Double-click</b> a desktop icon (or select it and press <b>Enter</b>) to open it.</li>
-                <li>Click <b>Start</b> in the bottom-left for the full list of Programs, Settings and Documents.</li>
-                <li>Drag a rubber-band box across the desktop to select several icons at once.</li>
-                <li>Right-click the desktop for Refresh, Arrange Icons and display options.</li>
+                {QUICK_START.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
-              <h3>Working with windows</h3>
-              <ul className="help-list">
-                <li>Drag a window's <b>title bar</b> to move it; drag an edge or corner to resize.</li>
-                <li>Use the <b>_ □ ✕</b> buttons to minimize, maximize and close.</li>
-                <li>Click a button on the <b>taskbar</b> to switch between open windows.</li>
-              </ul>
-              <h3>Sound</h3>
-              <p>
-                Browsers block audio until you interact with the page, so click anywhere once and the startup sound and
-                effects will kick in. Toggle sound from the speaker icon in the taskbar tray or in Control Panel → Sounds.
-              </p>
+              <h3>Window controls</h3>
+              <div className="help-card-grid">
+                <section>
+                  <strong>Move and resize</strong>
+                  <p>Drag the title bar, borders, or corners just like a classic desktop window.</p>
+                </section>
+                <section>
+                  <strong>Minimize and restore</strong>
+                  <p>Use the taskbar buttons to bring hidden windows back.</p>
+                </section>
+                <section>
+                  <strong>Maximize</strong>
+                  <p>Some apps open wide by default; smaller utilities like Calculator stay compact.</p>
+                </section>
+              </div>
             </article>
           )}
 
           {topic === 'programs' && (
             <article className="help-article">
               <h2>The Programs</h2>
+              <p>
+                Each program is a portfolio surface. Some are functional tools, some are educational simulations, and
+                some are nostalgic wrappers around your projects.
+              </p>
+              <div className="help-program-grid">
+                {PROGRAMS.map((program) => (
+                  <section key={program.name} className="help-program-card">
+                    <img src={win98Icons[program.icon]} alt="" />
+                    <div>
+                      <strong>{program.name}</strong>
+                      <p>{program.text}</p>
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </article>
+          )}
+
+          {topic === 'files' && (
+            <article className="help-article">
+              <h2>Files, Drivers, and the Virtual C: Drive</h2>
+              <p>
+                The portfolio keeps its own browser-only file tree. Files can be created, renamed, copied, moved, and
+                deleted without touching the host machine.
+              </p>
+              <h3>Driver dependency model</h3>
+              <p>
+                Driver files are educational switches. Deleting one disables related simulated features while the rest
+                of the portfolio keeps running.
+              </p>
+              <table className="help-commands">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Example files</th>
+                    <th>Effect when missing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {DRIVER_RULES.map((rule) => (
+                    <tr key={rule.name}>
+                      <td><strong>{rule.name}</strong></td>
+                      <td>{rule.files}</td>
+                      <td>{rule.result}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="help-callout">
+                Input drivers may show warnings only. The app will not intentionally trap the real mouse or keyboard.
+              </div>
+            </article>
+          )}
+
+          {topic === 'safety' && (
+            <article className="help-article">
+              <h2>Safety Guide</h2>
+              <p>
+                This portfolio uses words like driver, virus, malware, setup.bat, BIOS, recovery, crash, and System32
+                for educational awareness. They describe browser-only UI states, not real host-machine actions.
+              </p>
+              <div className="help-card-grid">
+                <section>
+                  <strong>Educational only</strong>
+                  <p>Risky-looking files and prompts exist to teach users not to click random files or links blindly.</p>
+                </section>
+                <section>
+                  <strong>No real OS access</strong>
+                  <p>The app cannot inspect or modify the real operating system, real drivers, or real System32.</p>
+                </section>
+                <section>
+                  <strong>Recovery is simulated</strong>
+                  <p>Recovery restores virtual files from the app's protected cache, not from the actual computer.</p>
+                </section>
+                <section>
+                  <strong>Clear user messaging</strong>
+                  <p>Error dialogs should say "simulated driver", "portfolio OS", and "Recovery Mode" when possible.</p>
+                </section>
+              </div>
+            </article>
+          )}
+
+          {topic === 'recovery' && (
+            <article className="help-article">
+              <h2>BIOS Setup and Recovery Mode</h2>
+              <p>
+                BIOS Setup is a retro control panel for the simulated machine. It reports boot settings, driver health,
+                device status, and recovery options.
+              </p>
+              <h3>BIOS sections</h3>
               <dl className="help-defs">
-                <dt>My Computer</dt>
-                <dd>Browse the virtual C: drive — create, rename, copy, move and delete files.</dd>
-                <dt>My Pictures</dt>
-                <dd>A gallery of your images and videos (from C:\My Pictures and C:\My Videos).</dd>
-                <dt>Notepad &amp; WordPad</dt>
-                <dd>Plain-text and rich-text editors. WordPad saves fonts, sizes and colours with the document.</dd>
-                <dt>Paint</dt>
-                <dd>Draw with pencil, brush, shapes, fill bucket, eyedropper and text. Undo/redo and save as PNG.</dd>
-                <dt>Internet Explorer</dt>
-                <dd>Browse real Web Archive snapshots. It opens on archived Google and routes typed sites through Wayback.</dd>
-                <dt>Media Player</dt>
-                <dd>Plays local clips you add under public/media (listed in src/data/media.ts).</dd>
-                <dt>Control Panel</dt>
-                <dd>Change the colour scheme and wallpaper, the mouse pointer, and sound settings.</dd>
-                <dt>MS-DOS Prompt</dt>
-                <dd>A working command line — see the next topic for the commands it understands.</dd>
-                <dt>Recycle Bin</dt>
-                <dd>Holds deleted files so you can restore them, or empty it to remove them for good.</dd>
+                <dt>Standard CMOS Setup</dt>
+                <dd>Shows browser-PC date, time, disk, CD-ROM, floppy, memory, and display information.</dd>
+                <dt>BIOS Features Setup</dt>
+                <dd>Controls boot behavior, safe mode, quick boot, warnings, and educational protection toggles.</dd>
+                <dt>Integrated Peripherals</dt>
+                <dd>Shows simulated network, sound, display, storage, mouse, and keyboard device status.</dd>
+                <dt>System Health Status</dt>
+                <dd>Reports missing core files and missing network, audio, video, or input drivers.</dd>
+                <dt>Recovery Mode</dt>
+                <dd>Scans the protected cache and restores missing critical files and simulated drivers.</dd>
               </dl>
+              <h3>When to use Recovery</h3>
+              <ul className="help-list">
+                <li>An app says a simulated driver is missing.</li>
+                <li>Network, sound, video, Paint, or preview features are disabled.</li>
+                <li>The system reports missing critical System32 files.</li>
+                <li>Safe mode warns that too many core files are missing.</li>
+              </ul>
             </article>
           )}
 
@@ -131,8 +341,8 @@ export function HelpApp() {
             <article className="help-article">
               <h2>MS-DOS Prompt Commands</h2>
               <p>
-                Open <b>Start → Programs → MS-DOS Prompt</b> and type any of these, then press Enter. Paths use the
-                Windows style, e.g. <code>cd "C:\My Documents"</code>.
+                Open Start - Programs - MS-DOS Prompt and type a command, then press Enter. Paths use Windows style,
+                for example <code>cd "C:\My Documents"</code>.
               </p>
               <table className="help-commands">
                 <thead>
@@ -152,11 +362,29 @@ export function HelpApp() {
               </table>
             </article>
           )}
+
+          {topic === 'troubleshooting' && (
+            <article className="help-article">
+              <h2>Troubleshooting</h2>
+              <p>
+                Most issues are intentional states in the simulation. Use this page to decide whether to restore a
+                driver, restore a core file, or simply interact with the page once.
+              </p>
+              <div className="help-troubleshooting">
+                {TROUBLESHOOTING.map((item) => (
+                  <section key={item.issue}>
+                    <strong>{item.issue}</strong>
+                    <p>{item.fix}</p>
+                  </section>
+                ))}
+              </div>
+            </article>
+          )}
         </div>
       </div>
       <div className="status-bar">
-        <p className="status-bar-field">{portfolioData.profile.name} — Windows 98 Portfolio Edition</p>
-        <p className="status-bar-field">Help</p>
+        <p className="status-bar-field">{portfolioData.profile.name} - Windows 98 Portfolio Edition</p>
+        <p className="status-bar-field">{activeTopic.label}</p>
       </div>
     </div>
   )

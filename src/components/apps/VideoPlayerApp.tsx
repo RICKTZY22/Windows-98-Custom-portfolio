@@ -5,6 +5,7 @@ import { win98Icons } from '../../data/icons'
 import { localMediaLibrary } from '../../data/media'
 import { extensionOf, formatSize, getNode, listDirectory } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
+import { driverFailureBox, requiredDriverMissing } from '../../os/systemHealth'
 
 const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'webm', 'mov', 'mkv', 'ogg'])
 
@@ -79,6 +80,11 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
 
   const loadTrack = useCallback(
     (track: VideoTrack, autoplay = false) => {
+      const missingDriver = requiredDriverMissing(state.fs, ['video', 'audio'])
+      if (missingDriver) {
+        showMessageBox(driverFailureBox(missingDriver.type, 'Video Player', missingDriver.missing))
+        return
+      }
       if (!track.src) {
         showMessageBox({
           title: 'Video Player',
@@ -96,7 +102,7 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
       setDuration(0)
       setError(undefined)
     },
-    [showMessageBox],
+    [showMessageBox, state.fs],
   )
 
   useEffect(() => {
@@ -121,6 +127,11 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
   function togglePlay() {
     const video = videoRef.current
     if (!video || !currentSrc) return
+    const missingDriver = requiredDriverMissing(state.fs, ['video', 'audio'])
+    if (missingDriver) {
+      showMessageBox(driverFailureBox(missingDriver.type, 'Video Player', missingDriver.missing))
+      return
+    }
     if (video.paused) {
       void video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
     } else {

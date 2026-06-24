@@ -54,7 +54,8 @@ export const themes: ThemeDefinition[] = [
   {
     id: 'windowsStandard',
     name: 'Windows Standard',
-    wallpaperId: 'none',
+    description: 'Classic blue title bars, silver controls, and the familiar portfolio sky desktop.',
+    wallpaperId: 'portfolioSky',
     vars: makeVars({
       desktop: '#008080',
       titlebar1: '#000080',
@@ -76,6 +77,7 @@ export const themes: ThemeDefinition[] = [
   {
     id: 'desertSunset',
     name: 'Desert Sunset',
+    description: 'Warm amber title bars and sand-colored surfaces for a late-afternoon desktop.',
     wallpaperId: 'none',
     vars: makeVars({
       desktop: '#9e6b3f',
@@ -98,6 +100,7 @@ export const themes: ThemeDefinition[] = [
   {
     id: 'eggplant',
     name: 'Eggplant',
+    description: 'Muted violet chrome with soft lavender surfaces for a more dramatic shell.',
     wallpaperId: 'none',
     vars: makeVars({
       desktop: '#553355',
@@ -120,6 +123,7 @@ export const themes: ThemeDefinition[] = [
   {
     id: 'rainyDay',
     name: 'Rainy Day',
+    description: 'Blue-gray windows and cool highlights, like a calm rainy afternoon.',
     wallpaperId: 'none',
     vars: makeVars({
       desktop: '#31485f',
@@ -142,6 +146,7 @@ export const themes: ThemeDefinition[] = [
   {
     id: 'highContrast',
     name: 'High Contrast',
+    description: 'Black surfaces, bright text, and yellow selection for maximum contrast.',
     wallpaperId: 'none',
     vars: makeVars({
       desktop: '#000000',
@@ -165,6 +170,7 @@ export const themes: ThemeDefinition[] = [
     // Internal theme used by safe mode: flat 16-color VGA look, no gradients.
     id: 'safeMode16',
     name: 'Safe Mode (16 color)',
+    description: 'Internal safe-mode theme. It is intentionally plain and not selectable.',
     wallpaperId: 'none',
     vars: makeVars({
       desktop: '#000000',
@@ -187,27 +193,36 @@ export const themes: ThemeDefinition[] = [
 ]
 
 export const wallpapers: WallpaperDefinition[] = [
-  { id: 'none', name: '(None)', css: 'none' },
-  { id: 'teal', name: 'Teal', css: '#008080' },
+  { id: 'none', name: '(None)', description: 'Use only the desktop color from the selected scheme.', css: 'none' },
+  { id: 'teal', name: 'Teal', description: 'Solid Windows 98 teal.', css: '#008080' },
+  {
+    id: 'portfolioSky',
+    name: 'Portfolio Sky',
+    description: 'The soft cloud-style wallpaper used by the portfolio desktop.',
+    css: 'radial-gradient(ellipse at 18% 16%, rgba(255,255,255,0.9) 0 7%, rgba(255,255,255,0.55) 12%, transparent 24%), radial-gradient(ellipse at 62% 20%, rgba(255,255,255,0.72) 0 9%, transparent 23%), radial-gradient(ellipse at 34% 58%, rgba(255,255,255,0.62) 0 6%, transparent 20%), linear-gradient(180deg, #9fd3ee 0%, #6fb0d2 58%, #318aa9 100%)',
+  },
   {
     id: 'clouds98',
     name: 'Clouds',
+    description: 'A brighter blue gradient inspired by classic setup skies.',
     css: 'linear-gradient(180deg, #1e7ad4 0%, #5ba6e8 35%, #9cc8f0 65%, #d2e8fa 100%)',
   },
   {
     id: 'setupBlue',
     name: 'Setup Blue',
+    description: 'Deep installer-blue gradient for a setup screen mood.',
     css: 'linear-gradient(180deg, #00007a 0%, #0000a8 45%, #1084d0 100%)',
   },
   {
     id: 'grid',
     name: 'Grid',
+    description: 'A subtle retro grid on dark teal.',
     css: 'repeating-linear-gradient(0deg, #006666 0, #006666 1px, transparent 1px, transparent 24px), repeating-linear-gradient(90deg, #006666 0, #006666 1px, transparent 1px, transparent 24px) #004f4f',
   },
 ]
 
 export const defaultThemeId = 'windowsStandard'
-export const defaultWallpaperId = 'none'
+export const defaultWallpaperId = 'portfolioSky'
 
 const themesById: Record<string, ThemeDefinition> = Object.fromEntries(
   themes.map((theme) => [theme.id, theme]),

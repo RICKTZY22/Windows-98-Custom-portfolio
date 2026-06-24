@@ -20,11 +20,9 @@ import type {
   WindowRect,
   WindowState,
 } from '../types'
-import { appDefinitions, desktopIconDefs } from '../data/apps'
+import { appDefinitions } from '../data/apps'
 import { defaultBiosSettings } from '../data/bios'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../data/initialFilesystem'
-import { portfolioData } from '../data/portfolioData'
-import { controlPanelSections } from '../data/system'
 import { defaultThemeId, defaultWallpaperId, getTheme, getWallpaper } from '../data/themes'
 import {
   baseName,
@@ -45,167 +43,26 @@ import {
 } from './filesystem'
 import { defaultNetworkState, randomDhcpLease, releasedNetworkState } from './network'
 import { isSystemHealthy, missingRequiredSystemFiles, shouldSafeModeBlueScreen } from './recovery'
+import { driverFailureBox, driverHealthy, requiredDriverMissing, systemFileFailureBox } from './systemHealth'
 import { applyCursorScheme, applyTheme, applyWallpaper } from './themes'
 import { isAudioUnlocked, playSound as synthPlaySound, preloadSoundFiles, unlockAudio } from './audio'
 import { clearPersistedState, loadPersistedState, persistState } from './persistence'
 import { OsContext, type OsContextValue } from './useOs'
+import {
+  clampIconPosition,
+  clampRect,
+  defaultDesktopIconPositions,
+  iconFor,
+  instanceIdFor,
+  missingAppDependency,
+  missingAppDriverDependency,
+  nextActiveWindow,
+  titleFor,
+} from './windowManager'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const TASKBAR_HEIGHT = 33
-const ICON_W = 88
-const ICON_H = 84
-const ICON_GAP_X = 8
-const ICON_GAP_Y = 12
-
-function viewportSize(): { width: number; height: number } {
-  if (typeof window === 'undefined') {
-    return { width: 1024, height: 768 }
-  }
-  return { width: window.innerWidth, height: window.innerHeight }
-}
-
-function clampRect(rect: WindowRect, offset: number): WindowRect {
-  const { width: vw, height: vh } = viewportSize()
-  const width = Math.min(rect.width, vw - 20)
-  const height = Math.min(rect.height, vh - 56)
-  const maxX = Math.max(8, vw - width - 8)
-  const maxY = Math.max(8, vh - height - 46)
-  return {
-    width,
-    height,
-    x: Math.max(8, Math.min(rect.x + offset, maxX)),
-    y: Math.max(8, Math.min(rect.y + offset, maxY)),
-  }
-}
-
-function clampIconPosition(pos: Point): Point {
-  const { width, height } = viewportSize()
-  const desktopHeight = Math.max(160, height - TASKBAR_HEIGHT)
-  return {
-    x: Math.max(4, Math.min(pos.x, width - ICON_W - 4)),
-    y: Math.max(4, Math.min(pos.y, desktopHeight - ICON_H - 4)),
-  }
-}
-
-function defaultDesktopIconPositions(): Record<string, Point> {
-  const { width, height } = viewportSize()
-  const desktopHeight = Math.max(160, height - TASKBAR_HEIGHT)
-  const positions: Record<string, Point> = {}
-
-  if (width <= 720) {
-    const columns = Math.min(3, desktopIconDefs.length)
-    const gridWidth = columns * ICON_W + (columns - 1) * ICON_GAP_X
-    const startX = Math.max(8, Math.floor((width - gridWidth) / 2))
-    desktopIconDefs.forEach((def, index) => {
-      const column = index % columns
-      const row = Math.floor(index / columns)
-      positions[def.id] = clampIconPosition({
-        x: startX + column * (ICON_W + ICON_GAP_X),
-        y: 8 + row * (ICON_H + ICON_GAP_Y),
-      })
-    })
-    return positions
-  }
-
-  const rowsPerColumn = Math.max(1, Math.floor((desktopHeight - 24) / (ICON_H + ICON_GAP_Y)))
-  desktopIconDefs.forEach((def, index) => {
-    const column = Math.floor(index / rowsPerColumn)
-    const row = index % rowsPerColumn
-    positions[def.id] = clampIconPosition({
-      x: 10 + column * (ICON_W + ICON_GAP_X),
-      y: 12 + row * (ICON_H + ICON_GAP_Y),
-    })
-  })
-  return positions
-}
-
-let instanceCounter = 0
-
-function instanceIdFor(appId: AppId, payload?: WindowPayload): string {
-  const singleton = appDefinitions[appId].singleton !== false
-  if (appId === 'explorer') {
-    return `explorer:${normalizePath(payload?.path ?? 'C:\\').toLowerCase()}`
-  }
-  if (appId === 'projectDetails' && payload?.projectId) {
-    return `projectDetails:${payload.projectId}`
-  }
-  if (appId === 'notepad' && payload?.filePath) {
-    return `notepad:${normalizePath(payload.filePath).toLowerCase()}`
-  }
-  if (appId === 'wordpad' && payload?.filePath) {
-    return `wordpad:${normalizePath(payload.filePath).toLowerCase()}`
-  }
-  if (appId === 'imageViewer' && payload?.filePath) {
-    return `imageViewer:${normalizePath(payload.filePath).toLowerCase()}`
-  }
-  if (appId === 'videoPlayer' && payload?.filePath) {
-    return `videoPlayer:${normalizePath(payload.filePath).toLowerCase()}`
-  }
-  if (singleton) {
-    return appId
-  }
-  instanceCounter += 1
-  return `${appId}#${instanceCounter}`
-}
-
-function titleFor(appId: AppId, fs: FsState, payload?: WindowPayload): string {
-  const def = appDefinitions[appId]
-  switch (appId) {
-    case 'explorer': {
-      const path = normalizePath(payload?.path ?? 'C:\\')
-      if (path === 'C:\\') return 'My Computer'
-      const node = getNode(fs, path)
-      return `Exploring - ${node?.path ?? path}`
-    }
-    case 'notepad':
-      return payload?.filePath ? `${baseName(payload.filePath)} - Notepad` : 'Untitled - Notepad'
-    case 'wordpad':
-      return payload?.filePath ? `${baseName(payload.filePath)} - WordPad` : 'Document - WordPad'
-    case 'pdfViewer':
-      return payload?.filePath ? `${baseName(payload.filePath)} - PDF Viewer` : def.title
-    case 'paint':
-      return payload?.filePath ? `${baseName(payload.filePath)} - Paint` : 'untitled - Paint'
-    case 'imageViewer':
-      return payload?.filePath ? `${baseName(payload.filePath)} - Imaging Preview` : def.title
-    case 'mediaPlayer':
-      return payload?.filePath ? `${baseName(payload.filePath)} - Media Player` : def.title
-    case 'videoPlayer':
-      return payload?.filePath ? `${baseName(payload.filePath)} - Video Player` : def.title
-    case 'projectDetails':
-      return portfolioData.projects.find((project) => project.id === payload?.projectId)?.name ?? def.title
-    case 'controlPanel': {
-      if (!payload?.controlPanelSection) return def.title
-      const section = controlPanelSections.find((item) => item.id === payload.controlPanelSection)
-      return section ? `${section.title} Properties` : def.title
-    }
-    case 'dosGame':
-      return payload?.windowTitle ?? def.title
-    default:
-      return def.title
-  }
-}
-
-function iconFor(appId: AppId, payload?: WindowPayload) {
-  if (appId === 'explorer') {
-    const path = normalizePath(payload?.path ?? 'C:\\')
-    return path === 'C:\\' ? appDefinitions.explorer.icon : 'folderOpen'
-  }
-  if (appId === 'dosGame' && payload?.url) {
-    if (payload.url.includes('wolf')) return 'wolfenstein'
-    if (payload.url.includes('doom')) return 'doom'
-  }
-  return appDefinitions[appId].icon
-}
-
-// Exported for unit testing app launch dependency rules.
+// Re-exported for existing unit tests while the provider boundary is phased out.
 // eslint-disable-next-line react-refresh/only-export-components
-export function missingAppDependency(appId: AppId, fs: FsState): string | null {
-  const dependencies = appDefinitions[appId].systemDependencies ?? []
-  return dependencies.map(normalizePath).find((path) => !fs.nodes[path]) ?? null
-}
+export { missingAppDependency, missingAppDriverDependency } from './windowManager'
 
 function protectionCrash(path: string): CrashState {
   return {
@@ -231,9 +88,9 @@ function safeModeCrash(missing: string[]): CrashState {
 function safetyTrainingCrash(): CrashState {
   return {
     title: 'Windows protection error',
-    message: 'Windows has become unstable because an unknown setup script exhausted system resources.',
+    message: 'Windows has become unstable because an untrusted program exhausted system resources.',
     detail:
-      'While initializing device USER32: setup.bat opened repeated modal dialogs inside the Portfolio OS sandbox. No real files, network requests, downloads, or host system commands were executed.',
+      'While initializing device USER32: testdontouch.exe opened repeated modal dialogs inside the Portfolio OS sandbox. No real files, network requests, downloads, or host system commands were executed.',
     stopCode: '0E : 0028 : C0DEF00D',
     crashedAt: nowStamp(),
   }
@@ -248,7 +105,7 @@ function createDefaultState(): OsState {
     bootMode: 'normal',
     bootProfile: 'cold',
     bootTarget: 'normal',
-    bios: persisted?.bios ?? defaultBiosSettings,
+    bios: { ...defaultBiosSettings, ...persisted?.bios },
     fs,
     windows: [],
     activeWindowId: undefined,
@@ -298,6 +155,7 @@ type Action =
   | { type: 'SET_CURSOR_SCHEME'; scheme: CursorSchemeId }
   | { type: 'SET_AUDIO'; audio: AudioState }
   | { type: 'ENTER_BIOS_SETUP' }
+  | { type: 'ENTER_RECOVERY_MODE' }
   | { type: 'SET_BIOS'; bios: BiosSettings }
   | { type: 'CRASH'; crash: CrashState }
   | { type: 'START_SAFETY_TRAINING_CRASH'; crash: CrashState }
@@ -310,12 +168,6 @@ type Action =
   | { type: 'SHUTDOWN' }
   | { type: 'FINISH_BOOT' }
   | { type: 'RESET'; state: OsState }
-
-function nextActiveWindow(windows: WindowState[], excludeId?: string): string | undefined {
-  return windows
-    .filter((win) => win.instanceId !== excludeId && !win.minimized)
-    .sort((a, b) => b.zIndex - a.zIndex)[0]?.instanceId
-}
 
 // Exported for unit testing (e.g. OPEN_WINDOW idempotency). Colocated with the
 // provider it drives; the disable keeps fast-refresh lint happy for that export.
@@ -464,6 +316,17 @@ export function reducer(state: OsState, action: Action): OsState {
         messageBoxes: [],
         startMenuOpen: false,
       }
+    case 'ENTER_RECOVERY_MODE':
+      return {
+        ...state,
+        phase: 'recovery',
+        bootTarget: 'recovery',
+        bootMode: 'normal',
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
     case 'SET_BIOS':
       return { ...state, bios: action.bios }
     case 'CRASH':
@@ -597,6 +460,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
   const playSound = useCallback((id: SoundId) => {
     const current = stateRef.current
     if (!current.audio.enabled || current.audio.muted || current.audio.volume <= 0) return
+    if (!driverHealthy(current.fs, 'audio')) return
     if (current.bootMode === 'safe' && current.phase === 'desktop') return
     synthPlaySound(id, current.audio.volume)
   }, [])
@@ -608,6 +472,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       startupSoundPlayedRef.current = true
       return
     }
+    if (!driverHealthy(current.fs, 'audio')) return
     if (!current.audio.enabled || current.audio.muted || current.audio.volume <= 0) {
       // Audio isn't available yet (e.g. before the first user gesture enables it).
       // Leave the ref unset so the chime still plays once audio comes on.
@@ -629,6 +494,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     function ensureAudioReady() {
       unlockAudio()
       const current = stateRef.current
+      if (!driverHealthy(current.fs, 'audio')) return
       if (!current.audio.enabled) {
         const audio: AudioState = { ...current.audio, enabled: true, muted: false }
         stateRef.current = { ...current, audio }
@@ -684,13 +550,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       const def = appDefinitions[appId]
       const missingDependency = missingAppDependency(appId, current.fs)
       if (missingDependency) {
-        showMessageBox({
-          title: def.title,
-          message: `Windows cannot run ${def.title} because ${baseName(missingDependency)} is missing.`,
-          detail: 'Run Recovery Mode from BIOS Setup.',
-          icon: 'error',
-          buttons: ['ok'],
-        })
+        showMessageBox(systemFileFailureBox(def.title, missingDependency))
+        return
+      }
+      const missingDriver = missingAppDriverDependency(appId, current.fs)
+      if (missingDriver) {
+        showMessageBox(driverFailureBox(missingDriver.type, def.title, missingDriver.missing))
         return
       }
       if (current.bootMode === 'safe' && current.phase === 'desktop' && def.safeModeAvailable === false) {
@@ -828,6 +693,10 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   const enterBiosSetup = useCallback(() => {
     dispatch({ type: 'ENTER_BIOS_SETUP' })
+  }, [])
+
+  const enterRecoveryMode = useCallback(() => {
+    dispatch({ type: 'ENTER_RECOVERY_MODE' })
   }, [])
 
   const setBiosSettings = useCallback((bios: BiosSettings) => {
@@ -968,6 +837,11 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     () => ({
       connect(): void {
         if (stateRef.current.network.connected) return
+        if (!driverHealthy(stateRef.current.fs, 'network')) {
+          commitNetwork(releasedNetworkState())
+          showMessageBox(driverFailureBox('network', 'Network Neighborhood', missingAppDriverDependency('network', stateRef.current.fs)?.missing))
+          return
+        }
         commitNetwork(randomDhcpLease())
         playSound('networkUp')
       },
@@ -977,6 +851,11 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         playSound('networkDown')
       },
       renewDhcp(): void {
+        if (!driverHealthy(stateRef.current.fs, 'network')) {
+          commitNetwork(releasedNetworkState())
+          showMessageBox(driverFailureBox('network', 'Network Neighborhood', missingAppDriverDependency('network', stateRef.current.fs)?.missing))
+          return
+        }
         const wasConnected = stateRef.current.network.connected
         commitNetwork(randomDhcpLease())
         if (!wasConnected) {
@@ -984,6 +863,11 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         }
       },
       applyConfig(partial: Partial<NetworkState>): void {
+        if (partial.connected !== false && !driverHealthy(stateRef.current.fs, 'network')) {
+          commitNetwork(releasedNetworkState())
+          showMessageBox(driverFailureBox('network', 'Network Neighborhood', missingAppDriverDependency('network', stateRef.current.fs)?.missing))
+          return
+        }
         const previous = stateRef.current.network
         const next = { ...previous, ...partial }
         commitNetwork(next)
@@ -992,6 +876,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         }
       },
       recordTraffic(sent: number, received: number): void {
+        if (!driverHealthy(stateRef.current.fs, 'network')) return
         const network = stateRef.current.network
         commitNetwork({
           ...network,
@@ -1000,7 +885,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         })
       },
     }),
-    [commitNetwork, playSound],
+    [commitNetwork, playSound, showMessageBox],
   )
 
   // ----- appearance -----
@@ -1019,6 +904,11 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   // ----- audio -----
   const enableAudio = useCallback(() => {
+    const missingDriver = requiredDriverMissing(stateRef.current.fs, ['audio'])
+    if (missingDriver) {
+      showMessageBox(driverFailureBox('audio', 'Sounds', missingDriver.missing))
+      return
+    }
     unlockAudio()
     const audio: AudioState = { ...stateRef.current.audio, enabled: true, muted: false }
     stateRef.current = { ...stateRef.current, audio }
@@ -1026,9 +916,16 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     if (!audio.muted && audio.volume > 0) {
       synthPlaySound('ding', audio.volume)
     }
-  }, [])
+  }, [showMessageBox])
 
   const setAudioMuted = useCallback((muted: boolean) => {
+    if (!muted) {
+      const missingDriver = requiredDriverMissing(stateRef.current.fs, ['audio'])
+      if (missingDriver) {
+        showMessageBox(driverFailureBox('audio', 'Sounds', missingDriver.missing))
+        return
+      }
+    }
     if (!muted) {
       unlockAudio()
     }
@@ -1038,7 +935,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     if (!muted && audio.volume > 0) {
       synthPlaySound('ding', audio.volume)
     }
-  }, [])
+  }, [showMessageBox])
 
   const setAudioVolume = useCallback((volume: number) => {
     const clamped = Math.max(0, Math.min(1, volume))
@@ -1128,6 +1025,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       triggerSafetyTrainingCrash,
       completeSafetyTraining,
       enterBiosSetup,
+      enterRecoveryMode,
       setBiosSettings,
       restart,
       shutDown,
@@ -1163,6 +1061,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       triggerSafetyTrainingCrash,
       completeSafetyTraining,
       enterBiosSetup,
+      enterRecoveryMode,
       setBiosSettings,
       restart,
       shutDown,

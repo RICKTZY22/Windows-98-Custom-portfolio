@@ -18,7 +18,10 @@ import {
 
 type ViewMode = 'largeIcons' | 'smallIcons' | 'list' | 'details' | 'thumbnails'
 type SortKey = 'name' | 'type' | 'size' | 'modified'
+type SortDirection = 'asc' | 'desc'
+type MenuName = 'file' | 'edit' | 'view' | 'go' | 'favorites' | 'help'
 type ContextMenuState = { x: number; y: number; targetPath: string | null }
+type NavigateOptions = { skipHistory?: boolean }
 
 const VIEW_MODES: Array<{ id: ViewMode; label: string }> = [
   { id: 'largeIcons', label: 'Large Icons' },
@@ -50,31 +53,60 @@ function nodeSize(node: FsNode): string {
   return node.kind === 'folder' ? '' : formatSize(node.size)
 }
 
-function sortNodes(nodes: FsNode[], key: SortKey): FsNode[] {
+function compareNodes(a: FsNode, b: FsNode, key: SortKey): number {
+  switch (key) {
+    case 'type':
+      return a.fileType.localeCompare(b.fileType) || a.name.localeCompare(b.name)
+    case 'size':
+      return a.size - b.size || a.name.localeCompare(b.name)
+    case 'modified':
+      return a.modified.localeCompare(b.modified) || a.name.localeCompare(b.name)
+    case 'name':
+    default:
+      return a.name.localeCompare(b.name)
+  }
+}
+
+function sortNodes(nodes: FsNode[], key: SortKey, direction: SortDirection): FsNode[] {
   return [...nodes].sort((a, b) => {
     if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1
-    switch (key) {
-      case 'type':
-        return a.fileType.localeCompare(b.fileType) || a.name.localeCompare(b.name)
-      case 'size':
-        return a.size - b.size || a.name.localeCompare(b.name)
-      case 'modified':
-        return a.modified.localeCompare(b.modified) || a.name.localeCompare(b.name)
-      case 'name':
-      default:
-        return a.name.localeCompare(b.name)
-    }
+    return compareNodes(a, b, key) * (direction === 'asc' ? 1 : -1)
   })
+}
+
+function nodeAttributes(node: FsNode): string[] {
+  return [
+    node.attributes?.system ? 'System' : null,
+    node.attributes?.readOnly ? 'Read-only' : null,
+    node.attributes?.hidden ? 'Hidden' : null,
+  ].filter((item): item is string => Boolean(item))
+}
+
+function nodeTooltip(node: FsNode): string {
+  const attributes = nodeAttributes(node)
+  return [
+    node.name,
+    `Type: ${node.fileType}`,
+    node.kind === 'folder' ? 'Folder' : `Size: ${formatSize(node.size) || `${node.size} bytes`}`,
+    `Modified: ${node.modified}`,
+    attributes.length ? `Attributes: ${attributes.join(', ')}` : null,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join('\n')
 }
 
 export function ExplorerApp({ windowId, payload }: AppProps) {
   const { state, openNode, setWindowTitle, fsOps, setClipboard, showMessageBox } = useOs()
   const [currentPath, setCurrentPath] = useState(() => normalizePath(payload?.path ?? 'C:\\'))
   const [address, setAddress] = useState(currentPath)
+  const [backStack, setBackStack] = useState<string[]>([])
+  const [forwardStack, setForwardStack] = useState<string[]>([])
   const [selectedPaths, setSelectedPaths] = useState<string[]>([])
   const [anchorPath, setAnchorPath] = useState<string>()
   const [viewMode, setViewMode] = useState<ViewMode>('details')
   const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [activeMenu, setActiveMenu] = useState<MenuName | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [renamingPath, setRenamingPath] = useState<string>()
   const [renameValue, setRenameValue] = useState('')
@@ -93,7 +125,17 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
   const currentNode = getNode(state.fs, currentPath)
   const requiredPasscode = currentNode?.attributes?.passcode
   const locked = Boolean(requiredPasscode) && !unlockedPaths.has(currentPath)
-  const items = useMemo(() => sortNodes(listDirectory(state.fs, currentPath), sortKey), [currentPath, sortKey, state.fs])
+  const items = useMemo(
+    () => sortNodes(listDirectory(state.fs, currentPath), sortKey, sortDirection),
+    [currentPath, sortDirection, sortKey, state.fs],
+  )
+  const atRoot = currentPath === 'C:\\'
+  const folderStats = useMemo(() => {
+    const folders = items.filter((node) => node.kind === 'folder').length
+    const files = items.length - folders
+    const size = items.reduce((sum, node) => sum + (node.kind === 'file' ? node.size : 0), 0)
+    return { files, folders, size }
+  }, [items])
 
   function submitPasscode() {
     if (passcodeInput === requiredPasscode) {
@@ -150,6 +192,37 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
     showMessageBox({ title: 'Windows Explorer', message, icon: 'error', buttons: ['ok'] })
   }
 
+  function runMenuAction(action?: () => void) {
+    setActiveMenu(null)
+    setContextMenu(null)
+    action?.()
+  }
+
+  function changeSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setSortKey(key)
+    setSortDirection('asc')
+  }
+
+  function sortLabel(key: SortKey): string {
+    if (sortKey !== key) return ''
+    return sortDirection === 'asc' ? ' ▲' : ' ▼'
+  }
+
+  function showExplorerHelp() {
+    showMessageBox({
+      title: 'Windows Explorer Help',
+      message: 'Use the toolbar, menus, or right-click menu to manage simulated portfolio files.',
+      detail:
+        'Tip: Ctrl+A selects all items, F2 renames the selected item, Delete moves items to the Recycle Bin, and Backspace goes up one folder.',
+      icon: 'info',
+      buttons: ['ok'],
+    })
+  }
+
   function deleteSelection() {
     const targets = selectedNodes
     if (!targets.length) return
@@ -179,21 +252,49 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
     })
   }
 
-  function navigate(path: string) {
+  function navigate(path: string, options: NavigateOptions = {}) {
     const normalized = normalizePath(path)
     const node = getNode(state.fs, normalized)
     if (!node || node.kind !== 'folder') {
       showError(`Cannot find '${path}'. Make sure the path or Internet address is correct.`)
       return
     }
+    if (node.path === currentPath) {
+      setAddress(node.path)
+      clearSelection()
+      setContextMenu(null)
+      setRenamingPath(undefined)
+      return
+    }
+    if (!options.skipHistory) {
+      setBackStack((prev) => [...prev, currentPath].slice(-50))
+      setForwardStack([])
+    }
     setCurrentPath(node.path)
     setAddress(node.path)
     clearSelection()
     setContextMenu(null)
+    setActiveMenu(null)
     setRenamingPath(undefined)
     // Drop any half-typed code / error so the prompt is fresh at the new folder.
     setPasscodeInput('')
     setPasscodeError(false)
+  }
+
+  function goBack() {
+    const previous = backStack[backStack.length - 1]
+    if (!previous) return
+    setBackStack((prev) => prev.slice(0, -1))
+    setForwardStack((prev) => [currentPath, ...prev].slice(0, 50))
+    navigate(previous, { skipHistory: true })
+  }
+
+  function goForward() {
+    const next = forwardStack[0]
+    if (!next) return
+    setForwardStack((prev) => prev.slice(1))
+    setBackStack((prev) => [...prev, currentPath].slice(-50))
+    navigate(next, { skipHistory: true })
   }
 
   function openExplorerNode(path: string) {
@@ -258,6 +359,7 @@ Size: ${
     setRenamingPath(node.path)
     setRenameValue(node.name)
     setContextMenu(null)
+    setActiveMenu(null)
   }
 
   function commitRename() {
@@ -318,6 +420,7 @@ Size: ${
     event.stopPropagation()
     const rect = rootRef.current?.getBoundingClientRect()
     if (!rect) return
+    setActiveMenu(null)
     if (targetPath && !selectedPaths.includes(targetPath)) selectSingle(targetPath)
     const menuWidth = 190
     const menuHeight = targetPath ? 260 : 194
@@ -334,93 +437,375 @@ Size: ${
     <div
       ref={rootRef}
       className="app-content computer-app file-manager-app"
-      onPointerDown={() => setContextMenu(null)}
+      onPointerDown={() => {
+        setContextMenu(null)
+        setActiveMenu(null)
+      }}
     >
       <ul className="os-menu-bar" role="menubar">
-        <li>File</li>
-        <li>Edit</li>
-        <li>View</li>
-        <li>Go</li>
-        <li>Favorites</li>
-        <li>Help</li>
+        <li>
+          <button
+            type="button"
+            className={`explorer-menu-trigger ${activeMenu === 'file' ? 'open' : ''}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setActiveMenu(activeMenu === 'file' ? null : 'file')}
+          >
+            File
+          </button>
+          {activeMenu === 'file' && (
+            <ul className="desktop-context-menu explorer-menu-dropdown" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+              <li>
+                <button type="button" className="context-default" disabled={!selectedNode} onClick={() => runMenuAction(openSelectedButton)}>
+                  Open
+                </button>
+              </li>
+              <li className="context-separator" aria-hidden="true"></li>
+              <li>
+                <button type="button" disabled={protectedHere} onClick={() => runMenuAction(() => createNew('folder'))}>
+                  New Folder
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={protectedHere} onClick={() => runMenuAction(() => createNew('file'))}>
+                  New Text Document
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={protectedHere} onClick={() => runMenuAction(() => createNew('document'))}>
+                  New WordPad Document
+                </button>
+              </li>
+              <li className="context-separator" aria-hidden="true"></li>
+              <li>
+                <button type="button" disabled={!selectedNode} onClick={() => runMenuAction(deleteSelection)}>
+                  Delete
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={!selectedNode} onClick={() => selectedNode && runMenuAction(() => startRename(selectedNode))}>
+                  Rename
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={!selectedNode} onClick={() => selectedNode && runMenuAction(() => showProperties(selectedNode))}>
+                  Properties
+                </button>
+              </li>
+            </ul>
+          )}
+        </li>
+        <li>
+          <button
+            type="button"
+            className={`explorer-menu-trigger ${activeMenu === 'edit' ? 'open' : ''}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setActiveMenu(activeMenu === 'edit' ? null : 'edit')}
+          >
+            Edit
+          </button>
+          {activeMenu === 'edit' && (
+            <ul className="desktop-context-menu explorer-menu-dropdown" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+              <li>
+                <button type="button" disabled={!selectedNode} onClick={() => selectedNode && runMenuAction(() => setClipboard({ mode: 'cut', path: selectedNode.path }))}>
+                  Cut
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={!selectedNode} onClick={() => selectedNode && runMenuAction(() => setClipboard({ mode: 'copy', path: selectedNode.path }))}>
+                  Copy
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={!state.clipboard} onClick={() => runMenuAction(pasteClipboard)}>
+                  Paste
+                </button>
+              </li>
+              <li className="context-separator" aria-hidden="true"></li>
+              <li>
+                <button type="button" disabled={!items.length || locked} onClick={() => runMenuAction(selectAll)}>
+                  Select All
+                </button>
+              </li>
+            </ul>
+          )}
+        </li>
+        <li>
+          <button
+            type="button"
+            className={`explorer-menu-trigger ${activeMenu === 'view' ? 'open' : ''}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setActiveMenu(activeMenu === 'view' ? null : 'view')}
+          >
+            View
+          </button>
+          {activeMenu === 'view' && (
+            <ul className="desktop-context-menu explorer-menu-dropdown" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+              {VIEW_MODES.map((mode) => (
+                <li key={mode.id}>
+                  <button type="button" onClick={() => runMenuAction(() => setViewMode(mode.id))}>
+                    <span className="menu-check">{viewMode === mode.id ? '*' : ''}</span>
+                    {mode.label}
+                  </button>
+                </li>
+              ))}
+              <li className="context-separator" aria-hidden="true"></li>
+              <li>
+                <button type="button" onClick={() => runMenuAction(() => changeSort('name'))}>
+                  Sort by Name{sortLabel('name')}
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => runMenuAction(() => changeSort('type'))}>
+                  Sort by Type{sortLabel('type')}
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => runMenuAction(() => changeSort('size'))}>
+                  Sort by Size{sortLabel('size')}
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => runMenuAction(() => changeSort('modified'))}>
+                  Sort by Modified{sortLabel('modified')}
+                </button>
+              </li>
+            </ul>
+          )}
+        </li>
+        <li>
+          <button
+            type="button"
+            className={`explorer-menu-trigger ${activeMenu === 'go' ? 'open' : ''}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setActiveMenu(activeMenu === 'go' ? null : 'go')}
+          >
+            Go
+          </button>
+          {activeMenu === 'go' && (
+            <ul className="desktop-context-menu explorer-menu-dropdown" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+              <li>
+                <button type="button" disabled={!backStack.length} onClick={() => runMenuAction(goBack)}>
+                  Back
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={!forwardStack.length} onClick={() => runMenuAction(goForward)}>
+                  Forward
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={atRoot} onClick={() => runMenuAction(() => navigate(parentPath(currentPath)))}>
+                  Up One Level
+                </button>
+              </li>
+              <li className="context-separator" aria-hidden="true"></li>
+              <li>
+                <button type="button" onClick={() => runMenuAction(() => navigate('C:\\'))}>
+                  My Computer
+                </button>
+              </li>
+            </ul>
+          )}
+        </li>
+        <li>
+          <button
+            type="button"
+            className={`explorer-menu-trigger ${activeMenu === 'favorites' ? 'open' : ''}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setActiveMenu(activeMenu === 'favorites' ? null : 'favorites')}
+          >
+            Favorites
+          </button>
+          {activeMenu === 'favorites' && (
+            <ul className="desktop-context-menu explorer-menu-dropdown explorer-menu-dropdown-wide" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+              {quickPaths.map(([path, label]) => (
+                <li key={path}>
+                  <button type="button" onClick={() => runMenuAction(() => navigate(path))}>
+                    {label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+        <li>
+          <button
+            type="button"
+            className={`explorer-menu-trigger ${activeMenu === 'help' ? 'open' : ''}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setActiveMenu(activeMenu === 'help' ? null : 'help')}
+          >
+            Help
+          </button>
+          {activeMenu === 'help' && (
+            <ul className="desktop-context-menu explorer-menu-dropdown" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+              <li>
+                <button type="button" onClick={() => runMenuAction(showExplorerHelp)}>
+                  Explorer Help
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled={!currentNode} onClick={() => currentNode && runMenuAction(() => showProperties(currentNode))}>
+                  About This Folder
+                </button>
+              </li>
+            </ul>
+          )}
+        </li>
       </ul>
-      <div className="toolbar file-manager-toolbar">
-        <button type="button" onClick={() => navigate(parentPath(currentPath))}>
-          Up
-        </button>
-        <button type="button" onClick={openSelectedButton} disabled={!selectedNode}>
-          Open
+      <div className="file-manager-commandbar" role="toolbar" aria-label="File Manager commands">
+        <button type="button" className="file-command-button" onClick={goBack} disabled={!backStack.length} title="Back">
+          <span className="file-command-icon file-command-arrow" aria-hidden="true">&lt;</span>
+          <span>Back</span>
         </button>
         <button
           type="button"
-          onClick={() => selectedNode && setClipboard({ mode: 'copy', path: selectedNode.path })}
-          disabled={!selectedNode}
+          className="file-command-button"
+          onClick={goForward}
+          disabled={!forwardStack.length}
+          title="Forward"
         >
-          Copy
+          <span className="file-command-icon file-command-arrow" aria-hidden="true">&gt;</span>
+          <span>Forward</span>
         </button>
         <button
           type="button"
+          className="file-command-button"
+          onClick={() => navigate(parentPath(currentPath))}
+          disabled={atRoot}
+          title="Up one level"
+        >
+          <span className="file-command-icon file-command-arrow" aria-hidden="true">^</span>
+          <span>Up</span>
+        </button>
+        <button type="button" className="file-command-button" onClick={openSelectedButton} disabled={!selectedNode} title="Open">
+          <img className="file-command-icon" src={win98Icons.folderOpen} alt="" />
+          <span>Open</span>
+        </button>
+        <div className="file-command-separator" aria-hidden="true"></div>
+        <button
+          type="button"
+          className="file-command-button"
           onClick={() => selectedNode && setClipboard({ mode: 'cut', path: selectedNode.path })}
           disabled={!selectedNode}
+          title="Cut"
         >
-          Cut
+          <span className="file-command-icon file-command-cut" aria-hidden="true">X</span>
+          <span>Cut</span>
         </button>
-        <button type="button" onClick={pasteClipboard} disabled={!state.clipboard}>
-          Paste
-        </button>
-        <button type="button" onClick={deleteSelection} disabled={!selectedNode}>
-          Delete
-        </button>
-        <button type="button" onClick={() => createNew('folder')} disabled={protectedHere}>
-          New Folder
-        </button>
-        <button type="button" onClick={() => createNew('file')} disabled={protectedHere}>
-          New Text
-        </button>
-        <button type="button" onClick={() => createNew('document')} disabled={protectedHere}>
-          New Doc
-        </button>
-        <select
-          className="file-view-select"
-          value={viewMode}
-          onChange={(event) => setViewMode(event.target.value as ViewMode)}
-          aria-label="View mode"
+        <button
+          type="button"
+          className="file-command-button"
+          onClick={() => selectedNode && setClipboard({ mode: 'copy', path: selectedNode.path })}
+          disabled={!selectedNode}
+          title="Copy"
         >
-          {VIEW_MODES.map((mode) => (
-            <option key={mode.id} value={mode.id}>
-              {mode.label}
-            </option>
-          ))}
-        </select>
-        <form
-          className="address-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            navigate(address)
-          }}
+          <img className="file-command-icon" src={win98Icons.textFile} alt="" />
+          <span>Copy</span>
+        </button>
+        <button type="button" className="file-command-button" onClick={pasteClipboard} disabled={!state.clipboard} title="Paste">
+          <img className="file-command-icon" src={win98Icons.notepad} alt="" />
+          <span>Paste</span>
+        </button>
+        <button type="button" className="file-command-button" onClick={deleteSelection} disabled={!selectedNode} title="Delete">
+          <img className="file-command-icon" src={win98Icons.recycleBin} alt="" />
+          <span>Delete</span>
+        </button>
+        <div className="file-command-separator" aria-hidden="true"></div>
+        <button
+          type="button"
+          className="file-command-button"
+          onClick={() => createNew('folder')}
+          disabled={protectedHere}
+          title="New Folder"
         >
-          <label htmlFor={`address-${windowId}`}>Address</label>
-          <input id={`address-${windowId}`} value={address} onChange={(event) => setAddress(event.target.value)} />
-        </form>
+          <img className="file-command-icon" src={win98Icons.folder} alt="" />
+          <span>New Folder</span>
+        </button>
+        <button
+          type="button"
+          className="file-command-button"
+          onClick={() => createNew('file')}
+          disabled={protectedHere}
+          title="New Text"
+        >
+          <img className="file-command-icon" src={win98Icons.textFile} alt="" />
+          <span>New Text</span>
+        </button>
+        <button
+          type="button"
+          className="file-command-button"
+          onClick={() => createNew('document')}
+          disabled={protectedHere}
+          title="New Doc"
+        >
+          <img className="file-command-icon" src={win98Icons.wordpad} alt="" />
+          <span>New Doc</span>
+        </button>
+        <button
+          type="button"
+          className="file-command-button"
+          onClick={() => selectedNode && showProperties(selectedNode)}
+          disabled={!selectedNode}
+          title="Properties"
+        >
+          <img className="file-command-icon" src={win98Icons.help} alt="" />
+          <span>Properties</span>
+        </button>
+        <label className="file-view-picker">
+          <select
+            className="file-view-select"
+            value={viewMode}
+            onChange={(event) => setViewMode(event.target.value as ViewMode)}
+            aria-label="View mode"
+          >
+            {VIEW_MODES.map((mode) => (
+              <option key={mode.id} value={mode.id}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
+          <span>Views</span>
+        </label>
       </div>
+      <form
+        className="file-manager-addressbar"
+        onSubmit={(event) => {
+          event.preventDefault()
+          navigate(address)
+        }}
+      >
+        <label htmlFor={`address-${windowId}`}>Address</label>
+        <div className="file-address-input-wrap">
+          <img src={win98Icons[currentNode?.icon ?? 'folder']} alt="" />
+          <input id={`address-${windowId}`} value={address} onChange={(event) => setAddress(event.target.value)} />
+        </div>
+      </form>
       <div className="file-manager-layout">
-        <ul className="tree-view file-tree">
-          <li>
-            <details open>
-              <summary>Desktop</summary>
-              <ul>
-                {quickPaths.map(([path, label]) => (
-                  <li key={path}>
-                    <button type="button" className="tree-button" onClick={() => navigate(path)}>
-                      <img src={win98Icons[getNode(state.fs, path)?.icon ?? 'folder']} alt="" />
-                      {label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </li>
-        </ul>
+        <section className="file-tree-shell" aria-label="Folders">
+          <div className="file-tree-title">Folders</div>
+          <ul className="tree-view file-tree">
+            <li>
+              <details open>
+                <summary>Desktop</summary>
+                <ul>
+                  {quickPaths.map(([path, label]) => (
+                    <li key={path}>
+                      <button
+                        type="button"
+                        className={`tree-button ${currentPath === path ? 'is-current' : ''}`}
+                        onClick={() => navigate(path)}
+                      >
+                        <img src={win98Icons[getNode(state.fs, path)?.icon ?? 'folder']} alt="" />
+                        {label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+          </ul>
+        </section>
         <div className="file-webinfo">
           <div className="file-webinfo-header">{currentNode?.name ?? currentPath}</div>
           <div className="file-webinfo-body">
@@ -450,13 +835,17 @@ Size: ${
             ) : locked ? (
               <>
                 <img className="file-webinfo-icon" src={win98Icons[currentNode?.icon ?? 'folder']} alt="" />
-                <p className="file-webinfo-detail">🔒 Locked</p>
+                <p className="file-webinfo-detail">Locked</p>
                 <p className="file-webinfo-blurb">Enter the passcode to view this folder.</p>
               </>
             ) : (
               <>
                 <img className="file-webinfo-icon" src={win98Icons[currentNode?.icon ?? 'folder']} alt="" />
                 <p className="file-webinfo-detail">{items.length} object(s)</p>
+                <p className="file-webinfo-detail">
+                  {folderStats.folders} folder(s), {folderStats.files} file(s)
+                </p>
+                <p className="file-webinfo-detail">{formatSize(folderStats.size) || '0 KB'} used by files</p>
                 <p className="file-webinfo-blurb">Select an item to view its description.</p>
               </>
             )}
@@ -483,7 +872,7 @@ Size: ${
             <div className="folder-lock">
               <img className="folder-lock-icon" src={win98Icons.folder} alt="" />
               <p className="folder-lock-title">
-                <span className="folder-lock-glyph" aria-hidden="true">🔒</span>
+                <span className="folder-lock-glyph" aria-hidden="true">[locked]</span>
                 {' '}
                 {currentNode?.name} is protected
               </p>
@@ -521,10 +910,34 @@ Size: ${
             <>
           {viewMode === 'details' && (
             <div className="file-header">
-              <button type="button" onClick={() => setSortKey('name')}>Name</button>
-              <button type="button" onClick={() => setSortKey('type')}>Type</button>
-              <button type="button" onClick={() => setSortKey('size')}>Size</button>
-              <button type="button" onClick={() => setSortKey('modified')}>Modified</button>
+              <button
+                type="button"
+                aria-sort={sortKey === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
+                onClick={() => changeSort('name')}
+              >
+                Name{sortLabel('name')}
+              </button>
+              <button
+                type="button"
+                aria-sort={sortKey === 'type' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
+                onClick={() => changeSort('type')}
+              >
+                Type{sortLabel('type')}
+              </button>
+              <button
+                type="button"
+                aria-sort={sortKey === 'size' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
+                onClick={() => changeSort('size')}
+              >
+                Size{sortLabel('size')}
+              </button>
+              <button
+                type="button"
+                aria-sort={sortKey === 'modified' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
+                onClick={() => changeSort('modified')}
+              >
+                Modified{sortLabel('modified')}
+              </button>
             </div>
           )}
           <div className="file-list-body">
@@ -535,6 +948,7 @@ Size: ${
               role="button"
               tabIndex={0}
               aria-pressed={selectedPaths.includes(node.path)}
+              title={nodeTooltip(node)}
               onClick={(event) => selectOnClick(node.path, event)}
               onDoubleClick={() => openExplorerNode(node.path)}
               onContextMenu={(event) => openContextMenu(event, node.path)}
@@ -585,7 +999,16 @@ Size: ${
                     }}
                   />
                 ) : (
-                  node.name
+                  <>
+                    <span className="file-display-name">{node.name}</span>
+                    {nodeAttributes(node).length > 0 && (
+                      <span className="file-attribute-badges" aria-label={`Attributes: ${nodeAttributes(node).join(', ')}`}>
+                        {node.attributes?.system && <span>S</span>}
+                        {node.attributes?.readOnly && <span>R</span>}
+                        {node.attributes?.hidden && <span>H</span>}
+                      </span>
+                    )}
+                  </>
                 )}
               </span>
               <span>{node.fileType}</span>
@@ -695,11 +1118,13 @@ Size: ${
         <p className="status-bar-field">
           {selectedNodes.length > 1
             ? `${selectedNodes.length} items selected`
-            : selectedNode
-              ? `Selected: ${selectedNode.name}`
+              : selectedNode
+              ? `Selected: ${selectedNode.name}${nodeAttributes(selectedNode).length ? ` (${nodeAttributes(selectedNode).join(', ')})` : ''}`
               : currentNode?.name ?? currentPath}
         </p>
-        <p className="status-bar-field">{items.length} object(s)</p>
+        <p className="status-bar-field">
+          {items.length} object(s), {formatSize(folderStats.size) || '0 KB'}
+        </p>
         <p className="status-bar-field">{state.clipboard ? `${state.clipboard.mode}: ${baseName(state.clipboard.path)}` : 'Ready'}</p>
       </div>
     </div>

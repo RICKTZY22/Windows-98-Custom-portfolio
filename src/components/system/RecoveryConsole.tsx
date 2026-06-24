@@ -6,6 +6,7 @@ import {
   recoveryInstallDurationMs,
   restoreSystemFiles,
 } from '../../os/recovery'
+import { classifyMissingFiles } from '../../os/systemHealth'
 
 const recoveryOptions = [
   { id: 1, label: 'Scan for missing system files' },
@@ -31,6 +32,10 @@ const RECOVERY_SCAN_FILES = [
   'C:\\WINDOWS\\SYSTEM32\\KRNL386.EXE',
   'C:\\WINDOWS\\SYSTEM32\\USER.EXE',
   'C:\\WINDOWS\\SYSTEM32\\DISPLAY.DRV',
+  'C:\\WINDOWS\\SYSTEM32\\SOUND.DRV',
+  'C:\\WINDOWS\\SYSTEM32\\WINSOCK.DLL',
+  'C:\\WINDOWS\\SYSTEM32\\DRIVERS\\TCPIP.SYS',
+  'C:\\WINDOWS\\SYSTEM32\\DRIVERS\\VGA.DRV',
   'C:\\WINDOWS\\EXPLORER.EXE',
   'C:\\WINDOWS\\WIN.COM',
   'C:\\WINDOWS\\COMMAND.COM',
@@ -68,6 +73,38 @@ function compactInstallLines(packagePaths: string[]): string[] {
   return [
     `... ${packagePaths.length - RECOVERY_FINAL_PACKAGE_LINES} additional package(s) installed`,
     ...packagePaths.slice(-RECOVERY_FINAL_PACKAGE_LINES).map(installLine),
+  ]
+}
+
+function groupedHealthLines(fs: Parameters<typeof classifyMissingFiles>[0], status: 'MISSING' | 'CORRUPT'): string[] {
+  const groups = classifyMissingFiles(fs).filter((group) => group.id !== 'input' || group.paths.length)
+  const lines: string[] = []
+  for (const group of groups) {
+    lines.push(group.label)
+    if (group.paths.length) {
+      lines.push(...group.paths.map((path) => `  ${status.padEnd(8, ' ')} ${path}`))
+    } else {
+      lines.push('  OK       present in protected cache')
+    }
+    lines.push('')
+  }
+  const missingCount = groups.reduce((count, group) => count + group.paths.length, 0)
+  if (missingCount) {
+    lines.push(`${missingCount} item(s) should be restored from the portfolio OS protected cache.`)
+  } else {
+    lines.push('No missing protected files or simulated driver packages were found.')
+    lines.push('Windows should start normally.')
+  }
+  return lines
+}
+
+function restoredGroupSummary(fs: Parameters<typeof classifyMissingFiles>[0]): string[] {
+  const groups = classifyMissingFiles(fs).filter((group) => group.paths.length)
+  if (!groups.length) return []
+  return [
+    '',
+    'Restored groups:',
+    ...groups.map((group) => `  ${group.label}: ${group.paths.length} item(s)`),
   ]
 }
 
@@ -204,28 +241,28 @@ export function RecoveryConsole() {
 
     if (id === 1) {
       runScan(
-        'Scanning C:\\WINDOWS for required system files...',
+        'Scanning C:\\WINDOWS for protected system and driver files...',
         'Checking',
-        missing.length
-          ? [...missing.map((path) => `MISSING   ${path}`), '', `${missing.length} item(s) must be restored before Windows can start.`]
-          : ['No missing system files were found.', 'Windows should start normally.'],
+        groupedHealthLines(state.fs, 'MISSING'),
       )
       return
     }
 
     if (id === 2) {
       if (!missing.length) {
-        reveal(['Nothing to restore. All required system files are present.'])
+        reveal(['Nothing to restore. All protected system files and simulated drivers are present.'])
         return
       }
       const packagePaths = missingSystemFilePackages(state.fs)
       const result = restoreSystemFiles(state.fs)
+      const groupSummary = restoredGroupSummary(state.fs)
       runRestore(
         'Restoring system files from registry backup RB000.CAB...',
         packagePaths,
         [
           `${packagePaths.length} file package(s) reinstalled; ${result.restored.length - packagePaths.length} folder item(s) rebuilt.`,
           `${result.restored.length} protected item(s) restored successfully.`,
+          ...groupSummary,
           'Press Esc or choose Restart Windows 98 to boot normally.',
         ],
         () => {
@@ -241,7 +278,7 @@ export function RecoveryConsole() {
         'Verifying the integrity of all protected system files...',
         'Verifying',
         missing.length
-          ? [...missing.map((path) => `CORRUPT   ${path}`), '', 'Integrity violations found. Run option 2 to repair.']
+          ? [...groupedHealthLines(state.fs, 'CORRUPT'), 'Integrity violations found. Run option 2 to restore from cache.']
           : ['Windows resource protection did not find any integrity violations.'],
       )
       return

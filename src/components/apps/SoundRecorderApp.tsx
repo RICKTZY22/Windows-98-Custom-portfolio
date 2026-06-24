@@ -4,6 +4,7 @@ import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 import { renderSoundToWavDataUrl } from '../../os/audio'
 import { joinPath, nowStamp } from '../../os/filesystem'
+import { driverFailureBox, requiredDriverMissing } from '../../os/systemHealth'
 
 type RecorderMode = 'stopped' | 'recording' | 'playing'
 
@@ -25,7 +26,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 export function SoundRecorderApp() {
-  const { fsOps, enableAudio, showMessageBox, openApp } = useOs()
+  const { state, fsOps, enableAudio, showMessageBox, openApp } = useOs()
   const [mode, setMode] = useState<RecorderMode>('stopped')
   const [seconds, setSeconds] = useState(0)
   const [clips, setClips] = useState(0)
@@ -57,6 +58,10 @@ export function SoundRecorderApp() {
 
   function stopPlayback() {
     audioRef.current?.pause()
+  }
+
+  function missingAudioDriver() {
+    return requiredDriverMissing(state.fs, ['audio'])
   }
 
   // Build the clip from whatever was captured (real mic chunks, or a synth tone when no
@@ -93,6 +98,11 @@ export function SoundRecorderApp() {
 
   async function record() {
     if (mode === 'recording') return
+    const missingDriver = missingAudioDriver()
+    if (missingDriver) {
+      showMessageBox(driverFailureBox('audio', 'Sound Recorder', missingDriver.missing))
+      return
+    }
     enableAudio()
     stopPlayback()
     chunksRef.current = []
@@ -142,6 +152,11 @@ export function SoundRecorderApp() {
   }
 
   function play() {
+    const missingDriver = missingAudioDriver()
+    if (missingDriver) {
+      showMessageBox(driverFailureBox('audio', 'Sound Recorder', missingDriver.missing))
+      return
+    }
     enableAudio()
     const clip = lastClipRef.current
     if (!clip) {

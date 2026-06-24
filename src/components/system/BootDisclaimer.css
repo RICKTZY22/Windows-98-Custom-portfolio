@@ -1,0 +1,60 @@
+/* === Boot disclaimer (shown every boot) ================================ */
+
+.disclaimer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4500; /* above message boxes (4000) */
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.disclaimer-dialog {
+  width: min(470px, calc(100vw - 32px));
+  box-shadow: 1px 1px 0 #0a0a0a, 3px 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+.disclaimer-body {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.disclaimer-copy {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.disclaimer-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #000080;
+  color: #fff;
+  font-weight: bold;
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+}
+
+.disclaimer-copy p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.disclaimer-credit {
+  margin-bottom: 0;
+  color: #444;
+  font-size: 11px;
+}
+
+.disclaimer-actions {
+  justify-content: center;
+}

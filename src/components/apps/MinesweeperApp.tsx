@@ -1,8 +1,17 @@
 import './MinesweeperApp.css'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
-type Difficulty = 'beginner' | 'intermediate' | 'expert'
+type Difficulty = 'beginner' | 'intermediate' | 'expert' | 'brutal' | 'nightmare'
 type GameState = 'ready' | 'playing' | 'won' | 'lost'
+
+type LevelConfig = {
+  rows: number
+  cols: number
+  mines: number
+  label: string
+  rank: string
+  cellSize: number
+}
 
 type Cell = {
   mine: boolean
@@ -11,18 +20,25 @@ type Cell = {
   adjacent: number
 }
 
-const LEVELS: Record<Difficulty, { rows: number; cols: number; mines: number; label: string }> = {
-  beginner: { rows: 9, cols: 9, mines: 10, label: 'Beginner' },
-  intermediate: { rows: 16, cols: 16, mines: 40, label: 'Intermediate' },
-  expert: { rows: 16, cols: 30, mines: 99, label: 'Expert' },
+const LEVELS: Record<Difficulty, LevelConfig> = {
+  beginner: { rows: 9, cols: 9, mines: 10, label: 'Beginner', rank: 'Classic', cellSize: 26 },
+  intermediate: { rows: 16, cols: 16, mines: 40, label: 'Intermediate', rank: 'Sharp', cellSize: 23 },
+  expert: { rows: 16, cols: 30, mines: 99, label: 'Expert', rank: 'Veteran', cellSize: 20 },
+  brutal: { rows: 20, cols: 30, mines: 135, label: 'Brutal', rank: 'Pressure', cellSize: 19 },
+  nightmare: { rows: 22, cols: 34, mines: 190, label: 'Nightmare', rank: 'No mercy', cellSize: 18 },
 }
 
-const NUMBER_COLORS = ['', '#0000ff', '#008000', '#ff0000', '#000080', '#800000', '#008080', '#000000', '#808080']
+const LEVEL_ORDER: Difficulty[] = ['beginner', 'intermediate', 'expert', 'brutal', 'nightmare']
+const NUMBER_COLORS = ['', '#0017d8', '#008000', '#e00000', '#000080', '#800000', '#008080', '#000000', '#808080']
 
 function makeBoard(rows: number, cols: number): Cell[][] {
   return Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ mine: false, revealed: false, flagged: false, adjacent: 0 })),
   )
+}
+
+function cloneBoard(board: Cell[][]): Cell[][] {
+  return board.map((row) => row.map((cell) => ({ ...cell })))
 }
 
 function neighbors(r: number, c: number, rows: number, cols: number): Array<[number, number]> {
@@ -38,15 +54,16 @@ function neighbors(r: number, c: number, rows: number, cols: number): Array<[num
   return result
 }
 
-/** Place mines after the first click so the first reveal is always safe (and opens an area). */
 function placeMines(board: Cell[][], mines: number, safeR: number, safeC: number): Cell[][] {
   const rows = board.length
   const cols = board[0].length
-  const next = board.map((row) => row.map((cell) => ({ ...cell, mine: false, adjacent: 0 })))
+  const next = cloneBoard(board).map((row) => row.map((cell) => ({ ...cell, mine: false, adjacent: 0 })))
   const forbidden = new Set<string>([`${safeR},${safeC}`, ...neighbors(safeR, safeC, rows, cols).map(([r, c]) => `${r},${c}`)])
+  const target = Math.min(mines, rows * cols - forbidden.size)
   let placed = 0
   let guard = 0
-  while (placed < mines && guard < 100000) {
+
+  while (placed < target && guard < 100000) {
     guard += 1
     const r = Math.floor(Math.random() * rows)
     const c = Math.floor(Math.random() * cols)
@@ -54,6 +71,7 @@ function placeMines(board: Cell[][], mines: number, safeR: number, safeC: number
     next[r][c].mine = true
     placed += 1
   }
+
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       if (next[r][c].mine) continue
@@ -66,8 +84,9 @@ function placeMines(board: Cell[][], mines: number, safeR: number, safeC: number
 function floodReveal(board: Cell[][], startR: number, startC: number): Cell[][] {
   const rows = board.length
   const cols = board[0].length
-  const next = board.map((row) => row.map((cell) => ({ ...cell })))
+  const next = cloneBoard(board)
   const stack: Array<[number, number]> = [[startR, startC]]
+
   while (stack.length) {
     const [r, c] = stack.pop() as [number, number]
     const cell = next[r][c]
@@ -82,11 +101,22 @@ function floodReveal(board: Cell[][], startR: number, startC: number): Cell[][] 
   return next
 }
 
+function revealAllMines(board: Cell[][]): Cell[][] {
+  return board.map((row) => row.map((cell) => (cell.mine ? { ...cell, revealed: true } : { ...cell })))
+}
+
+function formatCounter(value: number): string {
+  const clamped = Math.max(-99, Math.min(999, value))
+  if (clamped < 0) return `-${String(Math.abs(clamped)).padStart(2, '0')}`
+  return String(clamped).padStart(3, '0')
+}
+
 export function MinesweeperApp() {
   const [difficulty, setDifficulty] = useState<Difficulty>('beginner')
   const level = LEVELS[difficulty]
   const [board, setBoard] = useState<Cell[][]>(() => makeBoard(level.rows, level.cols))
   const [gameState, setGameState] = useState<GameState>('ready')
+  const [armed, setArmed] = useState(false)
   const [time, setTime] = useState(0)
   const timerRef = useRef<number | null>(null)
 
@@ -94,6 +124,7 @@ export function MinesweeperApp() {
     const lvl = LEVELS[next]
     setBoard(makeBoard(lvl.rows, lvl.cols))
     setGameState('ready')
+    setArmed(false)
     setTime(0)
     if (timerRef.current !== null) {
       window.clearInterval(timerRef.current)
@@ -101,7 +132,6 @@ export function MinesweeperApp() {
     }
   }, [difficulty])
 
-  // Run the timer while playing.
   useEffect(() => {
     if (gameState !== 'playing') return
     timerRef.current = window.setInterval(() => setTime((t) => Math.min(999, t + 1)), 1000)
@@ -116,46 +146,66 @@ export function MinesweeperApp() {
     [board],
   )
 
+  const hiddenSafeCount = useCallback((next: Cell[][]) => next.flat().filter((cell) => !cell.mine && !cell.revealed).length, [])
+
+  function finishReveal(next: Cell[][]) {
+    if (hiddenSafeCount(next) === 0) {
+      setBoard(next.map((row) => row.map((cell) => (cell.mine ? { ...cell, flagged: true } : cell))))
+      setGameState('won')
+      return
+    }
+    setBoard(next)
+    if (gameState === 'ready') setGameState('playing')
+  }
+
   function revealCell(r: number, c: number) {
     if (gameState === 'won' || gameState === 'lost') return
     const cell = board[r][c]
     if (cell.flagged || cell.revealed) return
 
     let working = board
-    let playing = gameState
-    if (gameState === 'ready') {
+    if (!armed) {
       working = placeMines(board, level.mines, r, c)
-      playing = 'playing'
+      setArmed(true)
     }
 
     if (working[r][c].mine) {
-      const exploded = working.map((row) => row.map((cellItem) => ({ ...cellItem, revealed: cellItem.mine ? true : cellItem.revealed })))
-      exploded[r][c] = { ...exploded[r][c], revealed: true }
-      setBoard(exploded)
+      setBoard(revealAllMines(working))
       setGameState('lost')
       return
     }
 
-    const revealed = floodReveal(working, r, c)
-    const hiddenSafe = revealed.flat().filter((cellItem) => !cellItem.mine && !cellItem.revealed).length
-    if (hiddenSafe === 0) {
-      // Win: flag every mine.
-      setBoard(revealed.map((row) => row.map((cellItem) => (cellItem.mine ? { ...cellItem, flagged: true } : cellItem))))
-      setGameState('won')
-      return
+    finishReveal(floodReveal(working, r, c))
+  }
+
+  function chordCell(r: number, c: number) {
+    if (!armed || gameState !== 'playing') return
+    const cell = board[r][c]
+    if (!cell.revealed || cell.mine || cell.adjacent === 0) return
+
+    const around = neighbors(r, c, level.rows, level.cols)
+    const flaggedAround = around.filter(([nr, nc]) => board[nr][nc].flagged).length
+    if (flaggedAround !== cell.adjacent) return
+
+    let working = board
+    for (const [nr, nc] of around) {
+      const target = working[nr][nc]
+      if (target.flagged || target.revealed) continue
+      if (target.mine) {
+        setBoard(revealAllMines(working))
+        setGameState('lost')
+        return
+      }
+      working = floodReveal(working, nr, nc)
     }
-    setBoard(revealed)
-    if (playing !== gameState) setGameState(playing)
+    finishReveal(working)
   }
 
   function toggleFlag(r: number, c: number) {
-    if (gameState === 'won' || gameState === 'lost' || gameState === 'ready') {
-      if (gameState === 'ready') setGameState('playing')
-    }
     if (gameState === 'won' || gameState === 'lost') return
     const cell = board[r][c]
     if (cell.revealed) return
-    const next = board.map((row) => row.map((cellItem) => ({ ...cellItem })))
+    const next = cloneBoard(board)
     next[r][c].flagged = !next[r][c].flagged
     setBoard(next)
   }
@@ -165,28 +215,35 @@ export function MinesweeperApp() {
     reset(next)
   }
 
-  const face = gameState === 'lost' ? '😵' : gameState === 'won' ? '😎' : '🙂'
-  const mineCount = Math.max(0, level.mines - flagsUsed)
+  const mineCount = level.mines - flagsUsed
+  const density = Math.round((level.mines / (level.rows * level.cols)) * 100)
+  const stateLabel = gameState === 'won' ? 'Cleared' : gameState === 'lost' ? 'Detonated' : armed ? 'Armed' : 'Ready'
+  const face = gameState === 'lost' ? 'X(' : gameState === 'won' ? 'B)' : gameState === 'playing' ? ':o' : ':)'
+  const gridStyle = {
+    '--ms-cell-size': `${level.cellSize}px`,
+    gridTemplateColumns: `repeat(${level.cols}, var(--ms-cell-size))`,
+  } as CSSProperties
 
   function cellContent(cell: Cell): string {
-    if (cell.flagged && !(gameState === 'lost' && cell.mine)) return '🚩'
+    if (gameState === 'lost' && cell.flagged && !cell.mine) return 'X'
+    if (cell.flagged && !(gameState === 'lost' && cell.mine)) return 'P'
     if (!cell.revealed) return ''
-    if (cell.mine) return '💣'
+    if (cell.mine) return '*'
     return cell.adjacent > 0 ? String(cell.adjacent) : ''
   }
 
   return (
-    <div className="app-content minesweeper-app">
+    <div className={`app-content minesweeper-app minesweeper-${difficulty}`}>
       <ul className="os-menu-bar" role="menubar">
         <li className="ms-menu">
           Game
           <ul className="ms-menu-dropdown">
             <li><button type="button" onClick={() => reset()}>New</button></li>
             <li className="ms-menu-sep" aria-hidden="true" />
-            {(Object.keys(LEVELS) as Difficulty[]).map((id) => (
+            {LEVEL_ORDER.map((id) => (
               <li key={id}>
                 <button type="button" onClick={() => changeDifficulty(id)}>
-                  {difficulty === id ? '• ' : '  '}
+                  {difficulty === id ? '* ' : '  '}
                   {LEVELS[id].label}
                 </button>
               </li>
@@ -196,50 +253,60 @@ export function MinesweeperApp() {
         <li>Help</li>
       </ul>
 
-      <div className="sunken-panel ms-frame">
+      <section className="ms-shell" aria-label="Minesweeper">
+        <div className="ms-title-strip">
+          <span>Minefield Control</span>
+          <span>{level.rank}</span>
+        </div>
+
         <div className="ms-hud">
-          <span className="ms-counter" aria-label="Mines remaining">{String(mineCount).padStart(3, '0')}</span>
+          <span className="ms-counter" aria-label="Mines remaining">{formatCounter(mineCount)}</span>
           <button type="button" className="ms-face" onClick={() => reset()} aria-label="New game">
             {face}
           </button>
-          <span className="ms-counter" aria-label="Time elapsed">{String(time).padStart(3, '0')}</span>
+          <span className="ms-counter" aria-label="Time elapsed">{formatCounter(time)}</span>
         </div>
 
-        <div
-          className="ms-grid"
-          style={{ gridTemplateColumns: `repeat(${level.cols}, 26px)` }}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {board.map((row, r) =>
-            row.map((cell, c) => {
-              const showNumber = cell.revealed && !cell.mine && cell.adjacent > 0
-              return (
-                <button
-                  key={`${r}-${c}`}
-                  type="button"
-                  className={`ms-cell ${cell.revealed ? 'is-revealed' : ''} ${
-                    cell.revealed && cell.mine ? 'is-mine' : ''
-                  }`}
-                  style={showNumber ? { color: NUMBER_COLORS[cell.adjacent] } : undefined}
-                  onClick={() => revealCell(r, c)}
-                  onContextMenu={(event) => {
-                    event.preventDefault()
-                    toggleFlag(r, c)
-                  }}
-                >
-                  {cellContent(cell)}
-                </button>
-              )
-            }),
-          )}
+        <div className="ms-level-panel">
+          <span>{level.label}</span>
+          <span>{level.rows} x {level.cols}</span>
+          <span>{level.mines} mines</span>
+          <span>{density}%</span>
         </div>
-      </div>
+
+        <div className="sunken-panel ms-board-scroll">
+          <div className="ms-grid" style={gridStyle} onContextMenu={(event) => event.preventDefault()}>
+            {board.map((row, r) =>
+              row.map((cell, c) => {
+                const showNumber = cell.revealed && !cell.mine && cell.adjacent > 0
+                return (
+                  <button
+                    key={`${r}-${c}`}
+                    type="button"
+                    className={`ms-cell ${cell.revealed ? 'is-revealed' : ''} ${
+                      cell.revealed && cell.mine ? 'is-mine' : ''
+                    } ${gameState === 'lost' && cell.flagged && !cell.mine ? 'is-wrong-flag' : ''}`}
+                    style={showNumber ? { color: NUMBER_COLORS[cell.adjacent] } : undefined}
+                    aria-label={`Row ${r + 1}, column ${c + 1}`}
+                    onClick={() => revealCell(r, c)}
+                    onDoubleClick={() => chordCell(r, c)}
+                    onContextMenu={(event) => {
+                      event.preventDefault()
+                      toggleFlag(r, c)
+                    }}
+                  >
+                    {cellContent(cell)}
+                  </button>
+                )
+              }),
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="status-bar">
-        <p className="status-bar-field">{LEVELS[difficulty].label}</p>
-        <p className="status-bar-field">
-          {gameState === 'won' ? 'You win! 😎' : gameState === 'lost' ? 'Boom! Click the face to retry.' : 'Left-click to reveal, right-click to flag'}
-        </p>
+        <p className="status-bar-field">{stateLabel}</p>
+        <p className="status-bar-field">{level.label} - {level.mines} mines</p>
       </div>
     </div>
   )

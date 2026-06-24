@@ -26,6 +26,29 @@ function coerceBiosSettings(value: unknown): BiosSettings {
     value.haltOn === 'allErrors' || value.haltOn === 'noErrors' || value.haltOn === 'allButKeyboard'
       ? value.haltOn
       : defaultBiosSettings.haltOn
+  const displayMode =
+    value.displayMode === 'egaVga' || value.displayMode === 'cga80' || value.displayMode === 'mono'
+      ? value.displayMode
+      : defaultBiosSettings.displayMode
+  const powerManagement =
+    value.powerManagement === 'userDefine' ||
+    value.powerManagement === 'maxSaving' ||
+    value.powerManagement === 'minSaving' ||
+    value.powerManagement === 'disabled'
+      ? value.powerManagement
+      : defaultBiosSettings.powerManagement
+  const videoOffMethod =
+    value.videoOffMethod === 'vhSyncBlank' || value.videoOffMethod === 'blankScreen' || value.videoOffMethod === 'dpms'
+      ? value.videoOffMethod
+      : defaultBiosSettings.videoOffMethod
+  const modemIrq =
+    value.modemIrq === '3' || value.modemIrq === '4' || value.modemIrq === '5' || value.modemIrq === '7' || value.modemIrq === 'NA'
+      ? value.modemIrq
+      : defaultBiosSettings.modemIrq
+  const softOffMode =
+    value.softOffMode === 'instantOff' || value.softOffMode === 'delay4Sec'
+      ? value.softOffMode
+      : defaultBiosSettings.softOffMode
 
   return {
     quickPost: typeof value.quickPost === 'boolean' ? value.quickPost : defaultBiosSettings.quickPost,
@@ -37,6 +60,22 @@ function coerceBiosSettings(value: unknown): BiosSettings {
         : defaultBiosSettings.networkBootEnabled,
     soundEnabled: typeof value.soundEnabled === 'boolean' ? value.soundEnabled : defaultBiosSettings.soundEnabled,
     virusWarning: typeof value.virusWarning === 'boolean' ? value.virusWarning : defaultBiosSettings.virusWarning,
+    pnpOsInstalled:
+      typeof value.pnpOsInstalled === 'boolean' ? value.pnpOsInstalled : defaultBiosSettings.pnpOsInstalled,
+    resetConfigurationData:
+      typeof value.resetConfigurationData === 'boolean'
+        ? value.resetConfigurationData
+        : defaultBiosSettings.resetConfigurationData,
+    assignIrqForVga:
+      typeof value.assignIrqForVga === 'boolean' ? value.assignIrqForVga : defaultBiosSettings.assignIrqForVga,
+    cmosDate: typeof value.cmosDate === 'string' ? value.cmosDate : defaultBiosSettings.cmosDate,
+    cmosTime: typeof value.cmosTime === 'string' ? value.cmosTime : defaultBiosSettings.cmosTime,
+    displayMode,
+    powerManagement,
+    apmEnabled: typeof value.apmEnabled === 'boolean' ? value.apmEnabled : defaultBiosSettings.apmEnabled,
+    videoOffMethod,
+    modemIrq,
+    softOffMode,
     haltOn,
     bootOrder: normalizeBootOrder(Array.isArray(value.bootOrder) ? value.bootOrder : defaultBiosSettings.bootOrder),
   }

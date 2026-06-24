@@ -6,6 +6,7 @@ import { localMediaLibrary } from '../../data/media'
 import { getNode, listDirectory } from '../../os/filesystem'
 import { renderSoundToWavDataUrl } from '../../os/audio'
 import { useOs } from '../../os/useOs'
+import { driverFailureBox, requiredDriverMissing } from '../../os/systemHealth'
 
 const soundByFileName: Record<string, SoundId> = {
   'startup.wav': 'startup',
@@ -100,6 +101,11 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
 
   const playTrack = useCallback(
     async (track: Track) => {
+      const missingDriver = requiredDriverMissing(state.fs, track.kind === 'video' ? ['video', 'audio'] : ['audio'])
+      if (missingDriver) {
+        showMessageBox(driverFailureBox(missingDriver.type, 'Media Player', missingDriver.missing))
+        return
+      }
       try {
         const src = await resolveSrc(track)
         if (!src) {
@@ -113,7 +119,7 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
         showMessageBox({ title: 'Media Player', message: `Cannot render '${track.name}'.`, icon: 'error', buttons: ['ok'] })
       }
     },
-    [resolveSrc, showMessageBox],
+    [resolveSrc, showMessageBox, state.fs],
   )
 
   // Open a file passed via association (double-click in Explorer). Deferred a
@@ -160,7 +166,12 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
 
   function togglePlay() {
     const media = mediaRef.current
-    if (!media || !currentSrc) return
+    if (!media || !currentSrc || !currentTrack) return
+    const missingDriver = requiredDriverMissing(state.fs, currentTrack.kind === 'video' ? ['video', 'audio'] : ['audio'])
+    if (missingDriver) {
+      showMessageBox(driverFailureBox(missingDriver.type, 'Media Player', missingDriver.missing))
+      return
+    }
     if (media.paused) {
       void media.play().catch(() => undefined)
       setIsPlaying(true)

@@ -4,6 +4,7 @@ import type { AppProps, FsNode } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { baseName, extensionOf, formatSize, getNode, listDirectory, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
+import { driverHealthy } from '../../os/systemHealth'
 
 const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -25,6 +26,7 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
   const currentIndex = currentNode ? folderImages.findIndex((node) => node.path === currentNode.path) : -1
   const imageSrc = currentNode?.dataUrl ?? ''
   const fitBackground = imageSrc ? { backgroundImage: `url("${imageSrc.replace(/"/g, '\\"')}")` } : undefined
+  const videoDriverReady = driverHealthy(state.fs, 'video')
 
   useEffect(() => {
     setWindowTitle(windowId, currentNode ? `${baseName(currentNode.path)} - Imaging Preview` : 'Imaging Preview')
@@ -54,7 +56,7 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
     })
   }
 
-  const canShowImage = Boolean(currentNode?.dataUrl && !imageError)
+  const canShowImage = Boolean(videoDriverReady && currentNode?.dataUrl && !imageError)
 
   return (
     <div className="app-content image-viewer-app">
@@ -66,10 +68,10 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
         <li>Help</li>
       </ul>
       <div className="toolbar image-viewer-toolbar">
-        <button type="button" onClick={() => chooseOffset(-1)} disabled={folderImages.length < 2}>
+        <button type="button" onClick={() => chooseOffset(-1)} disabled={folderImages.length < 2 || !videoDriverReady}>
           Previous
         </button>
-        <button type="button" onClick={() => chooseOffset(1)} disabled={folderImages.length < 2}>
+        <button type="button" onClick={() => chooseOffset(1)} disabled={folderImages.length < 2 || !videoDriverReady}>
           Next
         </button>
         <span className="toolbar-separator" aria-hidden="true" />
@@ -100,8 +102,20 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
         ) : (
           <div className="image-viewer-empty">
             <img src={win98Icons.imageFile} alt="" />
-            <p>{currentNode ? `Cannot preview ${currentNode.name}.` : 'Open a picture from My Pictures.'}</p>
-            <span>{currentNode ? 'The file has no browser-readable image data.' : 'JPG, PNG, BMP, and GIF files open here.'}</span>
+            <p>
+              {!videoDriverReady
+                ? 'VGA Display: Driver Missing'
+                : currentNode
+                  ? `Cannot preview ${currentNode.name}.`
+                  : 'Open a picture from My Pictures.'}
+            </p>
+            <span>
+              {!videoDriverReady
+                ? 'Use Recovery Mode to restore the simulated video driver from the protected cache.'
+                : currentNode
+                  ? 'The file has no browser-readable image data.'
+                  : 'JPG, PNG, BMP, and GIF files open here.'}
+            </span>
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
+import { driverHealthy } from '../../os/systemHealth'
 
 const HOME = 'http://www.google.com/'
 // Default Wayback snapshot for typed/unlisted URLs. `if_` serves the page without
@@ -138,7 +139,8 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
 
   const current = history[index] ?? initial
   const page = useMemo(() => resolvePage(current), [current])
-  const online = state.network.connected
+  const networkDriverReady = driverHealthy(state.fs, 'network')
+  const online = state.network.connected && networkDriverReady
   const currentHost = hostOf(current) || current
 
   useEffect(() => {
@@ -224,10 +226,18 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
     return (
       <div className="web-error">
         <h3>The page cannot be displayed</h3>
-        <p>The network cable is unplugged or TCP/IP is not configured.</p>
+        <p>
+          {networkDriverReady
+            ? 'The network cable is unplugged or TCP/IP is not configured.'
+            : 'The simulated network adapter driver is missing.'}
+        </p>
         <ul className="compact-list">
-          <li>Open Network Neighborhood and click Connect.</li>
-          <li>Or run <b>ipconfig /renew</b> in the MS-DOS Prompt.</li>
+          <li>
+            {networkDriverReady
+              ? 'Open Network Neighborhood and click Connect.'
+              : 'Open BIOS Setup > Recovery Mode to restore the driver from the protected cache.'}
+          </li>
+          <li>Or run <b>ipconfig /renew</b> in the MS-DOS Prompt to check adapter status.</li>
         </ul>
         <p className="web-muted">Cannot find server or DNS Error - Internet Explorer (Simulated)</p>
         <button type="button" onClick={() => openApp('network')}>Open Network</button>

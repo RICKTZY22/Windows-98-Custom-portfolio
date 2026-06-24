@@ -1586,6 +1586,18 @@ export function createInitialFsState(): FsState {
     ].join('\n'),
     modified: '06/12/2026 12:08 AM',
   })
+  // Harmless awareness easter egg: a deliberately tempting "do not touch" file
+  // tucked inside the locked folder. Opening it launches a SIMULATED runaway
+  // dialog storm (SetupSafetyApp) that ends in a fake crash, then recovers with
+  // a do's-and-don'ts safety lesson. No real files, downloads, network traffic,
+  // or host commands are ever touched — it lives entirely in this React app.
+  file('C:\\My Documents\\Private\\testdontouch.exe', {
+    content: 'Simulated program. This is a harmless in-browser awareness demo.',
+    icon: 'sysFile',
+    fileType: 'Application',
+    appId: 'setupSafety',
+    modified: '06/22/2026 12:45 PM',
+  })
 
   // ----- Projects: one folder per project -----
   folder('C:\\Projects', 'projects', '06/13/2026 12:35 AM')
@@ -1694,27 +1706,27 @@ export function createInitialFsState(): FsState {
   sysFile('C:\\Windows\\System32\\comctl32.dll', 557056)
   sysFile('C:\\Windows\\System32\\ole32.dll', 770048)
   sysFile('C:\\Windows\\System32\\msvcrt.dll', 278581)
-  sysFile('C:\\Windows\\System32\\winsock.dll', 42160)
-  sysFile('C:\\Windows\\System32\\wsock32.dll', 66560)
+  sysFile('C:\\Windows\\System32\\winsock.dll', 42160, { attributes: { driverType: 'network' } })
+  sysFile('C:\\Windows\\System32\\wsock32.dll', 66560, { attributes: { driverType: 'network' } })
   sysFile('C:\\Windows\\System32\\wininet.dll', 372736)
   sysFile('C:\\Windows\\System32\\rasapi32.dll', 217088)
   sysFile('C:\\Windows\\System32\\setupapi.dll', 446464)
-  sysFile('C:\\Windows\\System32\\mmsystem.dll', 71680)
+  sysFile('C:\\Windows\\System32\\mmsystem.dll', 71680, { attributes: { driverType: 'audio' } })
   sysFile('C:\\Windows\\System32\\control.exe', 112640, { appId: 'controlPanel' })
   sysFile('C:\\Windows\\System32\\rundll32.exe', 24576)
   sysFile('C:\\Windows\\System32\\regsvr32.exe', 36864)
   sysFile('C:\\Windows\\System32\\systray.exe', 40960)
-  sysFile('C:\\Windows\\System32\\netcfg.dll', 94208)
+  sysFile('C:\\Windows\\System32\\netcfg.dll', 94208, { attributes: { driverType: 'network' } })
   sysFile('C:\\Windows\\System32\\portfolio.sys', 32768)
   sysFile('C:\\Windows\\System32\\vmm32.vxd', 932864)
   sysFile('C:\\Windows\\System32\\configmg.vxd', 125952)
   sysFile('C:\\Windows\\System32\\vcomm.vxd', 65536)
   sysFile('C:\\Windows\\System32\\vflatd.vxd', 77824)
-  sysFile('C:\\Windows\\System32\\gpu.vxd', 49152)
-  sysFile('C:\\Windows\\System32\\display.drv', 98304)
-  sysFile('C:\\Windows\\System32\\keyboard.drv', 28672)
-  sysFile('C:\\Windows\\System32\\mouse.drv', 24576)
-  sysFile('C:\\Windows\\System32\\sound.drv', 53248)
+  sysFile('C:\\Windows\\System32\\gpu.vxd', 49152, { attributes: { driverType: 'video' } })
+  sysFile('C:\\Windows\\System32\\display.drv', 98304, { attributes: { driverType: 'video' } })
+  sysFile('C:\\Windows\\System32\\keyboard.drv', 28672, { attributes: { driverType: 'input' } })
+  sysFile('C:\\Windows\\System32\\mouse.drv', 24576, { attributes: { driverType: 'input' } })
+  sysFile('C:\\Windows\\System32\\sound.drv', 53248, { attributes: { driverType: 'audio' } })
   // Core libraries
   sysFile('C:\\Windows\\System32\\oleaut32.dll', 593920)
   sysFile('C:\\Windows\\System32\\olepro32.dll', 90112)
@@ -1734,15 +1746,15 @@ export function createInitialFsState(): FsState {
   sysFile('C:\\Windows\\System32\\riched20.dll', 434176)
   sysFile('C:\\Windows\\System32\\riched32.dll', 245760)
   sysFile('C:\\Windows\\System32\\mapi32.dll', 712704)
-  sysFile('C:\\Windows\\System32\\winmm.dll', 176128)
-  sysFile('C:\\Windows\\System32\\dsound.dll', 311296)
-  sysFile('C:\\Windows\\System32\\ddraw.dll', 282624)
+  sysFile('C:\\Windows\\System32\\winmm.dll', 176128, { attributes: { driverType: 'audio' } })
+  sysFile('C:\\Windows\\System32\\dsound.dll', 311296, { attributes: { driverType: 'audio' } })
+  sysFile('C:\\Windows\\System32\\ddraw.dll', 282624, { attributes: { driverType: 'video' } })
   sysFile('C:\\Windows\\System32\\dplayx.dll', 204800)
   sysFile('C:\\Windows\\System32\\opengl32.dll', 696320)
   sysFile('C:\\Windows\\System32\\glu32.dll', 122880)
   sysFile('C:\\Windows\\System32\\twain32.dll', 86016)
   sysFile('C:\\Windows\\System32\\msgsm32.acm', 24576)
-  sysFile('C:\\Windows\\System32\\wdmaud.drv', 28672)
+  sysFile('C:\\Windows\\System32\\wdmaud.drv', 28672, { attributes: { driverType: 'audio' } })
   sysFile('C:\\Windows\\System32\\msmixmgr.dll', 16384)
   // 16-bit core (kept for legacy apps)
   sysFile('C:\\Windows\\System32\\krnl386.exe', 126976)
@@ -1752,11 +1764,11 @@ export function createInitialFsState(): FsState {
   sysFile('C:\\Windows\\System32\\ddhelp.exe', 53248)
 
   folder('C:\\Windows\\System32\\Drivers', 'adminTools', RETRO_STAMP)
-  sysFile('C:\\Windows\\System32\\Drivers\\ndis.vxd', 159744)
-  sysFile('C:\\Windows\\System32\\Drivers\\tcpip.sys', 196608)
-  sysFile('C:\\Windows\\System32\\Drivers\\el90xnd3.sys', 45056)
-  sysFile('C:\\Windows\\System32\\Drivers\\vga.drv', 73728)
-  sysFile('C:\\Windows\\System32\\Drivers\\mousehid.vxd', 40960)
+  sysFile('C:\\Windows\\System32\\Drivers\\ndis.vxd', 159744, { attributes: { driverType: 'network' } })
+  sysFile('C:\\Windows\\System32\\Drivers\\tcpip.sys', 196608, { attributes: { driverType: 'network' } })
+  sysFile('C:\\Windows\\System32\\Drivers\\el90xnd3.sys', 45056, { attributes: { driverType: 'network' } })
+  sysFile('C:\\Windows\\System32\\Drivers\\vga.drv', 73728, { attributes: { driverType: 'video' } })
+  sysFile('C:\\Windows\\System32\\Drivers\\mousehid.vxd', 40960, { attributes: { driverType: 'input' } })
 
   folder('C:\\Windows\\System32\\Config', 'adminTools', RETRO_STAMP)
   sysFile('C:\\Windows\\System32\\Config\\system.dat', 1048576)
@@ -1771,19 +1783,6 @@ export function createInitialFsState(): FsState {
   // Command
   folder('C:\\Windows\\Command', 'dos', RETRO_STAMP)
   sysFile('C:\\Windows\\Command\\COMMAND.COM', 93890, { appId: 'terminal' })
-  file('C:\\Windows\\Command\\setup.bat', {
-    content: [
-      '@ECHO OFF',
-      'REM Setup Safety Check - simulated training launcher',
-      'REM This file opens a local browser-OS safety lesson only.',
-      'REM It cannot run commands outside the portfolio app.',
-      'ECHO Starting setup safety check...',
-    ].join('\n'),
-    icon: 'batchFile',
-    fileType: 'MS-DOS Batch File',
-    appId: 'setupSafety',
-    modified: '06/22/2026 12:45 PM',
-  })
   sysFile('C:\\Windows\\Command\\PING.EXE', 24576)
   sysFile('C:\\Windows\\Command\\IPCONFIG.EXE', 28672)
   sysFile('C:\\Windows\\Command\\SCANREG.EXE', 151024)
@@ -1989,6 +1988,7 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Documents\\Paint',
   'C:\\My Documents\\Private',
   'C:\\My Documents\\Private\\Secret Note.txt',
+  'C:\\My Documents\\Private\\testdontouch.exe',
   'C:\\My Documents\\Resume.doc',
   'C:\\Projects',
   ...portfolioData.projects.flatMap((project) => [
@@ -2006,7 +2006,6 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',
   'C:\\Program Files\\Accessories\\KODAKIMG.EXE',
   'C:\\Program Files\\Accessories\\VIDPLAY.EXE',
-  'C:\\Windows\\Command\\setup.bat',
   'C:\\Program Files\\Games',
   'C:\\Program Files\\Games\\WOLF3D.EXE',
   'C:\\Program Files\\Games\\DOOM.EXE',
@@ -2022,6 +2021,7 @@ const LEGACY_ARTIFACT_PATHS = [
   'C:\\My Pictures\\portfolio-sketch.bmp',
   'C:\\My Pictures\\project-preview.url',
   'C:\\Windows\\Desktop\\setup.bat',
+  'C:\\Windows\\Command\\setup.bat',
   'C:\\My Documents\\Resume.txt',
   'C:\\My Documents\\Education.txt',
   ...portfolioData.projects.flatMap((project) => [

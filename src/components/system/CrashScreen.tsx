@@ -41,13 +41,9 @@ export function CrashScreen({ crash, onRestart }: CrashScreenProps) {
   }, [continueIfReady])
 
   useEffect(() => {
-    // Classic PC-speaker style panic beeps: three harsh error tones.
+    // Single Windows error chord on the blue-screen panic (CHORD.WAV when the
+    // sample is present, the synth error tone otherwise).
     playSound('error')
-    const timers = [
-      window.setTimeout(() => playSound('error'), 420),
-      window.setTimeout(() => playSound('warn'), 840),
-    ]
-    return () => timers.forEach((timer) => window.clearTimeout(timer))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

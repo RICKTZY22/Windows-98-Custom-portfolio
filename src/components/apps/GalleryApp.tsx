@@ -4,6 +4,7 @@ import type { FsNode } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { extensionOf, formatSize, listDirectory } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
+import { driverFailureBox, driverHealthy, missingDriverFiles } from '../../os/systemHealth'
 
 // BMP is intentionally excluded: Paint saves .bmp files into C:\My Documents\Paint
 // (browse them in the file manager), so they don't clutter the photo gallery.
@@ -16,9 +17,10 @@ const VIDEOS_DIR = 'C:\\My Videos'
 type Tab = 'pictures' | 'videos'
 
 export function GalleryApp() {
-  const { state, openNode } = useOs()
+  const { state, openNode, showMessageBox } = useOs()
   const [tab, setTab] = useState<Tab>('pictures')
   const [selected, setSelected] = useState<string>()
+  const videoDriverReady = driverHealthy(state.fs, 'video')
 
   const pictures = useMemo(
     () =>
@@ -69,7 +71,15 @@ export function GalleryApp() {
         </button>
       </div>
       <div className="sunken-panel gallery-grid-wrap">
-        {items.length === 0 ? (
+        {!videoDriverReady ? (
+          <div className="gallery-empty">
+            <img src={win98Icons.display} alt="" />
+            <p>VGA Display: Driver Missing</p>
+            <p className="gallery-hint">
+              Gallery previews are unavailable until Recovery Mode restores the simulated video driver.
+            </p>
+          </div>
+        ) : items.length === 0 ? (
           <div className="gallery-empty">
             <img src={win98Icons[tab === 'pictures' ? 'imageFile' : 'videoFile']} alt="" />
             <p>{tab === 'pictures' ? 'No pictures yet.' : 'No videos yet.'}</p>
@@ -88,7 +98,13 @@ export function GalleryApp() {
                 className={`gallery-tile ${selected === node.path ? 'selected' : ''}`}
                 title={node.name}
                 onClick={() => setSelected(node.path)}
-                onDoubleClick={() => openNode(node.path)}
+                onDoubleClick={() => {
+                  if (!videoDriverReady) {
+                    showMessageBox(driverFailureBox('video', 'My Pictures', missingDriverFiles(state.fs, 'video')))
+                    return
+                  }
+                  openNode(node.path)
+                }}
               >
                 <span className="gallery-thumb">
                   {tab === 'pictures' && node.dataUrl ? (

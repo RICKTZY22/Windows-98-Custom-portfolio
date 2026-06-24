@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BootDeviceId, OsState, WindowState } from '../../types'
-import { missingAppDependency, reducer } from '../store'
+import { missingAppDependency, missingAppDriverDependency, reducer } from '../store'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../../data/initialFilesystem'
 import { executeCommand } from '../commands'
 import {
@@ -30,6 +30,12 @@ import {
   enabledBootDevices,
   moveBootDevice,
 } from '../../data/bios'
+import {
+  driverHealthy,
+  missingDriverFiles,
+  missingSystemHealthGroups,
+  systemStatusLabel,
+} from '../systemHealth'
 import {
   EMPTY_WORDPAD_PAGE_HTML,
   WORDPAD_PAGE_BREAK_TOKEN,
@@ -166,6 +172,48 @@ describe('virtual filesystem', () => {
 
     expect(missingAppDependency('notepad', deleted.fs)).toBeNull()
     expect(missingAppDependency('calculator', deleted.fs)).toBeNull()
+  })
+
+  it('classifies missing simulated network drivers without breaking boot health', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\tcpip.sys')
+
+    expect(deleted.criticalDeleted).toBe(false)
+    expect(isSystemHealthy(deleted.fs)).toBe(true)
+    expect(driverHealthy(deleted.fs, 'network')).toBe(false)
+    expect(missingDriverFiles(deleted.fs, 'network')).toEqual(['C:\\Windows\\System32\\Drivers\\tcpip.sys'])
+    expect(missingAppDriverDependency('network', deleted.fs)?.type).toBe('network')
+    expect(missingAppDriverDependency('internetExplorer', deleted.fs)?.type).toBe('network')
+    expect(missingAppDriverDependency('notepad', deleted.fs)).toBeNull()
+  })
+
+  it('classifies audio and video drivers as feature-scoped dependencies', () => {
+    const fs = createInitialFsState()
+    const audioMissing = deleteNode(fs, 'C:\\Windows\\System32\\sound.drv')
+    const videoMissing = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv')
+
+    expect(audioMissing.criticalDeleted).toBe(false)
+    expect(driverHealthy(audioMissing.fs, 'audio')).toBe(false)
+    expect(missingAppDriverDependency('mediaPlayer', audioMissing.fs)?.type).toBe('audio')
+    expect(missingAppDriverDependency('paint', audioMissing.fs)).toBeNull()
+
+    expect(videoMissing.criticalDeleted).toBe(false)
+    expect(driverHealthy(videoMissing.fs, 'video')).toBe(false)
+    expect(missingAppDriverDependency('paint', videoMissing.fs)?.type).toBe('video')
+    expect(missingAppDriverDependency('gallery', videoMissing.fs)?.type).toBe('video')
+    expect(missingAppDriverDependency('notepad', videoMissing.fs)).toBeNull()
+  })
+
+  it('restores missing simulated drivers from the protected cache', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\el90xnd3.sys')
+
+    expect(missingSystemHealthGroups(deleted.fs).map((group) => group.label)).toContain('Network Drivers')
+
+    const restored = restoreSystemFiles(deleted.fs)
+    expect(restored.restored).toEqual(['C:\\Windows\\System32\\Drivers\\el90xnd3.sys'])
+    expect(driverHealthy(restored.fs, 'network')).toBe(true)
+    expect(systemStatusLabel(restored.fs)).toBe('Detected')
   })
 
   it('purges legacy seed artifacts and restores My Videos when topping up a migrated disk', () => {
@@ -418,8 +466,8 @@ describe('command processor', () => {
     const fs = createInitialFsState()
     const ctx = { cwd: 'C:\\', fs, network: defaultNetworkState, bootMode: 'normal' as const, dosOnly: false }
 
-    expect(executeCommand('setup.bat', ctx).effects).toEqual([{ type: 'openApp', appId: 'setupSafety' }])
-    expect(executeCommand('setup', ctx).effects).toEqual([{ type: 'openApp', appId: 'setupSafety' }])
+    expect(executeCommand('testdontouch.exe', ctx).effects).toEqual([{ type: 'openApp', appId: 'setupSafety' }])
+    expect(executeCommand('testdontouch', ctx).effects).toEqual([{ type: 'openApp', appId: 'setupSafety' }])
   })
 
   it('guards terminal del of protected system paths behind /Y', () => {
@@ -436,6 +484,20 @@ describe('command processor', () => {
     const confirmed = executeCommand('del C:\\Windows\\System32 /Y', ctx)
     expect(confirmed.effects?.some((effect) => effect.type === 'setFs')).toBe(true)
     expect(confirmed.effects?.some((effect) => effect.type === 'crash')).toBe(true)
+  })
+
+  it('fails network commands when the simulated network driver is missing', () => {
+    const fs = createInitialFsState()
+    const deleted = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\ndis.vxd')
+    const ctx = { cwd: 'C:\\', fs: deleted.fs, network: defaultNetworkState, bootMode: 'normal' as const, dosOnly: false }
+
+    expect(executeCommand('ping google.com', ctx).lines.join('\n')).toContain('ERR_DRIVER_NETWORK_MISSING')
+
+    const renewed = executeCommand('ipconfig /renew', ctx)
+    expect(renewed.lines.join('\n')).toContain('ERR_DRIVER_NETWORK_MISSING')
+    expect(renewed.effects?.[0]).toMatchObject({ type: 'setNetwork' })
+
+    expect(executeCommand('ipconfig /all', ctx).lines.join('\n')).toContain('Simulated network driver missing')
   })
 })
 

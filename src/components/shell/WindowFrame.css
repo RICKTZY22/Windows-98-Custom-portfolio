@@ -113,9 +113,16 @@
 }
 
 .title-bar {
+  color: var(--w98-titlebar-text, #fff);
+  background: linear-gradient(90deg, var(--w98-titlebar-1, #000080), var(--w98-titlebar-2, #1084d0));
   user-select: none;
   touch-action: none;
   cursor: move;
+}
+
+.title-bar.inactive {
+  color: var(--w98-titlebar-text, #fff);
+  background: linear-gradient(90deg, var(--w98-titlebar-inactive-1, #808080), var(--w98-titlebar-inactive-2, #b5b5b5));
 }
 
 .title-bar-text {

@@ -1,18 +1,73 @@
 
+.file-manager-app .os-menu-bar li {
+  position: relative;
+  padding: 0;
+}
+
+.explorer-menu-trigger {
+  min-width: 0;
+  min-height: 19px;
+  padding: 2px 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #000;
+}
+
+.explorer-menu-trigger:hover,
+.explorer-menu-trigger:focus,
+.explorer-menu-trigger.open {
+  color: var(--w98-highlight-text, #fff);
+  background: var(--w98-highlight, #000080);
+  outline: 0;
+}
+
+.explorer-menu-dropdown {
+  top: 100%;
+  left: 0;
+  width: 198px;
+  margin: 0;
+  list-style: none;
+}
+
+.explorer-menu-dropdown-wide {
+  width: 220px;
+}
+
+.explorer-menu-dropdown button:disabled {
+  color: grey;
+  text-shadow: 1px 1px #fff;
+}
+
+.explorer-menu-dropdown button:disabled:hover,
+.explorer-menu-dropdown button:disabled:focus {
+  background: transparent;
+  color: grey;
+}
+
+.menu-check {
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+}
+
 .tree-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   min-width: 0;
-  min-height: 20px;
+  min-height: 19px;
   padding: 1px 4px;
   background: transparent;
   box-shadow: none;
   color: #111;
+  text-align: left;
 }
 
 .tree-button:focus,
-.tree-button:hover {
+.tree-button:hover,
+.tree-button.is-current {
   background: #000080;
   color: #fff;
 }
@@ -44,7 +99,7 @@
 .rename-input {
   flex: 1;
   min-width: 60px;
-  height: 18px;
+  height: 19px;
   padding: 0 2px;
   font-size: 12px;
 }
@@ -52,6 +107,39 @@
 .file-list-empty {
   margin: 10px;
   color: #555;
+}
+
+.file-display-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-attribute-badges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.file-attribute-badges span {
+  min-width: 13px;
+  padding: 0 2px;
+  border: 1px solid #808080;
+  background: #dfdfdf;
+  color: #000;
+  font-size: 10px;
+  line-height: 13px;
+  text-align: center;
+}
+
+.file-row.selected .file-attribute-badges span,
+.file-row:hover .file-attribute-badges span,
+.file-row:focus .file-attribute-badges span {
+  border-color: #fff;
+  background: #000080;
+  color: #fff;
 }
 
 /* Hidden files/folders render ghosted, the way Win98 dims hidden items. */
@@ -66,8 +154,10 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 28px 16px;
+  min-height: 100%;
+  padding: 42px 16px;
   text-align: center;
+  background: #fff;
 }
 
 .folder-lock-icon {
@@ -83,6 +173,7 @@
 
 .folder-lock-glyph {
   margin-right: 2px;
+  color: #000080;
 }
 
 .folder-lock-form {
