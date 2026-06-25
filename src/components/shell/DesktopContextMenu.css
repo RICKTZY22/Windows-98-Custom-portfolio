@@ -10,7 +10,9 @@
     inset 1px 1px var(--button-face, #dfdfdf),
     inset -2px -2px var(--button-shadow, grey),
     inset 2px 2px var(--button-highlight, #fff);
+  margin: 0;
   padding: 3px;
+  list-style: none;
 }
 
 .desktop-context-menu ul,
@@ -20,8 +22,17 @@
   list-style: none;
 }
 
-.desktop-context-menu li {
+.desktop-context-menu li,
+.context-submenu li {
   position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.desktop-context-menu li::marker,
+.context-submenu li::marker {
+  content: '';
 }
 
 .desktop-context-menu button,
@@ -37,6 +48,37 @@
   box-shadow: none;
   color: var(--w98-text, #111);
   text-align: left;
+}
+
+.desktop-context-menu button {
+  justify-content: flex-start;
+}
+
+.desktop-context-menu.taskbar-context-menu {
+  position: fixed;
+  width: 190px;
+  z-index: 10003;
+}
+
+.desktop-context-menu button:disabled {
+  color: grey;
+  text-shadow: 1px 1px var(--button-highlight, #fff);
+}
+
+.desktop-context-menu button:disabled:hover,
+.desktop-context-menu button:disabled:focus {
+  color: grey;
+  background: transparent;
+}
+
+.context-check {
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+}
+
+.context-row .submenu-arrow {
+  margin-left: auto;
 }
 
 .desktop-context-menu img {

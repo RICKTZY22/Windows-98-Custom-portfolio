@@ -1,69 +1,119 @@
 
 /* === System screens (boot menu, recovery, shutdown, DOS-only) =========== */
 
+/* The F8 startup menu mirrors the Award BIOS Setup look (see styles/bios.css):
+   blue screen, monospace text, a centered double-ruled frame and a footer help bar. */
 .boot-menu-screen {
   position: fixed;
   inset: 0;
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  padding: 48px 16px;
-  color: #c0c0c0;
-  background: #000;
-  font-family: "Courier New", monospace;
-  font-size: 15px;
-}
-
-.boot-menu-panel {
-  display: grid;
-  gap: 10px;
-  width: min(620px, 100%);
-}
-
-.boot-menu-panel h1 {
-  margin: 0;
-  padding-bottom: 6px;
+  overflow: hidden;
   color: #fff;
-  font-size: 19px;
-  border-bottom: 1px solid #c0c0c0;
+  background: #0000a8;
+  font-family: "Courier New", Consolas, monospace;
+  cursor: default;
 }
 
-.boot-menu-panel p {
+.boot-menu-screen * {
+  cursor: default;
+}
+
+.boot-menu-frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  padding: clamp(10px, 2vh, 22px) clamp(6px, 2.5vw, 28px);
+  font-size: clamp(14px, 1.25vw, 20px);
+  line-height: 1.3;
+}
+
+.boot-menu-titlebar {
+  margin: 0 auto 16px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.boot-menu-main {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 22px clamp(14px, 3vw, 40px);
+  border: 3px double #fff;
+}
+
+.boot-menu-heading {
   margin: 0;
+  color: #ffff55;
+  font-size: 1em;
+  font-weight: 700;
+  text-align: center;
 }
 
-.boot-menu-panel ol {
+.boot-menu-warning {
+  margin: 0;
+  padding: 6px 8px;
+  color: #ffff55;
+  border: 1px solid #ffff55;
+}
+
+.boot-menu-options {
   display: grid;
   gap: 2px;
-  margin: 6px 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.boot-menu-panel ol button {
-  display: block;
+.boot-menu-row {
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr);
+  gap: 0.35em;
+  align-items: center;
   width: 100%;
-  min-width: 0;
-  padding: 3px 8px;
+  padding: 2px 10px;
   text-align: left;
-  color: #c0c0c0;
+  color: #fff;
   background: transparent;
   border: 0;
   box-shadow: none;
   font: inherit;
 }
 
-.boot-menu-panel ol button.selected {
-  color: #000;
-  background: #c0c0c0;
+.boot-menu-row.selected {
+  color: #fff;
+  background: #a80000;
 }
 
-.boot-warning {
-  color: #ffff55;
+.boot-menu-help {
+  display: grid;
+  gap: 10px;
+  width: min(1080px, 100%);
+  margin: 14px auto 0;
 }
 
-.boot-muted {
-  color: #808080;
+.boot-menu-key-help {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 18px;
+  color: #fff;
+}
+
+.boot-menu-hint {
+  margin: 0;
+  padding-top: 10px;
+  color: #00ffff;
+  text-align: center;
+  border-top: 3px double #fff;
+}
+
+.boot-menu-prompt {
+  margin: 0;
+  text-align: center;
+  color: #fff;
 }
 
 .dos-only-screen {
@@ -391,4 +441,171 @@
   55% { opacity: 1; }
   70% { opacity: 0.6; }
   100% { opacity: 1; }
+}
+
+/* Startup ScanDisk after an improper shutdown (StartupScanScreen.tsx) */
+.startup-scan-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+  color: #c0c0c0;
+  background: #000;
+  font-family: "Courier New", monospace;
+  font-size: clamp(14px, 1.7vw, 20px);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.startup-scan-window {
+  width: min(760px, 100%);
+  color: #c0c0c0;
+  background: #030303;
+  border: 1px solid #808080;
+  box-shadow:
+    0 0 0 1px #000,
+    0 0 0 2px #c0c0c0,
+    18px 18px 0 rgba(0, 0, 0, 0.32);
+}
+
+.startup-scan-window-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 8px;
+  color: #fff;
+  background: #000080;
+  border-bottom: 1px solid #c0c0c0;
+  font-size: 0.78em;
+}
+
+.startup-scan-panel {
+  display: grid;
+  gap: 0.62em;
+  padding: clamp(22px, 4vw, 34px);
+}
+
+.startup-scan-panel p {
+  margin: 0;
+}
+
+.startup-scan-product {
+  color: #808080;
+}
+
+.startup-scan-title {
+  margin: 0 0 0.1em;
+  color: #fff;
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+.startup-scan-drive-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0.4em 0;
+  color: #111;
+  background: #808080;
+  border: 1px solid #c0c0c0;
+}
+
+.startup-scan-drive-card div {
+  display: grid;
+  gap: 0.15em;
+  padding: 0.45em 0.55em;
+  background: #c0c0c0;
+}
+
+.startup-scan-drive-card span {
+  color: #303030;
+  font-size: 0.7em;
+}
+
+.startup-scan-drive-card strong {
+  font-size: 0.82em;
+  font-weight: 700;
+}
+
+.startup-scan-now {
+  margin-top: 0.5em !important;
+  color: #fff;
+}
+
+.startup-scan-stage {
+  min-height: 1.5em;
+  color: #66ff88;
+}
+
+.startup-scan-blocks {
+  display: grid;
+  grid-template-columns: repeat(40, minmax(5px, 1fr));
+  gap: 2px;
+  padding: 4px;
+  background: #111;
+  border: 1px solid #555;
+}
+
+.startup-scan-blocks i {
+  display: block;
+  height: 14px;
+  background: #1c1c1c;
+  border: 1px solid #333;
+}
+
+.startup-scan-blocks i.is-scanned {
+  background: #00a2e8;
+  border-color: #47caff #005f9f #005f9f #47caff;
+}
+
+.startup-scan-blocks i.is-current {
+  background: #66ff88;
+  border-color: #d8ffe0 #249846 #249846 #d8ffe0;
+  animation: startup-scan-pulse 520ms steps(2, end) infinite;
+}
+
+.startup-scan-bar {
+  height: 18px;
+  margin-top: 0.3em;
+  padding: 2px;
+  background: #000;
+  border: 1px solid #c0c0c0;
+}
+
+.startup-scan-bar > i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, #00a2e8 0 10px, #0066b3 10px 20px);
+  transition: width 120ms linear;
+}
+
+.startup-scan-percent {
+  color: #c0c0c0;
+}
+
+.startup-scan-report {
+  color: #9a9a9a;
+  font-size: 0.82em;
+}
+
+.startup-scan-hint {
+  margin-top: 1em !important;
+  color: #ffd23f;
+}
+
+@keyframes startup-scan-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (max-width: 680px) {
+  .startup-scan-drive-card {
+    grid-template-columns: 1fr;
+  }
+
+  .startup-scan-blocks {
+    grid-template-columns: repeat(20, minmax(5px, 1fr));
+  }
 }

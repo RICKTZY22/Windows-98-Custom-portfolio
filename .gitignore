@@ -78,3 +78,7 @@ desktop.ini
 /docs/
 /tools/
 __pycache__/
+
+# Full win98 icon source libraries kept local; the app only uses public/icons/win98
+/public/icons/png/
+/public/icons/ico/

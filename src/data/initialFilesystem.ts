@@ -290,69 +290,14 @@ function win98PortfolioPath(relativePath: string): string {
   return `${WIN98_PORTFOLIO_ROOT}\\${relativePath}`
 }
 
-function win98PortfolioPdfFile(relativePath: string, dataUrl: string, size: number): ScaffoldFile {
-  const path = win98PortfolioPath(relativePath)
-  return {
-    path,
-    dataUrl,
-    size,
-    icon: 'html',
-    fileType: 'PDF Document',
-    appId: 'pdfViewer',
-    appPayload: { filePath: path },
-    modified: WIN98_PORTFOLIO_STAMP,
-  }
-}
-
-const WIN98_PORTFOLIO_PDF_FILES = [
-  win98PortfolioPdfFile(
-    'Documentation\\PDFs\\AI and the Developer Case Study.pdf',
-    '/docs/pdf/AI-and-the-Developer-Case-Study.pdf',
-    8389,
-  ),
-  win98PortfolioPdfFile(
-    'Documentation\\PDFs\\Build Documentation Explained.pdf',
-    '/docs/pdf/final-1.pdf',
-    279432,
-  ),
-  win98PortfolioPdfFile(
-    'Documentation\\PDFs\\Algorithms and Patterns Explained.pdf',
-    '/docs/pdf/final-2.pdf',
-    302252,
-  ),
-  win98PortfolioPdfFile(
-    'Documentation\\PDFs\\Apps and Features Reference Explained.pdf',
-    '/docs/pdf/final-3.pdf',
-    514774,
-  ),
-  win98PortfolioPdfFile(
-    'docs\\docx\\AI-and-the-Developer-Case-Study.pdf',
-    '/docs/pdf/AI-and-the-Developer-Case-Study.pdf',
-    8389,
-  ),
-  win98PortfolioPdfFile('docs\\docx\\final 1.pdf', '/docs/pdf/final-1.pdf', 279432),
-  win98PortfolioPdfFile('docs\\docx\\final 2.pdf', '/docs/pdf/final-2.pdf', 302252),
-  win98PortfolioPdfFile('docs\\docx\\final 3.pdf', '/docs/pdf/final-3.pdf', 514774),
-  win98PortfolioPdfFile(
-    'public\\docs\\pdf\\AI-and-the-Developer-Case-Study.pdf',
-    '/docs/pdf/AI-and-the-Developer-Case-Study.pdf',
-    8389,
-  ),
-  win98PortfolioPdfFile('public\\docs\\pdf\\final-1.pdf', '/docs/pdf/final-1.pdf', 279432),
-  win98PortfolioPdfFile('public\\docs\\pdf\\final-2.pdf', '/docs/pdf/final-2.pdf', 302252),
-  win98PortfolioPdfFile('public\\docs\\pdf\\final-3.pdf', '/docs/pdf/final-3.pdf', 514774),
-]
+// The documentation PDFs (the AI case study plus the docx-derived PDFs) are
+// confidential and must never ship inside the portfolio OS, so nothing is seeded
+// here. removePortfolioDocArtifacts() also strips them from older persisted disks.
+const WIN98_PORTFOLIO_PDF_FILES: ScaffoldFile[] = []
 
 const WIN98_PORTFOLIO_FOLDER_PATHS = [
-  'Documentation',
-  'Documentation\\PDFs',
-  'docs',
-  'docs\\apps',
-  'docs\\docx',
   'public',
   'public\\cursors',
-  'public\\docs',
-  'public\\docs\\pdf',
   'public\\games',
   'public\\icons',
   'public\\icons\\win98',
@@ -383,17 +328,6 @@ const WIN98_PORTFOLIO_FILE_PATHS = [
   'tsconfig.json',
   'tsconfig.node.json',
   'vite.config.ts',
-  'docs\\README.md',
-  'docs\\apps\\README.md',
-  'docs\\apps\\explorer.md',
-  'docs\\apps\\paint.md',
-  'docs\\apps\\terminal.md',
-  'docs\\apps\\wordpad.md',
-  'docs\\apps\\internet-explorer.md',
-  'docs\\apps\\task-manager.md',
-  'docs\\docx\\Windows_98_Portfolio_Build_Documentation_Explained.docx',
-  'docs\\docx\\Windows_98_Portfolio_Algorithms_and_Patterns_Explained.docx',
-  'docs\\docx\\Windows_98_Portfolio_Apps_and_Features_Explained.docx',
   'public\\sounds\\README.txt',
   'src\\App.tsx',
   'src\\index.css',
@@ -1538,7 +1472,7 @@ export function createInitialFsState(): FsState {
   file('C:\\CONFIG.SYS', {
     content: CONFIG_SYS,
     modified: RETRO_STAMP,
-    icon: 'sysFile',
+    icon: 'iniFile',
     fileType: 'System File',
   })
 
@@ -1769,6 +1703,7 @@ export function createInitialFsState(): FsState {
   sysFile('C:\\Windows\\System32\\Drivers\\el90xnd3.sys', 45056, { attributes: { driverType: 'network' } })
   sysFile('C:\\Windows\\System32\\Drivers\\vga.drv', 73728, { attributes: { driverType: 'video' } })
   sysFile('C:\\Windows\\System32\\Drivers\\mousehid.vxd', 40960, { attributes: { driverType: 'input' } })
+  sysFile('C:\\Windows\\System32\\Drivers\\printer.drv', 36864)
 
   folder('C:\\Windows\\System32\\Config', 'adminTools', RETRO_STAMP)
   sysFile('C:\\Windows\\System32\\Config\\system.dat', 1048576)
@@ -2088,6 +2023,30 @@ function normalizeBitmapIcons(fs: FsState): FsState {
   return changed ? { ...fs, nodes } : fs
 }
 
+// Confidential documentation subtrees that must never ship inside the portfolio
+// OS. They are no longer seeded (see WIN98_PORTFOLIO_PDF_FILES / FOLDER_PATHS),
+// and this strips them from disks seeded by older builds so they cannot reappear.
+// Note: only the case-study PDFs (Documentation\PDFs) and the docs/ source dump
+// are confidential — the per-project Documentation\*.md showcase markdown stays.
+const PURGED_PORTFOLIO_DOC_ROOTS = [
+  `${WIN98_PORTFOLIO_ROOT}\\docs`,
+  `${WIN98_PORTFOLIO_ROOT}\\Documentation\\PDFs`,
+  `${WIN98_PORTFOLIO_ROOT}\\public\\docs`,
+]
+
+function removePortfolioDocArtifacts(fs: FsState): FsState {
+  let next = fs
+  for (const root of PURGED_PORTFOLIO_DOC_ROOTS) {
+    const prefix = `${root}\\`
+    for (const path of Object.keys(next.nodes)) {
+      if (path === root || path.startsWith(prefix)) {
+        next = removeNodeByPath(next, path)
+      }
+    }
+  }
+  return next
+}
+
 export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   const seed = createInitialFsState()
   let next = fs
@@ -2095,6 +2054,7 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   for (const path of LEGACY_ARTIFACT_PATHS) {
     next = removeNodeByPath(next, path)
   }
+  next = removePortfolioDocArtifacts(next)
   next = removeSeededUserMedia(next)
   next = normalizePortfolioLaunchers(next)
   for (const path of PORTFOLIO_SEEDED_PATHS) {

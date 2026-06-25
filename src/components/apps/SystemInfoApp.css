@@ -1,0 +1,168 @@
+.sysinfo-app {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.sysinfo-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+}
+
+.sysinfo-tree-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  background: #fff;
+}
+
+.sysinfo-tree {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.sysinfo-group {
+  font-weight: 700;
+  cursor: default;
+}
+
+.sysinfo-node {
+  width: 100%;
+  padding: 1px 4px;
+  border: none;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+  font: inherit;
+  min-height: 0;
+  min-width: 0;
+  cursor: default;
+}
+
+.sysinfo-node:hover {
+  background: none;
+}
+
+.sysinfo-node.selected {
+  color: #fff;
+  background: #000080;
+  outline: 1px dotted #fff;
+  outline-offset: -1px;
+}
+
+.sysinfo-detail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 4px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.sysinfo-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #000080, #1c7ad6);
+}
+
+.sysinfo-detail-head img {
+  width: 16px;
+  height: 16px;
+}
+
+.sysinfo-detail-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.sysinfo-row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px dotted #d0d0d0;
+}
+
+.sysinfo-key {
+  font-weight: 700;
+}
+
+.sysinfo-val {
+  word-break: break-word;
+}
+
+.sysinfo-ok {
+  color: #0a7a17;
+  font-weight: 700;
+}
+
+.sysinfo-bad {
+  color: #c00;
+  font-weight: 700;
+}
+
+/* IRQ table */
+.sysinfo-irq-head,
+.sysinfo-irq-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.sysinfo-irq-head {
+  font-weight: 700;
+  border-bottom: 1px solid #808080;
+}
+
+.sysinfo-irq-row {
+  border-bottom: 1px dotted #d0d0d0;
+}
+
+/* Startup programs */
+.sysinfo-startup-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dotted #d0d0d0;
+  word-break: break-word;
+}
+
+.sysinfo-startup-name {
+  font-weight: 700;
+}
+
+.sysinfo-startup-cmd,
+.sysinfo-startup-loc {
+  font-size: 11px;
+  color: #333;
+}
+
+.sysinfo-status {
+  margin: 0;
+}
+
+@media (max-width: 620px) {
+  .sysinfo-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 140px minmax(0, 1fr);
+  }
+
+  .sysinfo-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .sysinfo-startup-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

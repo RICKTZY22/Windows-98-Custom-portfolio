@@ -1,0 +1,151 @@
+.registry-app {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.registry-toolbar {
+  padding: 2px;
+  border-bottom: 1px solid #808080;
+}
+
+.registry-readonly-banner {
+  padding: 3px 6px;
+  color: #003c00;
+  background: #dff0d8;
+  border: 1px solid #80a080;
+}
+
+.registry-body {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.36fr) minmax(260px, 1fr);
+  gap: 4px;
+  min-height: 0;
+}
+
+.registry-tree,
+.registry-values {
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+}
+
+.registry-tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.registry-tree-row {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  white-space: nowrap;
+}
+
+.registry-tree-row.selected {
+  color: #fff;
+  background: #000080;
+}
+
+.registry-toggle,
+.registry-key-button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.registry-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0;
+  margin-right: 2px;
+  color: inherit;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+}
+
+.registry-key-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 1px 4px;
+  color: inherit;
+}
+
+.registry-folder-icon {
+  width: 16px;
+  height: 13px;
+  background:
+    linear-gradient(#fff38a, #f4d95b),
+    #f0d55a;
+  border: 1px solid #8a7300;
+  box-shadow: inset 1px 1px #ffffcf;
+}
+
+.registry-values-header,
+.registry-value-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.28fr) 90px minmax(160px, 1fr);
+  align-items: center;
+  min-width: 420px;
+}
+
+.registry-values-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #c0c0c0;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #fff;
+  font-weight: 700;
+}
+
+.registry-values-header span,
+.registry-value-row span {
+  overflow: hidden;
+  padding: 3px 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registry-values-header span {
+  border-right: 1px solid #808080;
+}
+
+.registry-value-row {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  box-shadow: none;
+  text-align: left;
+}
+
+.registry-value-row:focus,
+.registry-value-row:hover {
+  color: #fff;
+  background: #000080;
+  outline: none;
+}
+
+.registry-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+
+.registry-status span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .registry-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(160px, 0.45fr) minmax(180px, 1fr);
+  }
+}

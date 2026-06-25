@@ -24,11 +24,11 @@ export const win98Icons: Record<IconKey, string> = {
   dateTime: `${iconBase}/time_and_date-1.png`,
   world: `${iconBase}/world-0.png`,
   notepad: `${iconBase}/notepad-0.png`,
-  wordpad: `${iconBase}/notepad-3.png`,
+  wordpad: `${iconBase}/write_wordpad-1.png`,
   gears: `${iconBase}/gears-1.png`,
   networkDrive: `${iconBase}/network_drive-1.png`,
   recycleBin: `${iconBase}/recycle_bin_empty-1.png`,
-  recycleBinFull: `${iconBase}/recycle_bin_empty-1.png`,
+  recycleBinFull: `${iconBase}/recycle_bin_full-4.png`,
   windows: `${iconBase}/windows-0.png`,
   windowsSmall: `${iconBase}/windows-4.png`,
   shutdown: `${iconBase}/shut_down_normal-1.png`,
@@ -59,7 +59,18 @@ export const win98Icons: Record<IconKey, string> = {
   videoFile: `${iconBase}/video_tl-1.png`,
   urlFile: `${iconBase}/html2-4.png`,
   sysFile: `${iconBase}/file_windows-1.png`,
+  // Distinct, period-accurate icons for system / executable file types so a
+  // System32 listing reads correctly (libraries vs drivers vs registry vs config).
+  execFile: `${iconBase}/executable-0.png`,
+  dllFile: `${iconBase}/file_gears-0.png`,
+  driverFile: `${iconBase}/expansion_board-1.png`,
+  cplFile: `${iconBase}/executable_gear-0.png`,
+  regFile: `${iconBase}/regedit_file-0.png`,
+  iniFile: `${iconBase}/file_lines-0.png`,
+  fontFile: `${iconBase}/font_tt-0.png`,
   batchFile: `${iconBase}/ms_dos_2-1.png`,
   explorer: `${iconBase}/search_file_2-3.png`,
   run: `${iconBase}/file_windows-1.png`,
+  // Classic Outlook Express / Exchange Inbox envelope (from the win98icons set).
+  inbox: `${iconBase}/outlook_express-0.png`,
 }

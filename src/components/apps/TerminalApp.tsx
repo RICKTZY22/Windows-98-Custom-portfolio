@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppProps, CrashState } from '../../types'
 import { useOs } from '../../os/useOs'
 import { baseName, normalizePath, nowStamp } from '../../os/filesystem'
-import { autoCompletePath, executeCommand, type CommandEffect } from '../../os/commands'
+import { autoCompletePath, executeCommand, type CommandEffect, type TerminalPrompt } from '../../os/commands'
 import { osCreditName, osProductName, osCreditYear } from '../../data/system'
 
 const banner = [osProductName, `(C)Copyright ${osCreditName} ${osCreditYear}`, '']
@@ -19,12 +19,13 @@ function crashFor(path: string): CrashState {
 }
 
 export function TerminalApp({ windowId, payload }: AppProps) {
-  const { state, openApp, closeWindow, fsOps, networkOps, restart, crashSystem } = useOs()
+  const { state, openApp, closeWindow, fsOps, networkOps, restart, crashSystem, stageSystemRestore } = useOs()
   const [cwd, setCwd] = useState(() => normalizePath(payload?.path ?? 'C:\\'))
   const [lines, setLines] = useState<string[]>(banner)
   const [input, setInput] = useState('')
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
+  const [pendingPrompt, setPendingPrompt] = useState<TerminalPrompt | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const timersRef = useRef<number[]>([])
 
@@ -62,6 +63,9 @@ export function TerminalApp({ windowId, payload }: AppProps) {
           break
         case 'setNetwork':
           networkOps.applyConfig(effect.network)
+          break
+        case 'stageRestore':
+          stageSystemRestore()
           break
         case 'exitWindow':
           if (dosOnly) {
@@ -104,9 +108,41 @@ export function TerminalApp({ windowId, payload }: AppProps) {
       }, totalDelay)
       timersRef.current.push(timer)
     })
+
+    // An interactive prompt (e.g. SFC's "Restore? (Y/N)") appears after the
+    // command's immediate lines and any streamed output finish.
+    if (output.prompt) {
+      const askedPrompt = output.prompt
+      const timer = window.setTimeout(() => {
+        append([askedPrompt.question])
+        setPendingPrompt(askedPrompt)
+      }, totalDelay)
+      timersRef.current.push(timer)
+    }
+  }
+
+  function resolvePrompt(answer: string) {
+    if (!pendingPrompt) return
+    const choice = answer.trim().toLowerCase()
+    append([answer])
+    if (choice === 'y' || choice === 'yes') {
+      setPendingPrompt(null)
+      append(pendingPrompt.onConfirm.lines)
+      applyEffects(pendingPrompt.onConfirm.effects)
+    } else if (choice === 'n' || choice === 'no') {
+      setPendingPrompt(null)
+      append(pendingPrompt.onDecline.lines)
+    } else {
+      append(['Please type Y or N.'])
+    }
   }
 
   function submit() {
+    if (pendingPrompt) {
+      resolvePrompt(input)
+      setInput('')
+      return
+    }
     runCommand(input)
     if (input.trim()) {
       setHistory((current) => [...current, input])
@@ -139,7 +175,7 @@ export function TerminalApp({ windowId, payload }: AppProps) {
             submit()
           }}
         >
-          <span>{prompt}</span>
+          <span>{pendingPrompt ? '' : prompt}</span>
           <input
             ref={inputRef}
             value={input}

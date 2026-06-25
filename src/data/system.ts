@@ -7,11 +7,32 @@ export const osProductName = 'Windows 98 Portfolio Edition'
 export const osCreditLine = `(C)Copyright ${osCreditName} ${osCreditYear}`
 
 /** Microsoft-style startup menu shown after a crash / failed boot. */
-export const bootMenuTitle = 'Windows 98 Portfolio Edition Startup Menu'
-export const bootMenuOptions: Array<{ id: 'normal' | 'safe' | 'dos' | 'recovery'; label: string }> = [
-  { id: 'normal', label: 'Normal' },
-  { id: 'safe', label: 'Safe mode' },
-  { id: 'dos', label: 'Command prompt only' },
+export const bootMenuTitle = 'Microsoft Windows 98 Portfolio Edition Startup Menu'
+export const bootMenuOptions: Array<{
+  id: 'normal' | 'safe' | 'dos' | 'recovery'
+  label: string
+  hint: string
+}> = [
+  {
+    id: 'normal',
+    label: 'Normal',
+    hint: 'Boot Windows 98 normally with every driver and service loaded.',
+  },
+  {
+    id: 'safe',
+    label: 'Safe mode',
+    hint: 'Boot with generic VGA, keyboard and mouse only. Networking, sound and accelerated video stay off so the system can be repaired.',
+  },
+  {
+    id: 'dos',
+    label: 'Command prompt only',
+    hint: 'Boot straight to an MS-DOS command prompt without the Windows GUI.',
+  },
+  {
+    id: 'recovery',
+    label: 'Recovery mode',
+    hint: 'Enter the recovery environment to verify and restore protected system files from the cache.',
+  },
 ]
 export const bootMenuUnhealthyWarning =
   'Warning: Windows did not finish loading on the previous attempt. Required system files are missing. Restart, press F12, and open Recovery Mode from BIOS Setup.'

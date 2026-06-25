@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { missingRequiredSystemFiles } from '../../os/recovery'
 import { baseName } from '../../os/filesystem'
+import { isSystem32Wiped } from '../../os/systemFiles'
 import { useOs } from '../../os/useOs'
 
 export function LoadFailureScreen() {
   const { state, restart } = useOs()
   const [rebooting, setRebooting] = useState(false)
   const missing = useMemo(() => missingRequiredSystemFiles(state.fs), [state.fs])
+  const wiped = useMemo(() => isSystem32Wiped(state.fs), [state.fs])
   const damaged = missing.map((path) => baseName(path).toUpperCase()).slice(0, 3)
   const primary = missing[0] ?? 'C:\\Windows\\System32'
 
@@ -45,8 +47,17 @@ export function LoadFailureScreen() {
           <p>Damaged files&nbsp;&nbsp;&nbsp;&nbsp;: {damaged.length ? damaged.join(', ') : 'UNKNOWN'}</p>
         </div>
 
-        <p>You can repair this installation from BIOS Setup.</p>
-        <p>Restart, press F12, then choose Recovery Mode.</p>
+        {wiped ? (
+          <>
+            <p>System32 has been removed, so Recovery Mode cannot restore it.</p>
+            <p>Restart, press F8, choose Command prompt only, then run SYS C: and SETUP.</p>
+          </>
+        ) : (
+          <>
+            <p>You can repair this installation from BIOS Setup.</p>
+            <p>Restart, press F12, then choose Recovery Mode.</p>
+          </>
+        )}
 
         <p className="load-failure-restart">
           <span>{rebooting ? 'Restarting...' : 'Press any key to restart your computer'}</span>

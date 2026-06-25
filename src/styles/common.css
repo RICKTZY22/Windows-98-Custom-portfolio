@@ -175,3 +175,13 @@
   color: #000;
   font-size: 12px;
 }
+
+[data-menu-shadows="on"] .start-menu,
+[data-menu-shadows="on"] .submenu,
+[data-menu-shadows="on"] .desktop-context-menu,
+[data-menu-shadows="on"] .context-submenu,
+[data-menu-shadows="on"] .clock-flyout,
+[data-menu-shadows="on"] .ms-menu-dropdown,
+[data-menu-shadows="on"] .wp-menu-dropdown {
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.35));
+}

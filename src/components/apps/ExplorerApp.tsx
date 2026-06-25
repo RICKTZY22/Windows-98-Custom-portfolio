@@ -15,6 +15,7 @@ import {
   parentPath,
   uniqueChildName,
 } from '../../os/filesystem'
+import { describeSystemFile } from '../../os/systemFiles'
 
 type ViewMode = 'largeIcons' | 'smallIcons' | 'list' | 'details' | 'thumbnails'
 type SortKey = 'name' | 'type' | 'size' | 'modified'
@@ -32,6 +33,7 @@ const VIEW_MODES: Array<{ id: ViewMode; label: string }> = [
 ]
 
 const IMAGE_NAME_RE = /\.(bmp|png|jpe?g|gif)$/i
+const VIRTUAL_DRIVE_BYTES = Math.round(2.1 * 1024 * 1024 * 1024)
 
 /** Image files with a data URL can show a real thumbnail instead of a generic icon. */
 function isThumbnailable(node: FsNode): boolean {
@@ -93,6 +95,21 @@ function nodeTooltip(node: FsNode): string {
   ]
     .filter((line): line is string => Boolean(line))
     .join('\n')
+}
+
+function usedDriveBytes(nodes: Record<string, FsNode>): number {
+  return Object.values(nodes).reduce((sum, node) => sum + (node.kind === 'file' ? node.size : 0), 0)
+}
+
+function quickPathTooltip(path: string, label: string, nodes: Record<string, FsNode>): string {
+  const node = nodes[path]
+  if (path === 'C:\\') {
+    const used = usedDriveBytes(nodes)
+    const free = Math.max(0, VIRTUAL_DRIVE_BYTES - used)
+    return `${label}\nLocal Disk\nCapacity: ${formatSize(VIRTUAL_DRIVE_BYTES)}\nFree space: ${formatSize(free)}\nUsed space: ${formatSize(used)}`
+  }
+  if (!node) return `${label}\nFolder unavailable`
+  return `${label}\n${node.fileType}\nModified: ${node.modified}`
 }
 
 export function ExplorerApp({ windowId, payload }: AppProps) {
@@ -332,6 +349,12 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
     ]
       .filter(Boolean)
       .join(', ')
+    // For protected system files, surface what depends on this file (or that it is
+    // a minimal / no-loss file) so the user can gauge the impact of deleting it.
+    const roleNote =
+      node.kind === 'file' && (node.attributes?.system || isProtectedPath(node.path))
+        ? ` - ${describeSystemFile(node.path)}`
+        : ''
     showMessageBox({
       title: `${node.name} Properties`,
       message: `Type: ${node.fileType}
@@ -339,7 +362,7 @@ Location: ${parentPath(node.path)}
 Size: ${
         node.kind === 'folder' ? `${listDirectory(state.fs, node.path).length} item(s)` : `${formatSize(node.size)} (${node.size.toLocaleString()} bytes)`
       }`,
-      detail: `Modified: ${node.modified}${attributes ? ` - Attributes: ${attributes}` : ''}`,
+      detail: `Modified: ${node.modified}${attributes ? ` - Attributes: ${attributes}` : ''}${roleNote}`,
       icon: 'info',
       buttons: ['ok'],
     })
@@ -794,6 +817,7 @@ Size: ${
                       <button
                         type="button"
                         className={`tree-button ${currentPath === path ? 'is-current' : ''}`}
+                        title={quickPathTooltip(path, label, state.fs.nodes)}
                         onClick={() => navigate(path)}
                       >
                         <img src={win98Icons[getNode(state.fs, path)?.icon ?? 'folder']} alt="" />

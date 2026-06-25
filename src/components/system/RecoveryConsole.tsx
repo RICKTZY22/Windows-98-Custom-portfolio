@@ -7,6 +7,19 @@ import {
   restoreSystemFiles,
 } from '../../os/recovery'
 import { classifyMissingFiles } from '../../os/systemHealth'
+import { isSystem32Wiped } from '../../os/systemFiles'
+
+// Shown when System32 is gone entirely: the protected cache went with it, so
+// Recovery cannot self-heal and the user must reinstall from the DOS prompt.
+const RECOVERY_WIPED_MESSAGE = [
+  'Recovery cannot continue.',
+  'System32 and the protected file cache have been removed,',
+  'so there is nothing left to restore from.',
+  '',
+  'Restart, press F8, choose "Command prompt only", then run:',
+  '   SYS C:   then   SETUP',
+  'to reinstall Windows 98 from scratch.',
+]
 
 const recoveryOptions = [
   { id: 1, label: 'Scan for missing system files' },
@@ -249,6 +262,10 @@ export function RecoveryConsole() {
     }
 
     if (id === 2) {
+      if (isSystem32Wiped(state.fs)) {
+        reveal(RECOVERY_WIPED_MESSAGE)
+        return
+      }
       if (!missing.length) {
         reveal(['Nothing to restore. All protected system files and simulated drivers are present.'])
         return
@@ -274,6 +291,10 @@ export function RecoveryConsole() {
     }
 
     if (id === 3) {
+      if (isSystem32Wiped(state.fs)) {
+        reveal(RECOVERY_WIPED_MESSAGE)
+        return
+      }
       runScan(
         'Verifying the integrity of all protected system files...',
         'Verifying',

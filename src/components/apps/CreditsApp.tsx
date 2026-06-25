@@ -333,7 +333,7 @@ export function CreditsApp() {
                 </div>
               ))}
 
-              <div className="roll-end">— THE END —</div>
+              <div className="roll-end">THE END</div>
               <div className="roll-sign">John Erick Mendoza · Windows 98 Portfolio Edition · 2026</div>
             </div>
           </div>

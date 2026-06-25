@@ -1,6 +1,6 @@
 
 .control-panel-app {
-  grid-template-rows: minmax(110px, 0.55fr) minmax(160px, 1fr);
+  grid-template-rows: minmax(96px, 0.42fr) minmax(250px, 1fr);
 }
 
 .control-grid {
@@ -45,9 +45,45 @@
 /* ----- Display / Appearance ----- */
 .appearance-panel {
   display: grid;
-  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+  grid-template-columns: minmax(210px, 260px) minmax(260px, 1fr);
   gap: 12px;
   margin-top: 10px;
+}
+
+.theme-options {
+  min-width: 0;
+}
+
+.appearance-option,
+.appearance-mode-field {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.appearance-option select {
+  width: 100%;
+  min-width: 0;
+}
+
+.appearance-mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+
+.appearance-mode-buttons button {
+  min-width: 0;
+  padding-inline: 6px;
+}
+
+.appearance-mode-buttons button.is-active {
+  color: #fff;
+  background: #000080;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
 }
 
 .theme-preview {
@@ -62,6 +98,9 @@
   overflow: hidden;
   color: var(--appearance-preview-text, #111);
   background: var(--appearance-preview-desktop, #008080);
+  background-position: var(--appearance-preview-position, center);
+  background-repeat: var(--appearance-preview-repeat, no-repeat);
+  background-size: var(--appearance-preview-size, cover);
   border: 1px solid #0a0a0a;
 }
 
@@ -131,9 +170,34 @@
   line-height: 1.35;
 }
 
+.appearance-note {
+  margin: -2px 0 0;
+  color: #303030;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .appearance-actions {
   justify-content: flex-start;
   margin-top: 2px;
+}
+
+.appearance-effects,
+.mouse-options {
+  display: grid;
+  gap: 6px;
+}
+
+.appearance-effects {
+  margin: 4px 0;
+  padding: 8px;
+}
+
+.appearance-effects label,
+.mouse-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* === Soundboard (Control Panel sounds) ================================== */
@@ -224,5 +288,11 @@
 @media (max-width: 720px) {
   .appearance-panel {
     grid-template-columns: 1fr;
+  }
+
+  .appearance-option,
+  .appearance-mode-field {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }

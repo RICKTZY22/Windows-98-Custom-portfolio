@@ -1,7 +1,7 @@
 // Windows 98 Portfolio Edition (c) 2026 John Erick Mendoza (github.com/RICKTZY22) - MIT, attribution required. origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { desktopIconDefs } from './data/apps'
-import type { AppId, DesktopIconDef, FsNode, Point, WindowPayload, WindowState } from './types'
+import type { AppId, DesktopIconDef, FsNode, OsNotification, Point, WindowPayload, WindowState } from './types'
 import { useOs } from './os/useOs'
 import { DESKTOP_FOLDER, getNode, openTargetFor } from './os/filesystem'
 import { BootScreen } from './components/system/BootScreen'
@@ -12,8 +12,9 @@ import { RecoveryConsole } from './components/system/RecoveryConsole'
 import { LoadFailureScreen } from './components/system/LoadFailureScreen'
 import { SafetyTrainingScreen } from './components/system/SafetyTrainingScreen'
 import { ShutdownScreen } from './components/system/ShutdownScreen'
+import { StartupScanScreen } from './components/system/StartupScanScreen'
 import { BootDisclaimer } from './components/system/BootDisclaimer'
-import { DesktopContextMenu } from './components/shell/DesktopContextMenu'
+import { DesktopContextMenu, type DesktopArrangeMode } from './components/shell/DesktopContextMenu'
 import { DesktopIcon } from './components/shell/DesktopIcon'
 import { StartMenu } from './components/shell/StartMenu'
 import { Taskbar } from './components/shell/Taskbar'
@@ -36,6 +37,7 @@ const ImageViewerApp = lazy(() => import('./components/apps/ImageViewerApp').the
 const InternetExplorerApp = lazy(() =>
   import('./components/apps/InternetExplorerApp').then((m) => ({ default: m.InternetExplorerApp })),
 )
+const InboxApp = lazy(() => import('./components/apps/InboxApp').then((m) => ({ default: m.InboxApp })))
 const MediaPlayerApp = lazy(() => import('./components/apps/MediaPlayerApp').then((m) => ({ default: m.MediaPlayerApp })))
 const JsDosGameApp = lazy(() =>
   import('./components/apps/JsDosGameApp').then((m) => ({ default: m.JsDosGameApp })),
@@ -50,6 +52,11 @@ const ProjectDetailsApp = lazy(() =>
 )
 const ProjectsApp = lazy(() => import('./components/apps/ProjectsApp').then((m) => ({ default: m.ProjectsApp })))
 const RecycleBinApp = lazy(() => import('./components/apps/RecycleBinApp').then((m) => ({ default: m.RecycleBinApp })))
+const RegistryEditorApp = lazy(() =>
+  import('./components/apps/RegistryEditorApp').then((m) => ({ default: m.RegistryEditorApp })),
+)
+const ScanDiskApp = lazy(() => import('./components/apps/ScanDiskApp').then((m) => ({ default: m.ScanDiskApp })))
+const DefragApp = lazy(() => import('./components/apps/DefragApp').then((m) => ({ default: m.DefragApp })))
 const RunDialogApp = lazy(() => import('./components/apps/RunDialogApp').then((m) => ({ default: m.RunDialogApp })))
 const SetupSafetyApp = lazy(() =>
   import('./components/apps/SetupSafetyApp').then((m) => ({ default: m.SetupSafetyApp })),
@@ -58,6 +65,11 @@ const SoundRecorderApp = lazy(() =>
   import('./components/apps/SoundRecorderApp').then((m) => ({ default: m.SoundRecorderApp })),
 )
 const TaskManagerApp = lazy(() => import('./components/apps/TaskManagerApp').then((m) => ({ default: m.TaskManagerApp })))
+const SystemInfoApp = lazy(() => import('./components/apps/SystemInfoApp').then((m) => ({ default: m.SystemInfoApp })))
+const DeviceManagerApp = lazy(() =>
+  import('./components/apps/DeviceManagerApp').then((m) => ({ default: m.DeviceManagerApp })),
+)
+const MsConfigApp = lazy(() => import('./components/apps/MsConfigApp').then((m) => ({ default: m.MsConfigApp })))
 const TerminalApp = lazy(() => import('./components/apps/TerminalApp').then((m) => ({ default: m.TerminalApp })))
 const VideoPlayerApp = lazy(() => import('./components/apps/VideoPlayerApp').then((m) => ({ default: m.VideoPlayerApp })))
 const AntivirusApp = lazy(() => import('./components/apps/AntivirusApp').then((m) => ({ default: m.AntivirusApp })))
@@ -67,6 +79,7 @@ const desktopIconWidth = 88
 const desktopIconHeight = 80
 const desktopIconGapX = 8
 const desktopIconGapY = 12
+const desktopShellIntroMs = 5_000
 
 function formatClock(date: Date) {
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -81,12 +94,69 @@ type SelectionBox = {
   moved: boolean
 }
 
+type MouseTrailPoint = {
+  id: number
+  x: number
+  y: number
+  opacity: number
+}
+
 function normalizeRect(box: Pick<SelectionBox, 'startX' | 'startY' | 'currentX' | 'currentY'>) {
   const left = Math.min(box.startX, box.currentX)
   const top = Math.min(box.startY, box.currentY)
   const right = Math.max(box.startX, box.currentX)
   const bottom = Math.max(box.startY, box.currentY)
   return { left, top, right, bottom, width: right - left, height: bottom - top }
+}
+
+// Win98-style pointer trail. Two fixes over the naive version: (1) throttle so a
+// flood of pointermove events doesn't re-render every frame, and (2) clear the
+// trail shortly after the cursor stops — otherwise the last few dots freeze on
+// screen as stray squares. Capped to a short tail so it stays cheap.
+const TRAIL_MAX = 7
+const TRAIL_THROTTLE_MS = 24
+const TRAIL_CLEAR_MS = 140
+
+function MouseTrails() {
+  const [points, setPoints] = useState<MouseTrailPoint[]>([])
+  const counterRef = useRef(0)
+  const lastMoveRef = useRef(0)
+  const clearTimerRef = useRef(0)
+
+  useEffect(() => {
+    function handlePointerMove(event: PointerEvent) {
+      if (event.timeStamp - lastMoveRef.current < TRAIL_THROTTLE_MS) return
+      lastMoveRef.current = event.timeStamp
+      counterRef.current += 1
+      setPoints((current) => [
+        { id: counterRef.current, x: event.clientX, y: event.clientY, opacity: 0.7 },
+        ...current
+          .slice(0, TRAIL_MAX - 1)
+          .map((point, index) => ({ ...point, opacity: Math.max(0.12, 0.6 - index * 0.09) })),
+      ])
+      window.clearTimeout(clearTimerRef.current)
+      clearTimerRef.current = window.setTimeout(() => setPoints([]), TRAIL_CLEAR_MS)
+    }
+    window.addEventListener('pointermove', handlePointerMove)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.clearTimeout(clearTimerRef.current)
+    }
+  }, [])
+
+  if (!points.length) return null
+
+  return (
+    <div className="mouse-trail-layer" aria-hidden="true">
+      {points.map((point) => (
+        <span
+          key={point.id}
+          className="mouse-trail-dot"
+          style={{ left: point.x, top: point.y, opacity: point.opacity }}
+        />
+      ))}
+    </div>
+  )
 }
 
 function intersectsIcon(rect: ReturnType<typeof normalizeRect>, pos: Point): boolean {
@@ -116,6 +186,39 @@ function fallbackIconPosition(index: number): Point {
   const column = Math.floor(index / rowsPerColumn)
   const row = index % rowsPerColumn
   return { x: 10 + column * iconLayoutStepX, y: 12 + row * iconLayoutStepY }
+}
+
+function desktopIconNode(iconId: string, fsNodes: Record<string, FsNode>): FsNode | undefined {
+  return iconId.startsWith('fs:') ? fsNodes[iconId.slice(3)] : undefined
+}
+
+function desktopIconTooltip(iconDef: DesktopIconDef, fsNodes: Record<string, FsNode>): string {
+  const node = desktopIconNode(iconDef.id, fsNodes)
+  if (!node) {
+    return `${iconDef.label}\nDouble-click to open.`
+  }
+  const targetLabel = node.appPayload?.filePath ?? node.appPayload?.path ?? node.appId ?? 'portfolio item'
+  return `${iconDef.label}\nShortcut\nTarget: ${targetLabel}\nModified: ${node.modified}`
+}
+
+function sortDesktopIconDefs(
+  icons: DesktopIconDef[],
+  mode: DesktopArrangeMode,
+  fsNodes: Record<string, FsNode>,
+): DesktopIconDef[] {
+  return [...icons].sort((a, b) => {
+    if (mode === 'type') {
+      const typeA = desktopIconNode(a.id, fsNodes)?.fileType ?? a.appId
+      const typeB = desktopIconNode(b.id, fsNodes)?.fileType ?? b.appId
+      return typeA.localeCompare(typeB) || a.label.localeCompare(b.label)
+    }
+    if (mode === 'modified') {
+      const modifiedA = desktopIconNode(a.id, fsNodes)?.modified ?? ''
+      const modifiedB = desktopIconNode(b.id, fsNodes)?.modified ?? ''
+      return modifiedB.localeCompare(modifiedA) || a.label.localeCompare(b.label)
+    }
+    return a.label.localeCompare(b.label)
+  })
 }
 
 // Turn a node living in C:\Windows\Desktop into a desktop icon definition so the
@@ -155,6 +258,8 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <ImageViewerApp key={win.payload?.filePath ?? win.instanceId} {...props} />
     case 'internetExplorer':
       return <InternetExplorerApp {...props} />
+    case 'inbox':
+      return <InboxApp />
     case 'mediaPlayer':
       return <MediaPlayerApp key={win.payload?.filePath ?? win.payload?.url ?? win.instanceId} {...props} />
     case 'videoPlayer':
@@ -171,6 +276,18 @@ function renderAppWindow(win: WindowState, openApp: (appId: AppId, payload?: Win
       return <RunDialogApp {...props} />
     case 'taskManager':
       return <TaskManagerApp />
+    case 'systemInfo':
+      return <SystemInfoApp />
+    case 'deviceManager':
+      return <DeviceManagerApp />
+    case 'msconfig':
+      return <MsConfigApp />
+    case 'registryEditor':
+      return <RegistryEditorApp />
+    case 'scandisk':
+      return <ScanDiskApp {...props} />
+    case 'defrag':
+      return <DefragApp {...props} />
     case 'calculator':
       return <CalculatorApp />
     case 'minesweeper':
@@ -230,6 +347,41 @@ function MessageBoxHost() {
   )
 }
 
+// Transient taskbar balloon (e.g. "VGA Display disabled" after a driver delete).
+// Each balloon dismisses itself after a few seconds or on click.
+function NotificationBalloon({ note, onDismiss }: Readonly<{ note: OsNotification; onDismiss: (id: string) => void }>) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => onDismiss(note.id), 6500)
+    return () => window.clearTimeout(timer)
+  }, [note.id, onDismiss])
+  return (
+    <div className="tray-balloon" role="status">
+      <button
+        type="button"
+        className="tray-balloon-close"
+        aria-label="Dismiss"
+        onClick={() => onDismiss(note.id)}
+      >
+        ×
+      </button>
+      <strong>{note.title}</strong>
+      <span>{note.body}</span>
+    </div>
+  )
+}
+
+function NotificationHost() {
+  const { state, dismissNotification } = useOs()
+  if (!state.notifications.length) return null
+  return (
+    <div className="tray-balloon-layer" aria-live="polite">
+      {state.notifications.map((note) => (
+        <NotificationBalloon key={note.id} note={note} onDismiss={dismissNotification} />
+      ))}
+    </div>
+  )
+}
+
 function Desktop() {
   const {
     state,
@@ -241,7 +393,6 @@ function Desktop() {
     moveWindow,
     setStartMenuOpen,
     moveDesktopIcon,
-    arrangeDesktopIcons,
     restart,
     shutDown,
     enableAudio,
@@ -249,16 +400,20 @@ function Desktop() {
     setAudioVolume,
     fsOps,
     showMessageBox,
+    completeDesktopShellIntro,
   } = useOs()
   const [selectedIcon, setSelectedIcon] = useState(desktopIconDefs[0]?.id ?? 'myComputer')
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>(() =>
     desktopIconDefs[0]?.id ? [desktopIconDefs[0].id] : [],
   )
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [arrangeMode, setArrangeMode] = useState<DesktopArrangeMode>('name')
+  const [autoArrange, setAutoArrange] = useState(false)
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null)
   const [recycleHover, setRecycleHover] = useState(false)
   const [refreshingDesktop, setRefreshingDesktop] = useState(false)
-  const [clock, setClock] = useState(() => formatClock(new Date()))
+  const [shellIntroActive, setShellIntroActive] = useState(true)
+  const [clockDate, setClockDate] = useState(() => new Date())
   const desktopRef = useRef<HTMLDivElement>(null)
   const orderedWindows = useMemo(() => [...state.windows].sort((a, b) => a.zIndex - b.zIndex), [state.windows])
   const primarySelectedIcon = selectedIconIds[0]
@@ -286,9 +441,18 @@ function Desktop() {
   }, [allIconDefs, state.desktopIcons])
 
   useEffect(() => {
-    const interval = window.setInterval(() => setClock(formatClock(new Date())), 1000)
+    const interval = window.setInterval(() => setClockDate(new Date()), 1000)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    const delay = state.bootMode === 'safe' ? 300 : desktopShellIntroMs
+    const timer = window.setTimeout(() => {
+      setShellIntroActive(false)
+      completeDesktopShellIntro()
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [completeDesktopShellIntro, state.bootMode])
 
   function focusDesktopIcon(id: string) {
     window.requestAnimationFrame(() => {
@@ -385,6 +549,41 @@ function Desktop() {
     [state.fs, fsOps, showMessageBox],
   )
 
+  const gridPositionForIndex = useCallback((index: number): Point => {
+    const desktopHeight = Math.max(160, window.innerHeight - 33)
+    const rowsPerColumn = Math.max(1, Math.floor((desktopHeight - 24) / (desktopIconHeight + desktopIconGapY)))
+    const column = Math.floor(index / rowsPerColumn)
+    const row = index % rowsPerColumn
+    return {
+      x: 10 + column * (desktopIconWidth + desktopIconGapX),
+      y: 12 + row * (desktopIconHeight + desktopIconGapY),
+    }
+  }, [])
+
+  const applyDesktopIconLayout = useCallback(
+    (iconIds: string[]) => {
+      iconIds.forEach((id, index) => {
+        moveDesktopIcon(id, gridPositionForIndex(index))
+      })
+    },
+    [gridPositionForIndex, moveDesktopIcon],
+  )
+
+  function arrangeIconsBy(mode: DesktopArrangeMode) {
+    setArrangeMode(mode)
+    applyDesktopIconLayout(sortDesktopIconDefs(allIconDefs, mode, state.fs.nodes).map((icon) => icon.id))
+    setContextMenu(null)
+  }
+
+  function toggleAutoArrange() {
+    const next = !autoArrange
+    setAutoArrange(next)
+    if (next) {
+      applyDesktopIconLayout(sortDesktopIconDefs(allIconDefs, arrangeMode, state.fs.nodes).map((icon) => icon.id))
+    }
+    setContextMenu(null)
+  }
+
   function lineUpIcons() {
     const targets = selectedIconIds.length ? selectedIconIds : allIconDefs.map((icon) => icon.id)
     const orderedTargets = [...targets].sort((a, b) => {
@@ -392,18 +591,16 @@ function Desktop() {
       const posB = iconPositions[b] ?? { x: 10, y: 12 }
       return posA.y - posB.y || posA.x - posB.x
     })
-    const desktopHeight = Math.max(160, window.innerHeight - 33)
-    const rowsPerColumn = Math.max(1, Math.floor((desktopHeight - 24) / (desktopIconHeight + desktopIconGapY)))
     orderedTargets.forEach((id, index) => {
-      const column = Math.floor(index / rowsPerColumn)
-      const row = index % rowsPerColumn
-      moveDesktopIcon(id, {
-        x: 10 + column * (desktopIconWidth + desktopIconGapX),
-        y: 12 + row * (desktopIconHeight + desktopIconGapY),
-      })
+      moveDesktopIcon(id, gridPositionForIndex(index))
     })
     setContextMenu(null)
   }
+
+  useEffect(() => {
+    if (!autoArrange) return
+    applyDesktopIconLayout(sortDesktopIconDefs(allIconDefs, arrangeMode, state.fs.nodes).map((icon) => icon.id))
+  }, [allIconDefs, applyDesktopIconLayout, arrangeMode, autoArrange, state.fs.nodes])
 
   useEffect(() => {
     if (!selectionBox) return
@@ -553,7 +750,7 @@ function Desktop() {
 
   return (
     <main
-      className={`os-shell ${state.bootMode === 'safe' ? 'safe-mode' : ''}`}
+      className={`os-shell ${state.bootMode === 'safe' ? 'safe-mode' : ''} ${shellIntroActive ? 'is-shell-starting' : ''}`}
       onPointerDown={() => {
         setStartMenuOpen(false)
         setContextMenu(null)
@@ -601,7 +798,15 @@ function Desktop() {
           })
         }}
       >
-        {state.bootMode === 'safe' && <div className="safe-mode-banner">Safe Mode</div>}
+        {state.bootMode === 'safe' && (
+          <div className="safe-mode-banner" role="status">
+            <strong>Safe Mode</strong>
+            <span>
+              Generic VGA, keyboard &amp; mouse loaded for repair. Networking, sound, and accelerated
+              video are disabled.
+            </span>
+          </div>
+        )}
         <div className="desktop-grid">
           {allIconDefs.map((iconDef) => (
             <DesktopIcon
@@ -611,9 +816,13 @@ function Desktop() {
               selected={selectedIconIds.includes(iconDef.id)}
               deletable={iconDef.id.startsWith('fs:')}
               highlighted={recycleHover && iconDef.id === 'recycleBin'}
+              shortcut={iconDef.id.startsWith('fs:')}
+              tooltip={desktopIconTooltip(iconDef, state.fs.nodes)}
               onSelect={(extend) => selectDesktopIcon(iconDef.id, extend)}
               onOpen={() => openApp(iconDef.appId, iconDef.payload)}
-              onMove={moveDesktopIcon}
+              onMove={(id, pos) => {
+                if (!autoArrange) moveDesktopIcon(id, pos)
+              }}
               onRecycleHoverChange={setRecycleHover}
               onDropOnRecycle={handleDropOnRecycle}
             />
@@ -663,23 +872,35 @@ function Desktop() {
           <DesktopContextMenu
             x={contextMenu.x}
             y={contextMenu.y}
-            openApp={openApp}
-            onRefresh={refreshDesktop}
-            onArrangeIcons={() => {
-              arrangeDesktopIcons()
+            openApp={(appId, payload) => {
               setContextMenu(null)
+              openApp(appId, payload)
             }}
+            arrangeMode={arrangeMode}
+            autoArrange={autoArrange}
+            onRefresh={refreshDesktop}
+            onArrangeIcons={() => arrangeIconsBy(arrangeMode)}
+            onArrangeBy={arrangeIconsBy}
+            onToggleAutoArrange={toggleAutoArrange}
             onLineUpIcons={lineUpIcons}
           />
         )}
         <MessageBoxHost />
-        <BootDisclaimer />
+        <NotificationHost />
+        {shellIntroActive && state.bootMode !== 'safe' && (
+          <div className="desktop-startup-loader" aria-live="polite">
+            <span className="desktop-startup-loader-icon" aria-hidden="true"></span>
+            <span>Loading Windows settings...</span>
+          </div>
+        )}
+        {!shellIntroActive && <BootDisclaimer />}
       </div>
       <Taskbar
         windows={state.windows}
         activeWindowId={state.activeWindowId}
         startOpen={state.startMenuOpen}
-        timeLabel={clock}
+        timeLabel={formatClock(clockDate)}
+        clockDate={clockDate}
         network={state.network}
         audioEnabled={state.audio.enabled}
         audioMuted={state.audio.muted}
@@ -695,7 +916,17 @@ function Desktop() {
           }
         }}
         onSetVolume={setAudioVolume}
+        onTaskRestore={focusWindow}
+        onTaskMinimize={minimizeWindow}
+        onTaskToggleMaximize={toggleMaximize}
+        onTaskClose={handleCloseWindow}
+        onMinimizeAll={() => {
+          state.windows.filter((window) => !window.minimized).forEach((window) => minimizeWindow(window.instanceId))
+        }}
+        onOpenTaskManager={() => openApp('taskManager')}
+        onOpenTaskbarProperties={() => openApp('controlPanel', { controlPanelSection: 'display' })}
       />
+      {state.appearanceEffects.mouseTrails && <MouseTrails />}
     </main>
   )
 }
@@ -732,6 +963,8 @@ function App() {
       return <LoadFailureScreen />
     case 'safetyTraining':
       return <SafetyTrainingScreen />
+    case 'startupScan':
+      return <StartupScanScreen />
     case 'shutdown':
       return <ShutdownScreen />
     default:

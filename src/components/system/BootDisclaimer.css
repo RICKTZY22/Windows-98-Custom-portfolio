@@ -11,7 +11,10 @@
 }
 
 .disclaimer-dialog {
-  width: min(470px, calc(100vw - 32px));
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
   box-shadow: 1px 1px 0 #0a0a0a, 3px 3px 12px rgba(0, 0, 0, 0.5);
 }
 
@@ -19,6 +22,82 @@
   display: grid;
   gap: 12px;
   padding: 14px;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Brand strip: Microsoft + Windows marks under a "Not Affiliated" stamp. */
+.disclaimer-brands {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 12px;
+  padding: 16px 12px;
+  border: 2px inset #fff;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0.04) 0,
+      rgba(0, 0, 0, 0.04) 6px,
+      transparent 6px,
+      transparent 12px
+    ),
+    #fff;
+  overflow: hidden;
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.brand-word {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.brand-microsoft .brand-word {
+  color: #5e5e5e;
+  font-weight: 400;
+}
+
+.brand-windows img {
+  width: 26px;
+  height: 26px;
+  image-rendering: pixelated;
+}
+
+.brand-windows .brand-word {
+  color: #156fc0;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.brand-windows .brand-word sup {
+  font-size: 10px;
+  font-style: normal;
+}
+
+.disclaimer-stamp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-11deg);
+  padding: 3px 14px;
+  border: 3px solid #c5240f;
+  border-radius: 4px;
+  color: #c5240f;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.35);
+  opacity: 0.88;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .disclaimer-copy {

@@ -53,12 +53,20 @@ export type IconKey =
   | 'videoFile'
   | 'urlFile'
   | 'sysFile'
+  | 'execFile'
+  | 'dllFile'
+  | 'driverFile'
+  | 'cplFile'
+  | 'regFile'
+  | 'iniFile'
+  | 'fontFile'
   | 'batchFile'
   | 'explorer'
   | 'run'
   | 'minesweeper'
   | 'wolfenstein'
   | 'doom'
+  | 'inbox'
 
 export type AppId =
   | 'explorer'
@@ -78,6 +86,12 @@ export type AppId =
   | 'network'
   | 'run'
   | 'taskManager'
+  | 'systemInfo'
+  | 'deviceManager'
+  | 'msconfig'
+  | 'registryEditor'
+  | 'scandisk'
+  | 'defrag'
   | 'calculator'
   | 'minesweeper'
   | 'dosGame'
@@ -89,6 +103,7 @@ export type AppId =
   | 'projectDetails'
   | 'credits'
   | 'help'
+  | 'inbox'
 
 export type WindowRect = { x: number; y: number; width: number; height: number }
 export type Point = { x: number; y: number }
@@ -233,6 +248,7 @@ export type OsPhase =
   | 'crashed'
   | 'loadFailed'
   | 'safetyTraining'
+  | 'startupScan'
   | 'shutdown'
 export type BootMode = 'normal' | 'safe'
 export type BootProfile = 'cold' | 'warm'
@@ -257,6 +273,8 @@ export type MessageBoxRequest = {
   recoveryHint?: string
   onResult?: (button: MessageBoxButton) => void
 }
+
+export type OsNotification = { id: string; title: string; body: string }
 
 export type ClipboardState = { mode: 'copy' | 'cut'; path: string } | null
 
@@ -283,6 +301,14 @@ export type WallpaperDefinition = {
   name: string
   description?: string
   css: string // value for the desktop `background` shorthand
+}
+
+export type WallpaperMode = 'stretch' | 'center' | 'tile'
+
+export type AppearanceEffects = {
+  mouseTrails: boolean
+  menuShadows: boolean
+  windowAnimations: boolean
 }
 
 export type CursorSchemeId = 'win98' | 'standard'
@@ -316,13 +342,18 @@ export type OsState = {
   network: NetworkState
   themeId: string
   wallpaperId: string
+  wallpaperMode: WallpaperMode
+  appearanceEffects: AppearanceEffects
   cursorScheme: CursorSchemeId
   audio: AudioState
   crash: CrashState | null
   pendingSafetyTraining: boolean
+  pendingStartupScan: boolean // true after an improper exit -> shows the startup ScanDisk screen
+  pendingSystemRestore: boolean // SFC/SCANREG scheduled a protected-file restore; applied on next restart
   desktopIcons: Record<string, Point> // DesktopIconDef.id -> position
   clipboard: ClipboardState
   messageBoxes: MessageBoxRequest[]
+  notifications: OsNotification[] // transient taskbar balloons (e.g. driver removed)
   startMenuOpen: boolean
 }
 

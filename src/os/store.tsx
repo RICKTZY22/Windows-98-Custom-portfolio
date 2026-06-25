@@ -3,19 +3,23 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type {
   AppId,
+  AppearanceEffects,
   AudioState,
   BiosSettings,
   BootProfile,
   ClipboardState,
   CrashState,
   CursorSchemeId,
+  DriverType,
   FsState,
   MessageBoxButton,
   MessageBoxRequest,
   NetworkState,
+  OsNotification,
   OsState,
   Point,
   SoundId,
+  WallpaperMode,
   WindowPayload,
   WindowRect,
   WindowState,
@@ -42,11 +46,26 @@ import {
   writeFile as fsWriteFile,
 } from './filesystem'
 import { defaultNetworkState, randomDhcpLease, releasedNetworkState } from './network'
-import { isSystemHealthy, missingRequiredSystemFiles, shouldSafeModeBlueScreen } from './recovery'
-import { driverFailureBox, driverHealthy, requiredDriverMissing, systemFileFailureBox } from './systemHealth'
-import { applyCursorScheme, applyTheme, applyWallpaper } from './themes'
+import { isSystemHealthy, missingRequiredSystemFiles, restoreSystemFiles, shouldSafeModeBlueScreen } from './recovery'
+import {
+  driverDeviceLabels,
+  driverFailureBox,
+  driverHealthy,
+  effectiveDriverHealthy,
+  missingDriverFiles,
+  requiredDriverMissing,
+} from './systemHealth'
+import { FEATURE_FILES, featureAvailable, systemFileFailureBox } from './systemFiles'
+import { applyAppearanceEffects, applyCursorScheme, applyTheme, applyWallpaper } from './themes'
 import { isAudioUnlocked, playSound as synthPlaySound, preloadSoundFiles, unlockAudio } from './audio'
-import { clearPersistedState, loadPersistedState, persistState } from './persistence'
+import {
+  clearPersistedState,
+  loadPersistedState,
+  markSessionClean,
+  markSessionRunning,
+  persistState,
+  wasSessionDirty,
+} from './persistence'
 import { OsContext, type OsContextValue } from './useOs'
 import {
   clampIconPosition,
@@ -96,6 +115,12 @@ function safetyTrainingCrash(): CrashState {
   }
 }
 
+const defaultAppearanceEffects: AppearanceEffects = {
+  mouseTrails: false,
+  menuShadows: true,
+  windowAnimations: true,
+}
+
 function createDefaultState(): OsState {
   const persisted = loadPersistedState()
   const themeId = persisted?.themeId ?? defaultThemeId
@@ -113,16 +138,23 @@ function createDefaultState(): OsState {
     network: persisted?.network ?? defaultNetworkState,
     themeId,
     wallpaperId: persisted?.wallpaperId ?? getTheme(themeId).wallpaperId ?? defaultWallpaperId,
+    wallpaperMode: persisted?.wallpaperMode ?? 'stretch',
+    appearanceEffects: persisted?.appearanceEffects ?? defaultAppearanceEffects,
     cursorScheme: persisted?.cursorScheme ?? 'win98',
     audio: { enabled: true, muted: false, volume: persisted?.audio.volume ?? 0.7 },
     crash: null,
     pendingSafetyTraining: false,
+    // A 'running' session flag left by the previous tab means it was never shut
+    // down properly, so the next normal boot runs the startup ScanDisk screen.
+    pendingStartupScan: wasSessionDirty(),
+    pendingSystemRestore: false,
     desktopIcons:
       persisted?.desktopIcons && Object.keys(persisted.desktopIcons).length
         ? persisted.desktopIcons
         : defaultDesktopIconPositions(),
     clipboard: null,
     messageBoxes: [],
+    notifications: [],
     startMenuOpen: false,
   }
 }
@@ -147,11 +179,15 @@ type Action =
   | { type: 'SET_DESKTOP_ICONS'; icons: Record<string, Point> }
   | { type: 'PUSH_MESSAGE_BOX'; box: MessageBoxRequest }
   | { type: 'REMOVE_MESSAGE_BOX'; id: string }
+  | { type: 'PUSH_NOTIFICATION'; notification: OsNotification }
+  | { type: 'DISMISS_NOTIFICATION'; id: string }
   | { type: 'SET_FS'; fs: FsState }
   | { type: 'SET_CLIPBOARD'; clipboard: ClipboardState }
   | { type: 'SET_NETWORK'; network: NetworkState }
   | { type: 'SET_THEME'; themeId: string; wallpaperId?: string }
   | { type: 'SET_WALLPAPER'; wallpaperId: string }
+  | { type: 'SET_WALLPAPER_MODE'; mode: WallpaperMode }
+  | { type: 'SET_APPEARANCE_EFFECTS'; effects: AppearanceEffects }
   | { type: 'SET_CURSOR_SCHEME'; scheme: CursorSchemeId }
   | { type: 'SET_AUDIO'; audio: AudioState }
   | { type: 'ENTER_BIOS_SETUP' }
@@ -160,6 +196,8 @@ type Action =
   | { type: 'CRASH'; crash: CrashState }
   | { type: 'START_SAFETY_TRAINING_CRASH'; crash: CrashState }
   | { type: 'COMPLETE_SAFETY_TRAINING' }
+  | { type: 'COMPLETE_STARTUP_SCAN' }
+  | { type: 'STAGE_SYSTEM_RESTORE' }
   | {
       type: 'RESTART'
       target: 'normal' | 'safe' | 'dos' | 'recovery' | 'bootMenu'
@@ -289,6 +327,10 @@ export function reducer(state: OsState, action: Action): OsState {
       return { ...state, messageBoxes: [...state.messageBoxes, action.box] }
     case 'REMOVE_MESSAGE_BOX':
       return { ...state, messageBoxes: state.messageBoxes.filter((box) => box.id !== action.id) }
+    case 'PUSH_NOTIFICATION':
+      return { ...state, notifications: [...state.notifications, action.notification] }
+    case 'DISMISS_NOTIFICATION':
+      return { ...state, notifications: state.notifications.filter((note) => note.id !== action.id) }
     case 'SET_FS':
       return { ...state, fs: action.fs }
     case 'SET_CLIPBOARD':
@@ -303,6 +345,10 @@ export function reducer(state: OsState, action: Action): OsState {
       }
     case 'SET_WALLPAPER':
       return { ...state, wallpaperId: action.wallpaperId }
+    case 'SET_WALLPAPER_MODE':
+      return { ...state, wallpaperMode: action.mode }
+    case 'SET_APPEARANCE_EFFECTS':
+      return { ...state, appearanceEffects: action.effects }
     case 'SET_CURSOR_SCHEME':
       return { ...state, cursorScheme: action.scheme }
     case 'SET_AUDIO':
@@ -361,6 +407,20 @@ export function reducer(state: OsState, action: Action): OsState {
         messageBoxes: [],
         startMenuOpen: false,
       }
+    case 'COMPLETE_STARTUP_SCAN':
+      return {
+        ...state,
+        phase: 'desktop',
+        bootMode: 'normal',
+        pendingStartupScan: false,
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
+    case 'STAGE_SYSTEM_RESTORE':
+      // SFC/SCANREG scheduled a repair; FINISH_BOOT applies it on the next restart.
+      return state.pendingSystemRestore ? state : { ...state, pendingSystemRestore: true }
     case 'RESTART': {
       const base: OsState = {
         ...state,
@@ -387,6 +447,19 @@ export function reducer(state: OsState, action: Action): OsState {
       }
     case 'FINISH_BOOT': {
       if (state.phase !== 'boot') return state
+      // A staged SFC/SCANREG repair is applied here, on restart — it restores the
+      // protected files from the cache, then re-enters this branch with a healthy
+      // disk and the flag cleared. This is why a repair "takes effect" on reboot.
+      if (state.pendingSystemRestore) {
+        return reducer(
+          { ...state, fs: restoreSystemFiles(state.fs).fs, pendingSystemRestore: false },
+          action,
+        )
+      }
+      const currentBios = state.bios ?? defaultBiosSettings
+      const bootedBios = currentBios.resetConfigurationData
+        ? { ...currentBios, resetConfigurationData: false }
+        : currentBios
       switch (state.bootTarget) {
         case 'normal':
           if (!isSystemHealthy(state.fs)) {
@@ -403,6 +476,7 @@ export function reducer(state: OsState, action: Action): OsState {
           if (state.pendingSafetyTraining) {
             return {
               ...state,
+              bios: bootedBios,
               phase: 'safetyTraining',
               bootMode: 'normal',
               pendingSafetyTraining: false,
@@ -412,7 +486,19 @@ export function reducer(state: OsState, action: Action): OsState {
               startMenuOpen: false,
             }
           }
-          return { ...state, phase: 'desktop', bootMode: 'normal' }
+          if (state.pendingStartupScan) {
+            return {
+              ...state,
+              bios: bootedBios,
+              phase: 'startupScan',
+              bootMode: 'normal',
+              windows: [],
+              activeWindowId: undefined,
+              messageBoxes: [],
+              startMenuOpen: false,
+            }
+          }
+          return { ...state, bios: bootedBios, phase: 'desktop', bootMode: 'normal' }
         case 'safe':
           if (shouldSafeModeBlueScreen(state.fs)) {
             return {
@@ -424,14 +510,15 @@ export function reducer(state: OsState, action: Action): OsState {
           }
           return {
             ...state,
+            bios: bootedBios,
             phase: 'desktop',
             bootMode: 'safe',
             network: releasedNetworkState(),
           }
         case 'dos':
-          return { ...state, phase: 'dosOnly' }
+          return { ...state, bios: bootedBios, phase: 'dosOnly' }
         case 'recovery':
-          return { ...state, phase: 'recovery' }
+          return { ...state, bios: bootedBios, phase: 'recovery' }
       }
       return state
     }
@@ -445,6 +532,7 @@ export function reducer(state: OsState, action: Action): OsState {
 // ---------------------------------------------------------------------------
 
 let messageBoxCounter = 0
+let notificationCounter = 0
 
 // Taglish note: OsProvider ang bridge ng UI at virtual OS. Apps call these
 // methods, pero filesystem/network/audio rules stay centralized dito.
@@ -452,9 +540,17 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
   const [state, dispatch] = useReducer(reducer, undefined, createDefaultState)
   const stateRef = useRef(state)
   const startupSoundPlayedRef = useRef(false)
+  const desktopShellReadyRef = useRef(false)
   useEffect(() => {
     stateRef.current = state
   })
+
+  // Claim the session as "running" on mount. A proper Shut Down / Restart flips
+  // this to 'clean'; if the tab is closed or refreshed instead, the flag stays
+  // 'running' so the next load's createDefaultState() sees the improper exit.
+  useEffect(() => {
+    markSessionRunning()
+  }, [])
 
   // ----- sounds -----
   const playSound = useCallback((id: SoundId) => {
@@ -500,6 +596,8 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         stateRef.current = { ...current, audio }
         dispatch({ type: 'SET_AUDIO', audio })
       }
+      // Play the chime on the first gesture once the desktop is reached, instead of
+      // waiting for the cosmetic shell-intro loader to finish (~5s later).
       playStartupSound()
     }
     window.addEventListener('pointerdown', ensureAudioReady)
@@ -531,6 +629,16 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     box?.onResult?.(button)
   }, [])
 
+  // ----- transient taskbar balloons -----
+  const dismissNotification = useCallback((id: string) => {
+    dispatch({ type: 'DISMISS_NOTIFICATION', id })
+  }, [])
+
+  const notify = useCallback((title: string, body: string) => {
+    notificationCounter += 1
+    dispatch({ type: 'PUSH_NOTIFICATION', notification: { id: `note-${notificationCounter}`, title, body } })
+  }, [])
+
   // ----- windows -----
   const focusWindow = useCallback(
     (id: string) => {
@@ -550,12 +658,17 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       const def = appDefinitions[appId]
       const missingDependency = missingAppDependency(appId, current.fs)
       if (missingDependency) {
-        showMessageBox(systemFileFailureBox(def.title, missingDependency))
+        showMessageBox(systemFileFailureBox(current.fs, def.title, missingDependency))
         return
       }
-      const missingDriver = missingAppDriverDependency(appId, current.fs)
-      if (missingDriver) {
-        showMessageBox(driverFailureBox(missingDriver.type, def.title, missingDriver.missing))
+      // Safe Mode uses generic video/input drivers, so only block on a driver that
+      // is still unavailable under the current boot mode (lets Paint, Imaging, etc.
+      // open in Safe Mode for repair even if their driver files were deleted).
+      const blockedDriver = (def.driverDependencies ?? []).find(
+        (type) => !effectiveDriverHealthy(current.fs, type, current.bootMode),
+      )
+      if (blockedDriver) {
+        showMessageBox(driverFailureBox(blockedDriver, def.title, missingDriverFiles(current.fs, blockedDriver)))
         return
       }
       if (current.bootMode === 'safe' && current.phase === 'desktop' && def.safeModeAvailable === false) {
@@ -629,9 +742,13 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     [openApp, showMessageBox],
   )
 
-  const closeWindow = useCallback((id: string) => {
-    dispatch({ type: 'CLOSE_WINDOW', id })
-  }, [])
+  const closeWindow = useCallback(
+    (id: string) => {
+      dispatch({ type: 'CLOSE_WINDOW', id })
+      playSound('click')
+    },
+    [playSound],
+  )
 
   const minimizeWindow = useCallback(
     (id: string) => {
@@ -641,9 +758,13 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     [playSound],
   )
 
-  const toggleMaximize = useCallback((id: string) => {
-    dispatch({ type: 'TOGGLE_MAXIMIZE', id })
-  }, [])
+  const toggleMaximize = useCallback(
+    (id: string) => {
+      dispatch({ type: 'TOGGLE_MAXIMIZE', id })
+      playSound('restore')
+    },
+    [playSound],
+  )
 
   const moveWindow = useCallback((id: string, rect: WindowRect) => {
     dispatch({ type: 'MOVE_WINDOW', id, rect })
@@ -681,6 +802,11 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     [playSound],
   )
 
+  const completeDesktopShellIntro = useCallback(() => {
+    desktopShellReadyRef.current = true
+    playStartupSound()
+  }, [playStartupSound])
+
   const triggerSafetyTrainingCrash = useCallback(() => {
     playSound('error')
     dispatch({ type: 'START_SAFETY_TRAINING_CRASH', crash: safetyTrainingCrash() })
@@ -690,6 +816,15 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     playSound('ding')
     dispatch({ type: 'COMPLETE_SAFETY_TRAINING' })
   }, [playSound])
+
+  const completeStartupScan = useCallback(() => {
+    playSound('ding')
+    dispatch({ type: 'COMPLETE_STARTUP_SCAN' })
+  }, [playSound])
+
+  const stageSystemRestore = useCallback(() => {
+    dispatch({ type: 'STAGE_SYSTEM_RESTORE' })
+  }, [])
 
   const enterBiosSetup = useCallback(() => {
     dispatch({ type: 'ENTER_BIOS_SETUP' })
@@ -709,11 +844,17 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     opts?: { bootProfile?: BootProfile },
   ) => {
     startupSoundPlayedRef.current = false
+    desktopShellReadyRef.current = false
+    // An intentional reboot: the machine stays "on", so keep the session flagged
+    // running (a tab-close during the new session is still an improper exit).
+    markSessionRunning()
     dispatch({ type: 'RESTART', target, bootProfile: opts?.bootProfile ?? 'cold' })
   }, [])
 
   const shutDown = useCallback(() => {
     playSound('shutdown')
+    // A proper power-off: clear the flag so the next boot does not run ScanDisk.
+    markSessionClean()
     dispatch({ type: 'SHUTDOWN' })
   }, [playSound])
 
@@ -723,14 +864,21 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   const resetEverything = useCallback(() => {
     clearPersistedState()
+    // The machine is still on after a reset; re-claim the running session and
+    // never trigger a startup scan from this fresh state.
+    markSessionRunning()
     startupSoundPlayedRef.current = false
+    desktopShellReadyRef.current = false
     const fresh: OsState = {
       ...createDefaultState(),
       fs: createInitialFsState(),
       network: defaultNetworkState,
       themeId: defaultThemeId,
       wallpaperId: defaultWallpaperId,
+      wallpaperMode: 'stretch',
+      appearanceEffects: defaultAppearanceEffects,
       cursorScheme: 'win98',
+      pendingStartupScan: false,
       desktopIcons: defaultDesktopIconPositions(),
     }
     stateRef.current = fresh
@@ -738,10 +886,27 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
   }, [])
 
   // ----- filesystem ops (synchronous; optimistic stateRef updates) -----
-  const commitFs = useCallback((fs: FsState) => {
-    stateRef.current = { ...stateRef.current, fs }
-    dispatch({ type: 'SET_FS', fs })
-  }, [])
+  const commitFs = useCallback(
+    (fs: FsState) => {
+      const before = stateRef.current.fs
+      stateRef.current = { ...stateRef.current, fs }
+      dispatch({ type: 'SET_FS', fs })
+      // If this change just broke a driver or feature (deleting a file via Explorer
+      // OR the terminal both land here), surface a taskbar balloon so the breakage
+      // is visible right away — not only when a dependent app is later launched.
+      for (const type of Object.keys(driverDeviceLabels) as DriverType[]) {
+        if (driverHealthy(before, type) && !driverHealthy(fs, type)) {
+          notify(`${driverDeviceLabels[type]} disabled`, 'A device driver file was removed. Run SFC /SCANNOW or open Device Manager.')
+        }
+      }
+      for (const feature of Object.keys(FEATURE_FILES)) {
+        if (featureAvailable(before, feature) && !featureAvailable(fs, feature)) {
+          notify(`${feature} unavailable`, 'A required system file was removed. Run SFC /SCANNOW to restore it.')
+        }
+      }
+    },
+    [notify],
+  )
 
   const fsOps = useMemo(
     () => ({
@@ -898,6 +1063,14 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     dispatch({ type: 'SET_WALLPAPER', wallpaperId })
   }, [])
 
+  const setWallpaperMode = useCallback((mode: WallpaperMode) => {
+    dispatch({ type: 'SET_WALLPAPER_MODE', mode })
+  }, [])
+
+  const setAppearanceEffects = useCallback((effects: AppearanceEffects) => {
+    dispatch({ type: 'SET_APPEARANCE_EFFECTS', effects })
+  }, [])
+
   const setCursorScheme = useCallback((scheme: CursorSchemeId) => {
     dispatch({ type: 'SET_CURSOR_SCHEME', scheme })
   }, [])
@@ -946,20 +1119,30 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   // ----- DOM effects: theme / wallpaper / cursor -----
   const inSafeDesktop = state.phase === 'desktop' && state.bootMode === 'safe'
-  const { themeId, wallpaperId, cursorScheme } = state
+  const { themeId, wallpaperId, wallpaperMode, appearanceEffects, cursorScheme } = state
   useEffect(() => {
     const theme = inSafeDesktop ? getTheme('safeMode16') : getTheme(themeId)
     const wallpaper = inSafeDesktop ? getWallpaper('none') : getWallpaper(wallpaperId)
+    const effects = inSafeDesktop
+      ? { mouseTrails: false, menuShadows: false, windowAnimations: false }
+      : appearanceEffects
     applyTheme(theme)
-    applyWallpaper(wallpaper)
+    applyWallpaper(wallpaper, inSafeDesktop ? 'stretch' : wallpaperMode)
+    applyAppearanceEffects(effects)
     applyCursorScheme(cursorScheme)
-  }, [themeId, wallpaperId, cursorScheme, inSafeDesktop])
+  }, [themeId, wallpaperId, wallpaperMode, appearanceEffects, cursorScheme, inSafeDesktop])
 
-  // ----- startup sound on reaching the desktop -----
+  // ----- desktop shell readiness -----
   const prevPhaseRef = useRef(state.phase)
   useEffect(() => {
     const previous = prevPhaseRef.current
     prevPhaseRef.current = state.phase
+    if (previous !== state.phase) {
+      desktopShellReadyRef.current = false
+    }
+    // Reaching the desktop plays the startup chime immediately when audio is already
+    // unlocked (e.g. the user pressed a key during boot); otherwise the first gesture
+    // triggers it. No longer tied to the shell-intro timer.
     if (previous !== state.phase && state.phase === 'desktop') {
       playStartupSound()
     }
@@ -988,6 +1171,8 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     state.fs,
     state.themeId,
     state.wallpaperId,
+    state.wallpaperMode,
+    state.appearanceEffects,
     state.cursorScheme,
     state.audio,
     state.network,
@@ -1011,19 +1196,26 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       arrangeDesktopIcons,
       showMessageBox,
       dismissMessageBox,
+      notify,
+      dismissNotification,
       fsOps,
       setClipboard,
       networkOps,
       setTheme,
       setWallpaper,
+      setWallpaperMode,
+      setAppearanceEffects,
       setCursorScheme,
       enableAudio,
       setAudioMuted,
       setAudioVolume,
       playSound,
       crashSystem,
+      completeDesktopShellIntro,
       triggerSafetyTrainingCrash,
       completeSafetyTraining,
+      completeStartupScan,
+      stageSystemRestore,
       enterBiosSetup,
       enterRecoveryMode,
       setBiosSettings,
@@ -1047,19 +1239,26 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       arrangeDesktopIcons,
       showMessageBox,
       dismissMessageBox,
+      notify,
+      dismissNotification,
       fsOps,
       setClipboard,
       networkOps,
       setTheme,
       setWallpaper,
+      setWallpaperMode,
+      setAppearanceEffects,
       setCursorScheme,
       enableAudio,
       setAudioMuted,
       setAudioVolume,
       playSound,
       crashSystem,
+      completeDesktopShellIntro,
       triggerSafetyTrainingCrash,
       completeSafetyTraining,
+      completeStartupScan,
+      stageSystemRestore,
       enterBiosSetup,
       enterRecoveryMode,
       setBiosSettings,

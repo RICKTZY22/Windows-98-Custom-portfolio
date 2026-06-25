@@ -11,6 +11,8 @@ type DesktopIconProps = {
   deletable?: boolean
   // Highlights this icon as the active drop target (used for the Recycle Bin).
   highlighted?: boolean
+  shortcut?: boolean
+  tooltip?: string
   onSelect: (extend?: boolean) => void
   onOpen: () => void
   onMove: (id: string, position: Point) => void
@@ -42,6 +44,8 @@ export function DesktopIcon({
   selected,
   deletable = false,
   highlighted = false,
+  shortcut = false,
+  tooltip,
   onSelect,
   onOpen,
   onMove,
@@ -163,11 +167,12 @@ export function DesktopIcon({
 
   return (
     <button
-      className={`desktop-icon ${selected ? 'selected' : ''} ${isDragging ? 'is-dragging' : ''} ${highlighted ? 'drop-target' : ''}`}
+      className={`desktop-icon ${selected ? 'selected' : ''} ${isDragging ? 'is-dragging' : ''} ${highlighted ? 'drop-target' : ''} ${shortcut ? 'is-shortcut' : ''}`}
       type="button"
       data-desktop-icon-id={iconDef.id}
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
       aria-label={`${iconDef.label}. Press Enter or double-click to open.`}
+      title={tooltip ?? `${iconDef.label}\nDouble-click to open.`}
       onPointerDown={startDrag}
       onClick={(event) => {
         if (suppressClickRef.current) {

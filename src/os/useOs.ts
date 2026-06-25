@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type {
   AppId,
+  AppearanceEffects,
   BiosSettings,
   BootProfile,
   ClipboardState,
@@ -15,6 +16,7 @@ import type {
   SoundId,
   WindowPayload,
   WindowRect,
+  WallpaperMode,
 } from '../types'
 
 // Taglish note: separate file ito para stable ang Fast Refresh. Provider lives
@@ -36,6 +38,8 @@ export type OsContextValue = {
   arrangeDesktopIcons(): void
   showMessageBox(req: Omit<MessageBoxRequest, 'id'>): void
   dismissMessageBox(id: string, button: MessageBoxButton): void
+  notify(title: string, body: string): void
+  dismissNotification(id: string): void
   // filesystem
   fsOps: {
     createFolder(parent: string, name: string): string | null
@@ -62,6 +66,8 @@ export type OsContextValue = {
   // appearance
   setTheme(themeId: string): void
   setWallpaper(wallpaperId: string): void
+  setWallpaperMode(mode: WallpaperMode): void
+  setAppearanceEffects(effects: AppearanceEffects): void
   setCursorScheme(scheme: CursorSchemeId): void
   // audio
   enableAudio(): void
@@ -70,8 +76,11 @@ export type OsContextValue = {
   playSound(id: SoundId): void
   // system
   crashSystem(crash: CrashState): void
+  completeDesktopShellIntro(): void
   triggerSafetyTrainingCrash(): void
   completeSafetyTraining(): void
+  completeStartupScan(): void
+  stageSystemRestore(): void
   enterBiosSetup(): void
   enterRecoveryMode(): void
   setBiosSettings(settings: BiosSettings): void

@@ -4,6 +4,7 @@ import type { AppProps } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 import { driverHealthy } from '../../os/systemHealth'
+import { printOutcomeBox } from '../../os/systemFiles'
 
 const HOME = 'http://www.google.com/'
 // Default Wayback snapshot for typed/unlisted URLs. `if_` serves the page without
@@ -395,15 +396,7 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
         <button
           type="button"
           className="ie-tool"
-          onClick={() =>
-            showMessageBox({
-              title: 'Internet Explorer',
-              message: 'There is no printer installed.',
-              detail: 'Printing is not available in this simulated environment.',
-              icon: 'info',
-              buttons: ['ok'],
-            })
-          }
+          onClick={() => showMessageBox(printOutcomeBox(state.fs, 'Internet Explorer'))}
           title="Print"
         >
           <img src={win98Icons.printer} alt="" />

@@ -15,6 +15,7 @@ import {
 import { useOs } from '../../os/useOs'
 import { isSystemHealthy, missingRequiredSystemFiles } from '../../os/recovery'
 import { driverStatusLabel, missingDriverFiles, systemStatusLabel } from '../../os/systemHealth'
+import { isSystem32Wiped } from '../../os/systemFiles'
 
 type BiosRow = {
   label: string
@@ -279,18 +280,25 @@ export function BiosSetupScreen() {
     }
 
     if (section.id === 'recovery') {
+      const wiped = isSystem32Wiped(state.fs)
       return [
         {
           label: 'Windows Recovery Mode',
           value: 'Press Enter',
-          hint: 'Boot the recovery environment and restore missing portfolio OS files from the protected cache.',
+          hint: wiped
+            ? 'System32 was removed; Recovery can no longer restore it. Use Command prompt only and run SETUP.'
+            : 'Boot the recovery environment and restore missing portfolio OS files from the protected cache.',
           onChange: () => enterRecoveryMode(),
         },
         {
           label: 'System Status',
-          value: isSystemHealthy(state.fs) ? 'Healthy' : `${missingRequired.length} required file(s) missing`,
+          value: wiped
+            ? 'Unrecoverable - System32 removed'
+            : isSystemHealthy(state.fs)
+              ? 'Healthy'
+              : `${missingRequired.length} required file(s) missing`,
         },
-        { label: 'Repair Source', value: 'RB000.CAB / protected cache' },
+        { label: 'Repair Source', value: wiped ? 'Cache gone - reinstall via SETUP' : 'RB000.CAB / protected cache' },
         { label: 'Recovery Tools', value: 'SCANREG, SFC, package reinstall' },
       ]
     }

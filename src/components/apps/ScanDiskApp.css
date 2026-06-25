@@ -1,0 +1,166 @@
+.scandisk-app {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.scandisk-app fieldset {
+  margin: 0;
+}
+
+.scandisk-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #808080;
+  background: #fff;
+}
+
+.scandisk-banner img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.scandisk-banner h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.scandisk-banner p {
+  margin: 0;
+}
+
+.scandisk-drive-list {
+  padding: 4px;
+  background: #fff;
+}
+
+.scandisk-drive-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+}
+
+.scandisk-drive-row.selected {
+  background: #000080;
+  color: #fff;
+}
+
+.scandisk-drive-row img {
+  width: 18px;
+  height: 18px;
+  image-rendering: pixelated;
+}
+
+.scandisk-test label {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.scandisk-autofix {
+  margin-top: 4px;
+}
+
+.scandisk-surface {
+  display: grid;
+  gap: 6px;
+}
+
+.scandisk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14px, 1fr));
+  gap: 2px;
+  padding: 6px;
+  border: 2px inset #fff;
+  background: #c0c0c0;
+}
+
+.scandisk-cell {
+  aspect-ratio: 1;
+  background: #c0c0c0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040;
+}
+
+.scandisk-cell.scanned {
+  background: #1c7ad6;
+  box-shadow: inset 1px 1px #5ba8e8, inset -1px -1px #0a3a72;
+}
+
+.scandisk-cell.current {
+  background: #00ff66;
+  box-shadow: inset 1px 1px #b6ffd2, inset -1px -1px #0a7a3a;
+}
+
+.scandisk-cell.bad {
+  background: #c00000;
+  box-shadow: inset 1px 1px #ff6a6a, inset -1px -1px #600000;
+}
+
+.scandisk-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scandisk-legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.scandisk-legend .scandisk-cell {
+  width: 14px;
+  height: 14px;
+  aspect-ratio: auto;
+}
+
+.scandisk-stage {
+  margin: 0;
+  font-weight: 700;
+}
+
+.scandisk-progress {
+  height: 18px;
+  margin-top: 6px;
+  border: 2px inset #fff;
+  background: #fff;
+}
+
+.scandisk-progress span {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, #000080 0 8px, #1084d0 8px 16px);
+  transition: width 140ms linear;
+}
+
+.scandisk-progress-label {
+  margin: 4px 0 0;
+}
+
+.scandisk-results {
+  margin-top: 8px;
+}
+
+.scandisk-results p {
+  margin: 0 0 4px;
+}
+
+.scandisk-results ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.scandisk-actions {
+  justify-content: flex-end;
+}

@@ -37,6 +37,42 @@
   pointer-events: none;
 }
 
+[data-window-animations="on"] .win-window:not(.is-dragging):not(.is-resizing) {
+  animation: window-effect-in 120ms steps(3, end);
+}
+
+[data-window-animations="on"] .win-window.is-maximized:not(.is-dragging):not(.is-resizing) {
+  animation-name: window-effect-maximize;
+}
+
+@keyframes window-effect-in {
+  from {
+    opacity: 0.72;
+    filter: contrast(1.24);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes window-effect-maximize {
+  from {
+    opacity: 0.84;
+    outline: 2px dotted var(--w98-highlight, #000080);
+  }
+  to {
+    opacity: 1;
+    outline: 0 dotted transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-window-animations="on"] .win-window {
+    animation: none;
+  }
+}
+
 .resize-handle {
   position: absolute;
   z-index: 4;

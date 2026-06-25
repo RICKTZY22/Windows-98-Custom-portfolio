@@ -283,26 +283,21 @@ describe('virtual filesystem', () => {
     )
     expect(getNode(seeded, 'C:\\My Documents\\Education.txt')).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects')).toBeDefined()
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\Features.md')?.fileType).toBe(
-      'Markdown Document',
-    )
     expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\src\\data\\initialFilesystem.ts')?.fileType).toBe(
       'TypeScript Source',
     )
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\docs\\apps\\explorer.md')?.appId).toBe('notepad')
+    // The per-project Documentation\*.md showcase markdown is legitimate and stays.
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\Features.md')?.fileType).toBe(
+      'Markdown Document',
+    )
+    // The confidential footprint (the docs/ source dump and the case-study PDFs
+    // under Documentation\PDFs) is NOT seeded, and a purge keeps it from
+    // reappearing on disks seeded by older builds.
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\docs')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\docs\\apps\\explorer.md')).toBeUndefined()
     expect(
-      getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Build Documentation Explained.pdf')
-        ?.appId,
-    ).toBe('pdfViewer')
-    expect(
-      getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Apps and Features Reference Explained.pdf')
-        ?.dataUrl,
-    ).toBe('/docs/pdf/final-3.pdf')
-    expect(
-      openTargetFor(
-        getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Algorithms and Patterns Explained.pdf')!,
-      )?.appId,
-    ).toBe('pdfViewer')
+      getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Build Documentation Explained.pdf'),
+    ).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\Backend\\apps\\messaging\\consumers.py')?.appId).toBe(
       'notepad',
     )
@@ -450,7 +445,9 @@ describe('command processor', () => {
 
     const deleted = deleteNode(fs, 'C:\\Windows\\System32\\kernel32.dll')
     const restored = executeCommand('scanreg /restore', { ...ctx, fs: deleted.fs })
-    expect(restored.stream?.at(-1)?.effects?.[0]?.type).toBe('setFs')
+    // Repairs are no longer applied inline; confirming the prompt stages a restore
+    // that the next restart applies.
+    expect(restored.prompt?.onConfirm.effects?.[0]?.type).toBe('stageRestore')
   })
 
   it('reports classic disk utilities without mutating the virtual disk', () => {
@@ -458,7 +455,7 @@ describe('command processor', () => {
     const ctx = { cwd: 'C:\\Windows\\System32', fs, network: defaultNetworkState, bootMode: 'normal' as const, dosOnly: false }
     expect(executeCommand('attrib kernel32.dll', ctx).lines.join('\n')).toContain('kernel32.dll')
     expect(executeCommand('chkdsk', ctx).lines.join('\n')).toContain('FAT16')
-    expect(executeCommand('format c:', ctx).lines.join('\n')).toContain('disabled')
+    expect(executeCommand('format c:', ctx).lines.join('\n')).toContain('Command prompt only')
     expect(executeCommand('winver', ctx).lines.join('\n')).toContain('Portfolio Shell')
   })
 

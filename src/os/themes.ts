@@ -1,4 +1,4 @@
-import type { CursorSchemeId, ThemeDefinition, WallpaperDefinition } from '../types'
+import type { AppearanceEffects, CursorSchemeId, ThemeDefinition, WallpaperDefinition, WallpaperMode } from '../types'
 
 /**
  * DOM-effect layer for appearance. Only the store calls these; components
@@ -32,13 +32,27 @@ export function applyTheme(theme: ThemeDefinition): void {
   document.documentElement.setAttribute('data-theme', theme.id)
 }
 
-export function applyWallpaper(wallpaper: WallpaperDefinition): void {
+const wallpaperModeCss: Record<
+  WallpaperMode,
+  { size: string; repeat: string; position: string }
+> = {
+  stretch: { size: 'cover', repeat: 'no-repeat', position: 'center' },
+  center: { size: 'auto', repeat: 'no-repeat', position: 'center' },
+  tile: { size: 'auto', repeat: 'repeat', position: 'left top' },
+}
+
+export function applyWallpaper(wallpaper: WallpaperDefinition, mode: WallpaperMode): void {
   const style = rootStyle()
   if (!style) {
     return
   }
+  const layout = wallpaperModeCss[mode]
   style.setProperty('--w98-wallpaper', wallpaper.css)
+  style.setProperty('--w98-wallpaper-size', wallpaper.css === 'none' ? 'auto' : layout.size)
+  style.setProperty('--w98-wallpaper-repeat', wallpaper.css === 'none' ? 'no-repeat' : layout.repeat)
+  style.setProperty('--w98-wallpaper-position', wallpaper.css === 'none' ? 'center' : layout.position)
   document.documentElement.setAttribute('data-wallpaper', wallpaper.id)
+  document.documentElement.setAttribute('data-wallpaper-mode', mode)
 }
 
 export function applyCursorScheme(scheme: CursorSchemeId): void {
@@ -46,4 +60,14 @@ export function applyCursorScheme(scheme: CursorSchemeId): void {
     return
   }
   document.documentElement.setAttribute('data-cursor', scheme)
+}
+
+export function applyAppearanceEffects(effects: AppearanceEffects): void {
+  if (typeof document === 'undefined') {
+    return
+  }
+  const root = document.documentElement
+  root.setAttribute('data-mouse-trails', effects.mouseTrails ? 'on' : 'off')
+  root.setAttribute('data-menu-shadows', effects.menuShadows ? 'on' : 'off')
+  root.setAttribute('data-window-animations', effects.windowAnimations ? 'on' : 'off')
 }

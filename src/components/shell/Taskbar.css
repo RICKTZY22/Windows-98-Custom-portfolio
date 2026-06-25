@@ -102,6 +102,29 @@
   white-space: nowrap;
 }
 
+.tray-clock {
+  position: relative;
+  display: inline-flex;
+}
+
+.tray-time {
+  min-width: 56px;
+  min-height: 20px;
+  padding: 1px 5px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--w98-text, #111);
+  text-align: center;
+}
+
+.tray-time:hover,
+.tray-time:focus,
+.tray-time.active {
+  outline: 0;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px grey;
+}
+
 /* === Taskbar tray buttons =============================================== */
 
 .tray-button {
@@ -217,4 +240,77 @@
 
 .volume-flyout-mute input {
   margin: 0;
+}
+
+/* === Clock/calendar flyout ============================================== */
+
+.clock-flyout {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 10001;
+  width: 214px;
+  padding: 8px;
+  background: var(--w98-surface, silver);
+  box-shadow:
+    inset -1px -1px var(--window-frame, #0a0a0a),
+    inset 1px 1px var(--button-highlight, #fff),
+    inset -2px -2px var(--button-shadow, grey),
+    inset 2px 2px var(--button-face, #dfdfdf);
+}
+
+.clock-flyout-title {
+  margin-bottom: 6px;
+  padding: 2px 5px;
+  color: var(--w98-titlebar-text, #fff);
+  background: linear-gradient(90deg, var(--w98-titlebar-1, #000080), var(--w98-titlebar-2, #1084d0));
+  font-weight: 700;
+}
+
+.clock-flyout-date,
+.clock-flyout-time {
+  padding: 2px 1px;
+  white-space: nowrap;
+}
+
+.clock-flyout-time {
+  margin-bottom: 7px;
+  font-family: "Courier New", monospace;
+}
+
+.clock-calendar {
+  padding: 5px;
+  background: #fff;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}
+
+.clock-calendar-month {
+  margin-bottom: 4px;
+  color: #000080;
+  font-weight: 700;
+  text-align: center;
+}
+
+.clock-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  color: #111;
+  text-align: center;
+}
+
+.clock-calendar-grid strong,
+.clock-calendar-grid span {
+  min-height: 18px;
+  line-height: 18px;
+}
+
+.clock-calendar-grid strong {
+  color: #666;
+  font-size: 10px;
+}
+
+.clock-calendar-grid .today {
+  color: #fff;
+  background: #000080;
 }

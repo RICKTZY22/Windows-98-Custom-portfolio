@@ -5,6 +5,12 @@ type ControlPanelViewProps = Readonly<{
   model: ControlPanelViewModel
 }>
 
+const wallpaperModes = [
+  { id: 'stretch', label: 'Stretch' },
+  { id: 'center', label: 'Center' },
+  { id: 'tile', label: 'Tile' },
+] as const
+
 function ProgramRow({
   program,
   selectedName,
@@ -81,32 +87,83 @@ export function ControlPanelView({ model }: ControlPanelViewProps) {
               </div>
             </div>
             <div className="theme-options">
-              <label htmlFor="theme-select">Scheme:</label>
-              <select
-                id="theme-select"
-                value={display.draftTheme.id}
-                onChange={(event) => display.chooseTheme(event.target.value)}
-              >
-                {display.themes.map((theme) => (
-                  <option key={theme.id} value={theme.id}>
-                    {theme.name}
-                  </option>
-                ))}
-              </select>
+              <label className="appearance-option" htmlFor="theme-select">
+                <span>Scheme:</span>
+                <select
+                  id="theme-select"
+                  value={display.draftTheme.id}
+                  onChange={(event) => display.chooseTheme(event.target.value)}
+                >
+                  {display.themes.map((theme) => (
+                    <option key={theme.id} value={theme.id}>
+                      {theme.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <p className="appearance-description">{display.draftTheme.description}</p>
-              <label htmlFor="wallpaper-select">Wallpaper:</label>
-              <select
-                id="wallpaper-select"
-                value={display.draftWallpaper.id}
-                onChange={(event) => display.chooseWallpaper(event.target.value)}
-              >
-                {display.wallpapers.map((wallpaper) => (
-                  <option key={wallpaper.id} value={wallpaper.id}>
-                    {wallpaper.name}
-                  </option>
-                ))}
-              </select>
+              <label className="appearance-option" htmlFor="wallpaper-select">
+                <span>Wallpaper:</span>
+                <select
+                  id="wallpaper-select"
+                  value={display.draftWallpaper.id}
+                  onChange={(event) => display.chooseWallpaper(event.target.value)}
+                >
+                  {display.wallpapers.map((wallpaper) => (
+                    <option key={wallpaper.id} value={wallpaper.id}>
+                      {wallpaper.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <p className="appearance-description">{display.draftWallpaper.description}</p>
+              <div className="appearance-mode-field">
+                <span>Display:</span>
+                <div className="appearance-mode-buttons" role="group" aria-label="Wallpaper display mode">
+                  {wallpaperModes.map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      className={mode.id === display.draftWallpaperMode ? 'is-active' : ''}
+                      aria-pressed={mode.id === display.draftWallpaperMode}
+                      onClick={() => display.chooseWallpaperMode(mode.id)}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="appearance-note">
+                Scheme, wallpaper, and display mode update the preview first. Click Apply to update the desktop.
+                Visual effects below apply immediately.
+              </p>
+              <fieldset className="appearance-effects">
+                <legend>Visual effects</legend>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={display.effects.menuShadows}
+                    onChange={(event) => display.setEffect('menuShadows', event.target.checked)}
+                  />
+                  Show shadows under menus
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={display.effects.windowAnimations}
+                    onChange={(event) => display.setEffect('windowAnimations', event.target.checked)}
+                  />
+                  Animate windows when minimizing and maximizing
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={display.effects.mouseTrails}
+                    onChange={(event) => display.setEffect('mouseTrails', event.target.checked)}
+                  />
+                  Show pointer trails
+                </label>
+              </fieldset>
               <div className="button-row appearance-actions">
                 <button type="button" onClick={display.applyAppearance} disabled={!display.appearanceDirty}>
                   Apply
@@ -119,10 +176,16 @@ export function ControlPanelView({ model }: ControlPanelViewProps) {
           </div>
         )}
         {active.id === 'mouse' && (
-          <div className="button-row">
-            <button type="button" onClick={mouse.togglePointerScheme}>
-              Toggle Pointer Scheme
-            </button>
+          <div className="mouse-options">
+            <div className="button-row">
+              <button type="button" onClick={mouse.togglePointerScheme}>
+                Toggle Pointer Scheme
+              </button>
+            </div>
+            <label>
+              <input type="checkbox" checked={mouse.mouseTrails} onChange={mouse.toggleMouseTrails} />
+              Show animated mouse trails
+            </label>
           </div>
         )}
         {active.id === 'sounds' && (

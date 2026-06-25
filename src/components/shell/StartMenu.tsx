@@ -9,7 +9,15 @@ type StartMenuProps = {
   network: NetworkState
 }
 
-function MenuItems({ items, openApp }: { items: StartMenuModel; openApp: StartMenuProps['openApp'] }) {
+function MenuItems({
+  items,
+  openApp,
+  depth = 0,
+}: {
+  items: StartMenuModel
+  openApp: StartMenuProps['openApp']
+  depth?: number
+}) {
   return (
     <>
       {items.map((item) => {
@@ -18,15 +26,16 @@ function MenuItems({ items, openApp }: { items: StartMenuModel; openApp: StartMe
         }
 
         if (item.kind === 'submenu') {
+          const alignBottom = depth >= 1 && item.id === 'systemTools'
           return (
-            <li key={item.id} className="has-submenu" tabIndex={0}>
+            <li key={item.id} className={`has-submenu ${alignBottom ? 'submenu-align-bottom' : ''}`} tabIndex={0}>
               <button type="button">
                 <img src={win98Icons[item.icon]} alt="" />
                 {item.label}
                 <span className="submenu-arrow">&gt;</span>
               </button>
               <ul className="submenu nested-submenu">
-                <MenuItems items={item.items} openApp={openApp} />
+                <MenuItems items={item.items} openApp={openApp} depth={depth + 1} />
               </ul>
             </li>
           )

@@ -4,6 +4,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent
 import type { AppProps } from '../../types'
 import { baseName, getNode, joinPath, nowStamp, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
+import { printOutcomeBox } from '../../os/systemFiles'
 import {
   EMPTY_WORDPAD_PAGE_HTML,
   applyWordPadInlineStyle,
@@ -462,14 +463,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
         { kind: 'sep' },
         {
           label: 'Print...',
-          action: () =>
-            showMessageBox({
-              title: 'WordPad',
-              message: 'There is no printer installed.',
-              detail: 'Printing is not available in this simulated environment.',
-              icon: 'info',
-              buttons: ['ok'],
-            }),
+          action: () => showMessageBox(printOutcomeBox(state.fs, 'WordPad')),
         },
         {
           label: 'Page Setup...',

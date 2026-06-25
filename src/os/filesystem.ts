@@ -668,10 +668,13 @@ export function iconForFileName(name: string): IconKey {
   if (VIDEO_EXTENSIONS.has(ext)) return 'videoFile'
   if (ext === 'url') return 'urlFile'
   if (ext === 'htm' || ext === 'html') return 'html'
-  if (ext === 'exe' || ext === 'com') return 'windowsFile'
-  if (['dll', 'vxd', 'drv', 'sys', 'dat', 'fon', 'cpl', '386', 'reg', 'tmp', 'prv', 'pwl'].includes(ext)) {
-    return 'sysFile'
-  }
+  if (ext === 'exe' || ext === 'com') return 'execFile'
+  if (ext === 'dll') return 'dllFile'
+  if (['drv', 'sys', 'vxd', '386'].includes(ext)) return 'driverFile'
+  if (ext === 'cpl') return 'cplFile'
+  if (ext === 'reg') return 'regFile'
+  if (ext === 'fon' || ext === 'ttf') return 'fontFile'
+  if (['ini', 'inf', 'dat', 'tmp', 'prv', 'pwl'].includes(ext)) return 'iniFile'
   return 'windowsFile'
 }
 

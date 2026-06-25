@@ -120,6 +120,11 @@
   top: 0;
 }
 
+.submenu-align-bottom > .nested-submenu {
+  top: auto;
+  bottom: 0;
+}
+
 .has-submenu:hover > .submenu,
 .has-submenu:focus-within > .submenu {
   display: block;

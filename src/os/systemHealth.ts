@@ -1,4 +1,4 @@
-import type { DriverType, FsState, MessageBoxRequest } from '../types'
+import type { BootMode, DriverType, FsState, MessageBoxRequest } from '../types'
 import { baseName, normalizePath, REQUIRED_SYSTEM_FILES } from './filesystem'
 
 export const ERR_DRIVER_NETWORK_MISSING = 'ERR_DRIVER_NETWORK_MISSING'
@@ -94,6 +94,18 @@ export function driverHealthy(fs: FsState, type: DriverType): boolean {
   return missingDriverFiles(fs, type).length === 0
 }
 
+// Safe Mode loads generic VGA / keyboard / mouse drivers, so video, input and
+// storage always count as present there regardless of the installed driver files
+// — that is what lets the desktop, Explorer and repair tools open in Safe Mode
+// even when a driver was deleted. Network and audio stay file-gated (and are
+// disabled in Safe Mode anyway).
+export function effectiveDriverHealthy(fs: FsState, type: DriverType, bootMode: BootMode): boolean {
+  if (bootMode === 'safe' && (type === 'video' || type === 'input' || type === 'storage')) {
+    return true
+  }
+  return driverHealthy(fs, type)
+}
+
 export function requiredDriverMissing(fs: FsState, required: DriverType[] = []): MissingDriver | null {
   for (const type of required) {
     const missing = missingDriverFiles(fs, type)
@@ -154,14 +166,3 @@ export function driverFailureBox(
   }
 }
 
-export function systemFileFailureBox(title: string, missingPath: string): Omit<MessageBoxRequest, 'id'> {
-  return {
-    title,
-    message: `Windows cannot run ${title} because ${baseName(missingPath)} is missing.`,
-    detail: 'This is a simulated portfolio OS system file. Open BIOS Setup > Recovery Mode to restore it from the protected cache.',
-    icon: 'error',
-    buttons: ['ok'],
-    errorCode: ERR_SYSTEM_FILE_MISSING,
-    recoveryHint: 'Use Recovery Mode to restore missing protected files from the portfolio OS cache.',
-  }
-}

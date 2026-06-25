@@ -2,6 +2,7 @@ import type { AppId, BootMode, DriverType, FsState, NetworkState, WindowPayload 
 import {
   baseName,
   copyNode,
+  createFile,
   createFolder,
   deleteNode,
   extensionOf,
@@ -16,9 +17,11 @@ import {
   renameNode,
   resolvePath,
 } from './filesystem'
+import { createInitialFsState } from '../data/initialFilesystem'
 import { osProductName } from '../data/system'
 import { pingReport, randomDhcpLease, releasedNetworkState, resolveHostIp } from './network'
-import { missingSystemFiles, restoreSystemFiles, scanregLines, sfcLines } from './recovery'
+import { missingSystemFilePackages, missingSystemFiles, scanregLines } from './recovery'
+import { isSystem32Wiped } from './systemFiles'
 import {
   driverDeviceLabels,
   driverErrorCodes,
@@ -34,7 +37,17 @@ export type CommandEffect =
   | { type: 'restart'; target: 'normal' | 'safe' | 'dos' | 'recovery' | 'bootMenu' }
   | { type: 'networkPing'; sent: number; received: number }
   | { type: 'setNetwork'; network: NetworkState }
+  | { type: 'stageRestore' } // schedule a protected-file restore that applies on next restart
   | { type: 'exitWindow' } // 'exit' closes the terminal window / leaves dosOnly to bootMenu
+
+// A command can hand the terminal an interactive Y/N prompt that runs AFTER its
+// immediate lines + stream finish (e.g. SFC asking to restore). The terminal waits
+// for the next Enter and resolves to onConfirm / onDecline.
+export type TerminalPrompt = {
+  question: string
+  onConfirm: { lines: string[]; effects?: CommandEffect[] }
+  onDecline: { lines: string[] }
+}
 
 export type CommandContext = {
   cwd: string
@@ -50,6 +63,7 @@ export type CommandOutput = {
   clear?: boolean
   effects?: CommandEffect[]
   stream?: Array<{ delayMs: number; lines: string[]; effects?: CommandEffect[] }>
+  prompt?: TerminalPrompt // interactive Y/N asked after lines + stream finish
 }
 
 // Taglish note: command processor is pure-ish. It returns text + effects, then
@@ -258,6 +272,8 @@ function helpCommand(): CommandOutput {
     ['REN', 'Renames a file or files.'],
     ['SCANREG', 'Scans and restores the system registry (/restore).'],
     ['SCANDISK', 'Checks the virtual hard disk for errors.'],
+    ['SCANDSKW', 'Opens the ScanDisk graphical tool.'],
+    ['DEFRAG', 'Opens Disk Defragmenter to optimize the virtual disk.'],
     ['SFC', 'Scans protected system files (/scannow).'],
     ['START', 'Starts a program, document, or folder window.'],
     ['TIME', 'Displays the time.'],
@@ -371,18 +387,99 @@ function scandiskCommand(ctx: CommandContext): CommandOutput {
   }
 }
 
-function formatCommand(args: string[]): CommandOutput {
-  const drive = (args[0] ?? '').toUpperCase()
+// The classic install tools (FORMAT / SYS / SETUP) are the "boot media" recovery
+// path. They only run from the Command-Prompt-Only boot, mirroring booting from a
+// Win98 startup disk, and rebuild the disk from the canonical seed. This is the
+// only way back once System32 has been wiped (Recovery Mode refuses then).
+function bootMediaRequired(ctx: CommandContext): CommandOutput | null {
+  if (!ctx.dosOnly) {
+    return {
+      lines: [
+        'This command is only available from the Command-Prompt-Only boot.',
+        'Restart, press F8 during boot, then choose "Command prompt only".',
+      ],
+    }
+  }
+  return null
+}
+
+function blankDiskFs(): FsState {
+  const seed = createInitialFsState()
+  const root = seed.nodes['C:\\']
+  return { nodes: { 'C:\\': { ...root, children: [] } }, recycle: [] }
+}
+
+function formatCommand(args: string[], ctx: CommandContext): CommandOutput {
+  const drive = (args[0] ?? '').toUpperCase().replace(/:$/, '')
   if (!drive) {
     return { lines: ['Required parameter missing', 'Usage: FORMAT drive:'] }
   }
+  if (drive !== 'C') {
+    return { lines: [`Cannot format drive ${drive}: - no such drive in the portfolio OS.`] }
+  }
+  const guard = bootMediaRequired(ctx)
+  if (guard) return guard
   return {
-    lines: [
-      `WARNING, ALL DATA ON NON-REMOVABLE DISK DRIVE ${drive}`,
-      'WILL BE LOST!',
-      '',
-      'Format is disabled in this portfolio simulation.',
-      'Use Explorer or the Recycle Bin to manage virtual files safely.',
+    lines: ['WARNING, ALL DATA ON NON-REMOVABLE DISK', 'DRIVE C: WILL BE LOST!', ''],
+    stream: [
+      { delayMs: 700, lines: ['Formatting 2,047.00M'] },
+      { delayMs: 900, lines: ['Format complete.', ''] },
+      {
+        delayMs: 600,
+        lines: ['Volume label is PORTFOLIO', '', 'C: is now empty. Type SYS C: then SETUP to reinstall Windows 98.'],
+        effects: [{ type: 'setFs', fs: blankDiskFs() }],
+      },
+    ],
+  }
+}
+
+function sysCommand(args: string[], ctx: CommandContext): CommandOutput {
+  const drive = (args[0] ?? '').toUpperCase().replace(/:$/, '')
+  if (drive !== 'C') {
+    return { lines: ['Usage: SYS C:'] }
+  }
+  const guard = bootMediaRequired(ctx)
+  if (guard) return guard
+  let fs = ctx.fs
+  for (const name of ['IO.SYS', 'MSDOS.SYS', 'COMMAND.COM']) {
+    if (!getNode(fs, `C:\\${name}`)) {
+      const result = createFile(fs, 'C:\\', name, { content: `; ${name} - simulated Windows 98 boot file` })
+      if (!result.error) fs = result.fs
+    }
+  }
+  return {
+    lines: ['Transferring system files to C:...'],
+    stream: [
+      {
+        delayMs: 800,
+        lines: ['System transferred.', 'C: is now bootable. Type SETUP to install Windows 98.'],
+        effects: [{ type: 'setFs', fs }],
+      },
+    ],
+  }
+}
+
+function setupCommand(ctx: CommandContext): CommandOutput {
+  const guard = bootMediaRequired(ctx)
+  if (guard) return guard
+  return {
+    lines: ['Microsoft Windows 98 Setup', osProductName, ''],
+    stream: [
+      { delayMs: 700, lines: ['Preparing Setup... checking your system.'] },
+      { delayMs: 700, lines: ['Scanning hardware and creating the installation database...'] },
+      { delayMs: 800, lines: ['Copying Windows files: KERNEL32.DLL USER32.DLL GDI32.DLL .......  12%'] },
+      { delayMs: 800, lines: ['Copying Windows files: SHELL32.DLL COMCTL32.DLL OLE32.DLL ......  28%'] },
+      { delayMs: 800, lines: ['Copying Windows files: System32 drivers (VxD, .SYS, .DRV) ......  44%'] },
+      { delayMs: 800, lines: ['Copying Windows files: Internet Explorer + HTML engine .........  61%'] },
+      { delayMs: 800, lines: ['Copying Windows files: Control Panel, Fonts, Media .............  78%'] },
+      { delayMs: 800, lines: ['Copying Windows files: registry hives and shell .............  92%'] },
+      { delayMs: 700, lines: ['Updating system settings ...'] },
+      { delayMs: 700, lines: ['Building the registry and finishing Setup ... 100%'] },
+      {
+        delayMs: 900,
+        lines: ['', 'Setup is complete.', 'Type WIN, or restart, to start Windows 98.'],
+        effects: [{ type: 'setFs', fs: createInitialFsState() }],
+      },
     ],
   }
 }
@@ -506,37 +603,87 @@ function ipconfigCommand(args: string[], ctx: CommandContext): CommandOutput {
   return { lines: ipconfigLines(ctx.network, flag === '/all') }
 }
 
+const RECOVERY_WIPED_LINES = [
+  'The registry/system file cache could not be found.',
+  'System32 has been removed, so this tool cannot restore it.',
+  'Type SYS C: then SETUP to reinstall Windows 98 from scratch.',
+]
+
+// A restore is never applied inline anymore. The scan animates, lists what's
+// missing, then the terminal asks Y/N; confirming STAGES the repair (stageRestore)
+// which the next restart applies — so it survives navigation and "takes effect"
+// on reboot like the real tools.
+const RESTORE_STAGED_LINES = [
+  'Repair scheduled.',
+  'Restart your computer (type WIN, or use Start > Shut Down > Restart) for the changes to take effect.',
+]
+const RESTORE_DECLINED_LINES = ['No changes were made.']
+
 function scanregCommand(args: string[], ctx: CommandContext): CommandOutput {
+  if (isSystem32Wiped(ctx.fs)) {
+    return { lines: ['Microsoft Registry Checker', '', ...RECOVERY_WIPED_LINES] }
+  }
   const flag = args[0]?.toLowerCase()
   if (flag !== '/restore' && flag !== '/fix') {
     return { lines: scanregLines([]) }
   }
-  const { fs, restored } = restoreSystemFiles(ctx.fs)
+  const missing = missingSystemFilePackages(ctx.fs)
+  const scan: NonNullable<CommandOutput['stream']> = [
+    { delayMs: 600, lines: ['Scanning system registry...'] },
+    { delayMs: 700, lines: ['Checking registry backups: rb000.cab rb001.cab rb002.cab'] },
+    { delayMs: 800, lines: ['Validating protected file packages ... 70%'] },
+    { delayMs: 700, lines: ['Validating protected file packages ... 100%', ''] },
+  ]
+  if (!missing.length) {
+    return {
+      lines: ['Microsoft Registry Checker', ''],
+      stream: [...scan, { delayMs: 300, lines: ['No damaged or missing items were found.'] }],
+    }
+  }
   return {
     lines: ['Microsoft Registry Checker', ''],
-    stream: [
-      { delayMs: 600, lines: ['Scanning system registry...'] },
-      { delayMs: 700, lines: ['Checking registry backups: rb000.cab rb001.cab rb002.cab'] },
-      { delayMs: 800, lines: [restored.length ? `Found ${restored.length} damaged or missing item(s).` : 'No damaged items found.'] },
-      { delayMs: 900, lines: scanregLines(restored), effects: [{ type: 'setFs', fs }] },
-    ],
+    stream: [...scan, { delayMs: 300, lines: [`Found ${missing.length} damaged or missing item(s).`, ''] }],
+    prompt: {
+      question: `Restore ${missing.length} item(s) from backup? (Y/N)`,
+      onConfirm: { lines: RESTORE_STAGED_LINES, effects: [{ type: 'stageRestore' }] },
+      onDecline: { lines: RESTORE_DECLINED_LINES },
+    },
   }
 }
 
 function sfcCommand(args: string[], ctx: CommandContext): CommandOutput {
+  if (isSystem32Wiped(ctx.fs)) {
+    return { lines: ['System File Checker', '', ...RECOVERY_WIPED_LINES] }
+  }
   const flag = args[0]?.toLowerCase()
   if (flag !== '/scannow') {
     return { lines: ['Checks the integrity of protected system files.', '', 'Usage: sfc /scannow'] }
   }
-  const { fs, restored } = restoreSystemFiles(ctx.fs)
+  const missing = missingSystemFilePackages(ctx.fs)
+  const scan: NonNullable<CommandOutput['stream']> = [
+    { delayMs: 600, lines: ['Starting scan of all protected system files...'] },
+    { delayMs: 700, lines: ['Verifying C:\\Windows\\System32 ............ 20%'] },
+    { delayMs: 700, lines: ['Verifying device drivers ................. 45%'] },
+    { delayMs: 700, lines: ['Verifying C:\\Windows\\Command ............ 65%'] },
+    { delayMs: 700, lines: ['Verifying C:\\Windows core files .......... 85%'] },
+    { delayMs: 800, lines: ['Verification 100% complete.', ''] },
+  ]
+  if (!missing.length) {
+    return {
+      lines: ['System File Checker', ''],
+      stream: [...scan, { delayMs: 300, lines: ['Windows did not find any integrity violations.'] }],
+    }
+  }
+  const list = missing.slice(0, 10).map((path) => `  MISSING   ${path}`)
+  const extra = missing.length > 10 ? [`  ...and ${missing.length - 10} more file(s)`] : []
   return {
     lines: ['System File Checker', ''],
-    stream: [
-      { delayMs: 700, lines: ['Verification 25% complete.'] },
-      { delayMs: 700, lines: ['Verification 50% complete.'] },
-      { delayMs: 700, lines: ['Verification 75% complete.'] },
-      { delayMs: 900, lines: sfcLines(restored), effects: [{ type: 'setFs', fs }] },
-    ],
+    stream: [...scan, { delayMs: 300, lines: [`Found ${missing.length} missing protected file(s):`, ...list, ...extra, ''] }],
+    prompt: {
+      question: `Restore ${missing.length} file(s) from the protected cache? (Y/N)`,
+      onConfirm: { lines: RESTORE_STAGED_LINES, effects: [{ type: 'stageRestore' }] },
+      onDecline: { lines: RESTORE_DECLINED_LINES },
+    },
   }
 }
 
@@ -568,6 +715,22 @@ const START_TARGETS: Record<string, AppId> = {
   'sndrec32.exe': 'soundRecorder',
   testdontouch: 'setupSafety',
   'testdontouch.exe': 'setupSafety',
+  msinfo32: 'systemInfo',
+  'msinfo32.exe': 'systemInfo',
+  sysinfo: 'systemInfo',
+  msconfig: 'msconfig',
+  'msconfig.exe': 'msconfig',
+  devmgmt: 'deviceManager',
+  hwinfo: 'deviceManager',
+  regedit: 'registryEditor',
+  'regedit.exe': 'registryEditor',
+  regedt32: 'registryEditor',
+  registry: 'registryEditor',
+  scandskw: 'scandisk',
+  'scandskw.exe': 'scandisk',
+  defrag: 'defrag',
+  'defrag.exe': 'defrag',
+  dfrg: 'defrag',
 }
 
 function dosModeBlocked(ctx: CommandContext): CommandOutput | null {
@@ -863,7 +1026,13 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
     case 'scandisk':
       return scandiskCommand(ctx)
     case 'format':
-      return formatCommand(args)
+      return formatCommand(args, ctx)
+    case 'sys':
+      return sysCommand(args, ctx)
+    case 'setup':
+    case 'setup.exe':
+    case 'install':
+      return setupCommand(ctx)
     case 'echo':
       return { lines: [args.length ? args.join(' ') : 'ECHO is on.'] }
     case 'start':
@@ -889,6 +1058,27 @@ export function executeCommand(input: string, ctx: CommandContext): CommandOutpu
     }
     case 'calc':
       return appCommand('calculator', undefined, ctx)
+    case 'msinfo32':
+    case 'sysinfo':
+      return appCommand('systemInfo', undefined, ctx)
+    case 'msconfig':
+      return appCommand('msconfig', undefined, ctx)
+    case 'devmgmt':
+    case 'hwinfo':
+      return appCommand('deviceManager', undefined, ctx)
+    case 'regedit':
+    case 'regedit.exe':
+    case 'regedt32':
+    case 'regedt32.exe':
+    case 'registry':
+      return appCommand('registryEditor', undefined, ctx)
+    case 'scandskw':
+    case 'scandskw.exe':
+      return appCommand('scandisk', undefined, ctx)
+    case 'defrag':
+    case 'defrag.exe':
+    case 'dfrg':
+      return appCommand('defrag', undefined, ctx)
     case 'ping':
       return pingCommand(args, ctx)
     case 'ipconfig':

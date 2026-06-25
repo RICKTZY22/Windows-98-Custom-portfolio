@@ -1,0 +1,462 @@
+.inbox-app {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 4px;
+  position: relative;
+  font-size: 12px;
+}
+
+/* ---------- toolbar ---------- */
+.inbox-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 2px 4px;
+  box-shadow: inset 0 -1px #808080;
+}
+
+.inbox-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 50px;
+  height: 44px;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  font-size: 10px;
+  cursor: default;
+}
+
+.inbox-tool:hover {
+  box-shadow:
+    inset -1px -1px #0a0a0a,
+    inset 1px 1px #fdfdfd,
+    inset -2px -2px #808080,
+    inset 2px 2px #dfdfdf;
+}
+
+.inbox-tool:active {
+  box-shadow:
+    inset -1px -1px #fdfdfd,
+    inset 1px 1px #808080,
+    inset -2px -2px #dfdfdf,
+    inset 2px 2px #0a0a0a;
+}
+
+.inbox-tool.is-dim {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.inbox-tool-sep {
+  width: 2px;
+  height: 34px;
+  margin: 0 3px;
+  box-shadow: inset 1px 0 #808080, inset -1px 0 #fff;
+}
+
+/* ---------- body: folders + list ---------- */
+.inbox-body {
+  display: flex;
+  gap: 4px;
+  min-height: 0;
+}
+
+.inbox-folders {
+  width: 186px;
+  flex: none;
+  padding: 6px 4px;
+  background: #fff;
+  overflow: auto;
+}
+
+.inbox-folder-root,
+.inbox-folder-personal {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 3px;
+}
+
+.inbox-folder-root {
+  font-weight: 700;
+}
+
+.inbox-folder-personal {
+  margin-left: 14px;
+}
+
+.inbox-folder-root img,
+.inbox-folder-personal img,
+.inbox-folder img {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
+.inbox-folder-children {
+  margin-left: 24px;
+  border-left: 1px dotted #888;
+  padding-left: 4px;
+}
+
+.inbox-folder {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: default;
+}
+
+.inbox-folder.is-active {
+  color: #fff;
+  background: #000883;
+  font-weight: 700;
+}
+
+.inbox-folder-name {
+  flex: 1;
+}
+
+.inbox-folder-count {
+  font-weight: 700;
+}
+
+/* ---------- message list ---------- */
+.inbox-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+}
+
+.inbox-list-head,
+.inbox-row {
+  display: grid;
+  grid-template-columns: 24px 26px minmax(120px, 200px) minmax(0, 1fr) 96px;
+  align-items: center;
+}
+
+.inbox-list-head {
+  background: #c0c0c0;
+  box-shadow: inset 0 -1px #808080;
+}
+
+.inbox-list-head span {
+  padding: 3px 6px;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.inbox-rows {
+  flex: 1;
+  overflow: auto;
+}
+
+.inbox-row {
+  width: 100%;
+  height: 21px;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+  font-size: 12px;
+}
+
+.inbox-row.is-unread {
+  font-weight: 700;
+}
+
+.inbox-row.is-selected {
+  color: #fff;
+  background: #000883;
+}
+
+.inbox-cell-bang {
+  text-align: center;
+  color: #c41818;
+  font-weight: 700;
+}
+
+.inbox-row.is-selected .inbox-cell-bang {
+  color: #ffd54a;
+}
+
+.inbox-cell-mail {
+  text-align: center;
+}
+
+.inbox-cell-text {
+  padding: 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.inbox-empty {
+  padding: 24px;
+  text-align: center;
+  color: #888;
+}
+
+/* ---------- status bar ---------- */
+.inbox-statusbar {
+  display: flex;
+  gap: 3px;
+  margin: 0;
+}
+
+.inbox-statusbar .status-bar-field {
+  flex: 1;
+}
+
+.inbox-statusbar-folder {
+  flex: 0 0 130px;
+}
+
+/* ---------- reading / compose overlays ---------- */
+.inbox-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.inbox-window {
+  width: min(560px, 94%);
+  height: min(440px, 94%);
+  display: flex;
+  flex-direction: column;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px #0a0a0a,
+    inset 1px 1px #fdfdfd,
+    inset -2px -2px #808080,
+    inset 2px 2px #dfdfdf,
+    3px 3px 12px rgba(0, 0, 0, 0.4);
+  animation: inbox-win-in 0.14s ease both;
+}
+
+@keyframes inbox-win-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.inbox-reader-body,
+.inbox-compose-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.inbox-reader-toolbar,
+.inbox-compose-toolbar {
+  display: flex;
+  gap: 4px;
+  padding-bottom: 2px;
+  box-shadow: inset 0 -1px #808080;
+}
+
+.inbox-reader-fields {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 2px 6px;
+  padding: 6px 8px;
+  background: #c0c0c0;
+  box-shadow: inset -1px -1px #fdfdfd, inset 1px 1px #808080;
+}
+
+.inbox-reader-fields span:nth-child(odd) {
+  color: #444;
+}
+
+.inbox-reader-content {
+  flex: 1;
+  padding: 10px 12px;
+  background: #fff;
+  box-shadow: inset -1px -1px #fdfdfd, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+  overflow: auto;
+}
+
+.inbox-reader-content pre {
+  margin: 0;
+  font-family: Tahoma, "MS Sans Serif", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ---------- structured release view ---------- */
+.inbox-release-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #c0c0c0;
+}
+
+.inbox-release-badge {
+  flex: none;
+  padding: 3px 8px;
+  background: #000883;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.inbox-release-titles {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.inbox-release-titles strong {
+  font-size: 14px;
+}
+
+.inbox-release-ver {
+  font-weight: 400;
+  color: #555;
+}
+
+.inbox-release-date {
+  color: #555;
+  font-size: 11px;
+}
+
+.inbox-status-pill {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid #000;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.inbox-status-pill.is-released {
+  background: #d6f0d6;
+}
+
+.inbox-status-pill.is-current {
+  background: #ffe9a8;
+}
+
+.inbox-status-pill.is-prerelease {
+  background: #e0e0e0;
+  color: #555;
+}
+
+.inbox-release-summary {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.inbox-release-section,
+.inbox-release-commits {
+  margin: 10px 0;
+}
+
+.inbox-release-section h4,
+.inbox-release-commits h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #000883;
+}
+
+.inbox-release-section ul,
+.inbox-release-commits ul {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
+.inbox-release-commits {
+  padding-top: 8px;
+  border-top: 1px solid #c0c0c0;
+}
+
+.inbox-release-commits code {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: #333;
+}
+
+/* ---------- compose ---------- */
+.inbox-send {
+  font-weight: 700;
+}
+
+.inbox-compose-fields {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 5px 6px;
+  align-items: center;
+  padding: 6px 4px;
+  box-shadow: inset 0 -1px #808080;
+}
+
+.inbox-compose-fields label {
+  text-align: center;
+  padding: 2px 0;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px #0a0a0a,
+    inset 1px 1px #fdfdfd,
+    inset -2px -2px #808080,
+    inset 2px 2px #dfdfdf;
+}
+
+.inbox-compose-fields input,
+.inbox-compose-text {
+  border: none;
+  background: #fff;
+  box-shadow: inset -1px -1px #fdfdfd, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+  font: 12px Tahoma, "MS Sans Serif", sans-serif;
+  outline: none;
+}
+
+.inbox-compose-fields input {
+  padding: 2px 4px;
+}
+
+.inbox-compose-text {
+  flex: 1;
+  padding: 8px 10px;
+  resize: none;
+  line-height: 1.5;
+}
+
+/* ---------- toast ---------- */
+.inbox-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  z-index: 40;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  background: #ffffe1;
+  border: 1px solid #000;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+}

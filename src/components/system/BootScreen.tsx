@@ -4,24 +4,47 @@ import { bootSequenceLabel } from '../../data/bios'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 
-type Stage = 'post' | 'starting' | 'splash'
+type Stage = 'post' | 'updating' | 'starting' | 'splash'
+type BootTiming = {
+  totalMs: number
+  postMs: number
+  updatingMs: number
+  startingMs: number
+  lineStartMs: number
+  lineStepMs: number
+}
 
-const BOOT_TOTAL_MS = 20_000
-const POST_MS = 8_600
-const STARTING_MS = 2_000
 const MEM_TOTAL_KB = 65_536
-const POST_LINE_START_MS = 1_900
-const POST_LINE_STEP_MS = 460
+const SPLASH_MS = 9_400
+const QUICK_SPLASH_MS = 4_200
+const UPDATING_MS = 1_900
 
-function bootStage(elapsed: number): Stage {
-  if (elapsed < POST_MS) return 'post'
-  if (elapsed < POST_MS + STARTING_MS) return 'starting'
+function createBootTiming(quickPost: boolean, bootProfile: 'cold' | 'warm', updatingSystemSettings: boolean): BootTiming {
+  const quick = quickPost || bootProfile === 'warm'
+  const postMs = quick ? 3_300 : 8_600
+  const startingMs = quick ? 1_100 : 2_000
+  const splashMs = quick ? QUICK_SPLASH_MS : SPLASH_MS
+  const updatingMs = updatingSystemSettings ? UPDATING_MS : 0
+  return {
+    totalMs: postMs + updatingMs + startingMs + splashMs,
+    postMs,
+    updatingMs,
+    startingMs,
+    lineStartMs: quick ? 550 : 1_900,
+    lineStepMs: quick ? 175 : 460,
+  }
+}
+
+function bootStage(elapsed: number, timing: BootTiming): Stage {
+  if (elapsed < timing.postMs) return 'post'
+  if (elapsed < timing.postMs + timing.updatingMs) return 'updating'
+  if (elapsed < timing.postMs + timing.updatingMs + timing.startingMs) return 'starting'
   return 'splash'
 }
 
-function boundedLineCount(elapsed: number, total: number) {
-  if (elapsed < POST_LINE_START_MS) return 0
-  return Math.min(total, Math.floor((elapsed - POST_LINE_START_MS) / POST_LINE_STEP_MS) + 1)
+function boundedLineCount(elapsed: number, total: number, timing: BootTiming) {
+  if (elapsed < timing.lineStartMs) return 0
+  return Math.min(total, Math.floor((elapsed - timing.lineStartMs) / timing.lineStepMs) + 1)
 }
 
 function BootSignature() {
@@ -37,19 +60,23 @@ export function BootScreen() {
   const { state, finishBoot, restart, enterBiosSetup } = useOs()
 
   const [elapsed, setElapsed] = useState(0)
-  const stage = bootStage(elapsed)
+  const timing = useMemo(
+    () => createBootTiming(state.bios.quickPost, state.bootProfile, state.bios.resetConfigurationData),
+    [state.bios.quickPost, state.bios.resetConfigurationData, state.bootProfile],
+  )
+  const stage = bootStage(elapsed, timing)
 
   useEffect(() => {
     const startedAt = Date.now()
     const interval = window.setInterval(() => {
-      setElapsed(Math.min(BOOT_TOTAL_MS, Date.now() - startedAt))
+      setElapsed(Math.min(timing.totalMs, Date.now() - startedAt))
     }, 100)
-    const done = window.setTimeout(() => finishBoot(), BOOT_TOTAL_MS)
+    const done = window.setTimeout(() => finishBoot(), timing.totalMs)
     return () => {
       window.clearInterval(interval)
       window.clearTimeout(done)
     }
-  }, [finishBoot])
+  }, [finishBoot, timing.totalMs])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -67,7 +94,10 @@ export function BootScreen() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [enterBiosSetup, restart])
 
-  const memoryKb = Math.min(MEM_TOTAL_KB, Math.floor((elapsed / 1_650) * MEM_TOTAL_KB / 1024) * 1024)
+  const memoryKb = Math.min(
+    MEM_TOTAL_KB,
+    Math.floor((elapsed / (state.bios.quickPost ? 650 : 1_650)) * MEM_TOTAL_KB / 1024) * 1024,
+  )
   const memoryLine = `Memory Test       : ${String(memoryKb).padStart(5, ' ')}K ${
     memoryKb >= MEM_TOTAL_KB ? 'OK' : ''
   }`
@@ -80,6 +110,7 @@ export function BootScreen() {
       'Secondary Master  : PORTFOLIO CD-ROM 24X',
       'Secondary Slave   : None',
       `Boot Sequence     : ${bootSequenceLabel(state.bios)}`,
+      state.bios.quickPost ? 'Quick POST        : Enabled' : 'Quick POST        : Disabled',
       'PCI devices listing ...',
       'Detecting IDE drives ...  OK',
       'Checking NVRAM     ...  OK',
@@ -88,7 +119,7 @@ export function BootScreen() {
     ],
     [state.bios],
   )
-  const visiblePostLines = postLines.slice(0, boundedLineCount(elapsed, postLines.length))
+  const visiblePostLines = postLines.slice(0, boundedLineCount(elapsed, postLines.length, timing))
   const postBody = [memoryLine, '', ...visiblePostLines].join('\n')
   const startingText =
     state.bootTarget === 'safe'
@@ -100,7 +131,11 @@ export function BootScreen() {
           : 'Starting Windows 98...'
   const splashProgress = Math.max(
     0,
-    Math.min(1, (elapsed - POST_MS - STARTING_MS) / (BOOT_TOTAL_MS - POST_MS - STARTING_MS)),
+    Math.min(
+      1,
+      (elapsed - timing.postMs - timing.updatingMs - timing.startingMs) /
+        (timing.totalMs - timing.postMs - timing.updatingMs - timing.startingMs),
+    ),
   )
 
   if (stage === 'post') {
@@ -131,6 +166,19 @@ export function BootScreen() {
     return (
       <main className="boot-screen boot-sequence-screen boot-sequence-starting" aria-live="polite">
         <p>{startingText}</p>
+        <BootSignature />
+      </main>
+    )
+  }
+
+  if (stage === 'updating') {
+    return (
+      <main className="boot-screen boot-sequence-screen boot-sequence-updating" aria-live="polite">
+        <section>
+          <p>Updating ESCD ... Success</p>
+          <p>Updating system settings ...</p>
+          <small>Simulated Plug and Play records are being refreshed inside the portfolio OS.</small>
+        </section>
         <BootSignature />
       </main>
     )

@@ -1,0 +1,125 @@
+.defrag-app {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto auto;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.defrag-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #808080;
+  background: #fff;
+}
+
+.defrag-banner img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.defrag-banner h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.defrag-banner p {
+  margin: 0;
+}
+
+.defrag-grid-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  background: #c0c0c0;
+}
+
+.defrag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13px, 1fr));
+  gap: 2px;
+}
+
+.defrag-cell {
+  aspect-ratio: 1;
+  background: #e8e8e8;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+}
+
+.defrag-cell.used,
+.defrag-cell.optimized {
+  background: #1c7ad6;
+  box-shadow: inset 1px 1px #5ba8e8, inset -1px -1px #0a3a72;
+}
+
+.defrag-cell.system {
+  background: #0a7a3a;
+  box-shadow: inset 1px 1px #4fd089, inset -1px -1px #064d24;
+}
+
+.defrag-cell.fragmented {
+  background: #c00000;
+  box-shadow: inset 1px 1px #ff6a6a, inset -1px -1px #600000;
+}
+
+.defrag-cell.free {
+  background: #fff;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #b0b0b0;
+}
+
+.defrag-cell.writing {
+  background: #ffd23f;
+  box-shadow: inset 1px 1px #fff0b0, inset -1px -1px #9a7400;
+  animation: defrag-head-pulse 500ms steps(2, end) infinite;
+}
+
+@keyframes defrag-head-pulse {
+  50% {
+    background: #fff;
+  }
+}
+
+.defrag-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.defrag-legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.defrag-legend .defrag-cell {
+  width: 14px;
+  height: 14px;
+  aspect-ratio: auto;
+}
+
+.defrag-progress {
+  height: 18px;
+  border: 2px inset #fff;
+  background: #fff;
+}
+
+.defrag-progress span {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, #000080 0 8px, #1084d0 8px 16px);
+  transition: width 140ms linear;
+}
+
+.defrag-status {
+  margin: 0;
+}
+
+.defrag-actions {
+  justify-content: flex-end;
+}

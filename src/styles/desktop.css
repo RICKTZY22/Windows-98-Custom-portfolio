@@ -13,11 +13,99 @@
   inset: 0 0 33px;
   overflow: hidden;
   background: var(--w98-wallpaper, var(--w98-desktop, #008080));
-  background-size: cover;
+  background-position: var(--w98-wallpaper-position, center);
+  background-repeat: var(--w98-wallpaper-repeat, no-repeat);
+  background-size: var(--w98-wallpaper-size, cover);
 }
 
 .desktop.is-refreshing {
   filter: contrast(1.05);
+}
+
+.os-shell.is-shell-starting .desktop {
+  animation: desktop-shell-background-in 280ms steps(2, end);
+}
+
+.os-shell.is-shell-starting .desktop-grid {
+  pointer-events: none;
+}
+
+.os-shell.is-shell-starting .desktop-icon {
+  opacity: 0;
+  animation: desktop-icon-boot-in 520ms steps(5, end) forwards;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(1) {
+  animation-delay: 80ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(2) {
+  animation-delay: 130ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(4) {
+  animation-delay: 230ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(5) {
+  animation-delay: 280ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(6) {
+  animation-delay: 330ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(7) {
+  animation-delay: 380ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(8) {
+  animation-delay: 430ms;
+}
+
+.os-shell.is-shell-starting .desktop-icon:nth-child(n + 9) {
+  animation-delay: 480ms;
+}
+
+.os-shell.is-shell-starting .taskbar {
+  animation: desktop-taskbar-boot-in 620ms steps(5, end) 520ms both;
+}
+
+.desktop-startup-loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 9998;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 238px;
+  padding: 10px 14px;
+  color: var(--w98-text, #111);
+  background: var(--w98-surface, silver);
+  box-shadow:
+    inset -1px -1px var(--window-frame, #0a0a0a),
+    inset 1px 1px var(--button-highlight, #fff),
+    inset -2px -2px var(--button-shadow, grey),
+    inset 2px 2px var(--button-face, #dfdfdf);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: desktop-loader-boot-out 5s steps(6, end) forwards;
+}
+
+.desktop-startup-loader-icon {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #000;
+  background:
+    linear-gradient(90deg, transparent 0 44%, #000080 45% 55%, transparent 56%),
+    linear-gradient(#fff, #c0c0c0);
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+  animation: desktop-loader-icon-pulse 360ms steps(2, end) infinite;
 }
 
 .desktop-grid {
@@ -61,18 +149,39 @@
 .desktop-icon.selected {
   outline: 1px dotted #fff;
   outline-offset: -2px;
+  background: color-mix(in srgb, var(--w98-highlight, #000080) 16%, transparent);
 }
 
 .desktop-icon.selected span,
 .desktop-icon:focus span {
   color: var(--w98-highlight-text, #fff);
   background: var(--w98-highlight, #000080);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--w98-highlight-text, #fff) 55%, transparent);
 }
 
 .desktop-icon img {
   width: 40px;
   height: 40px;
   image-rendering: pixelated;
+}
+
+.desktop-icon.is-shortcut::after {
+  content: '>';
+  position: absolute;
+  left: 24px;
+  top: 33px;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
 }
 
 .desktop-icon span {
@@ -117,14 +226,151 @@
   }
 }
 
+@keyframes desktop-shell-background-in {
+  0% {
+    filter: brightness(0.35);
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes desktop-icon-boot-in {
+  0% {
+    opacity: 0;
+    filter: contrast(1.5) brightness(1.18);
+  }
+
+  65% {
+    opacity: 1;
+    filter: contrast(1.18);
+  }
+
+  100% {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes desktop-taskbar-boot-in {
+  0% {
+    opacity: 0;
+    transform: translateY(33px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes desktop-loader-boot-out {
+  0%,
+  78% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes desktop-loader-icon-pulse {
+  50% {
+    filter: invert(1);
+  }
+}
+
 .safe-mode-banner {
   position: absolute;
   top: 6px;
   right: 10px;
   z-index: 5;
-  padding: 2px 8px;
+  display: grid;
+  gap: 2px;
+  max-width: 260px;
+  padding: 4px 8px;
   color: #fff;
   background: rgba(0, 0, 0, 0.55);
   font-family: "Courier New", monospace;
   pointer-events: none;
+}
+
+.safe-mode-banner strong {
+  font-size: 13px;
+}
+
+.safe-mode-banner span {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #d8d8d8;
+}
+
+/* Transient taskbar balloons (driver removed, etc.) */
+.tray-balloon-layer {
+  position: fixed;
+  right: 8px;
+  bottom: 40px;
+  z-index: 6000;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.tray-balloon {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  width: 260px;
+  padding: 8px 22px 8px 10px;
+  background: #ffffe1;
+  border: 1px solid #000;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
+  font-size: 11px;
+  animation: tray-balloon-in 180ms ease-out;
+}
+
+.tray-balloon strong {
+  font-size: 12px;
+}
+
+.tray-balloon span {
+  color: #333;
+  line-height: 1.3;
+}
+
+.tray-balloon-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  min-width: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+@keyframes tray-balloon-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.mouse-trail-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.mouse-trail-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  box-shadow: inset -1px -1px #c0c0c0;
 }

@@ -1,0 +1,118 @@
+.devmgr-app {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 6px;
+}
+
+.devmgr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 2px;
+}
+
+.devmgr-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.devmgr-radio.is-dim {
+  color: #808080;
+}
+
+.devmgr-tree-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  background: #fff;
+}
+
+.devmgr-tree {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.devmgr-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+}
+
+.devmgr-node img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+/* device rows are <button>s — strip the 98.css chrome so they read as list items */
+.devmgr-device {
+  width: 100%;
+  padding: 1px 3px;
+  border: none;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+  font: inherit;
+  min-height: 0;
+  min-width: 0;
+}
+
+.devmgr-device:hover {
+  background: none;
+}
+
+.devmgr-node.selected {
+  color: #fff;
+  background: #000080;
+  outline: 1px dotted #fff;
+  outline-offset: -1px;
+}
+
+.devmgr-device-icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.devmgr-problem-badge {
+  position: absolute;
+  left: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #000;
+  background: #ffd400;
+  border: 1px solid #000;
+  border-radius: 50%;
+}
+
+.devmgr-device.has-problem > span:last-child {
+  color: #a00;
+}
+
+.devmgr-device.has-problem.selected > span:last-child {
+  color: #fff;
+}
+
+.devmgr-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.devmgr-buttons button {
+  min-width: 84px;
+}
+
+.devmgr-status {
+  margin: 0;
+}
