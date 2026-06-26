@@ -351,7 +351,7 @@ function MessageBoxHost() {
 // Each balloon dismisses itself after a few seconds or on click.
 function NotificationBalloon({ note, onDismiss }: Readonly<{ note: OsNotification; onDismiss: (id: string) => void }>) {
   useEffect(() => {
-    const timer = window.setTimeout(() => onDismiss(note.id), 6500)
+    const timer = window.setTimeout(() => onDismiss(note.id), 2000)
     return () => window.clearTimeout(timer)
   }, [note.id, onDismiss])
   return (

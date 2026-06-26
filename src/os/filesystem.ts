@@ -28,6 +28,18 @@ export const REQUIRED_SYSTEM_FILES: string[] = [
 
 const ACCESS_DENIED = 'Access is denied. The file is being used by Windows.'
 
+// Guardrail: the whole filesystem is persisted to localStorage (a few hundred KB
+// at baseline, ~450 nodes). Cap user-created nodes so a runaway "New File" spree
+// can't bloat the saved blob toward the browser's storage limit. Presented to the
+// user as the disk being full, the period-accurate way to hit this.
+const MAX_FS_NODES = 2000
+const DISK_FULL =
+  'There is not enough free disk space on drive C: to create this item. Delete some files and try again.'
+
+function atNodeCapacity(fs: FsState): boolean {
+  return Object.keys(fs.nodes).length >= MAX_FS_NODES
+}
+
 // ---------------------------------------------------------------------------
 // Path utilities
 // ---------------------------------------------------------------------------
@@ -294,6 +306,9 @@ export function createFolder(fs: FsState, parent: string, name: string): FsResul
   if (isProtectedPath(parent)) {
     return fail(fs, ACCESS_DENIED)
   }
+  if (atNodeCapacity(fs)) {
+    return fail(fs, DISK_FULL)
+  }
   return internalCreateFolder(fs, parent, name)
 }
 
@@ -305,6 +320,9 @@ export function createFile(
 ): FsResult {
   if (isProtectedPath(parent)) {
     return fail(fs, ACCESS_DENIED)
+  }
+  if (atNodeCapacity(fs)) {
+    return fail(fs, DISK_FULL)
   }
   const parentNode = getNode(fs, parent)
   if (!parentNode || parentNode.kind !== 'folder') {
@@ -472,6 +490,9 @@ export function copyNode(fs: FsState, path: string, targetFolder: string): FsRes
   const target = targetNode.path
   if (isProtectedPath(target)) {
     return fail(fs, ACCESS_DENIED)
+  }
+  if (atNodeCapacity(fs)) {
+    return fail(fs, DISK_FULL)
   }
   if (node.kind === 'folder' && isWithin(target, source)) {
     return fail(fs, 'Cannot copy a folder into itself.')

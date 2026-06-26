@@ -152,6 +152,7 @@ export type AppDefinition = {
   safeModeAvailable?: boolean // default true; network/media/sound apps set false
   systemDependencies?: string[] // protected system files required before the app can launch
   driverDependencies?: DriverType[] // simulated driver categories required before the app can launch
+  memoryCost?: number // simulated RAM (MB) this app occupies while open; defaults applied in the store
 }
 
 // ---------- filesystem ----------

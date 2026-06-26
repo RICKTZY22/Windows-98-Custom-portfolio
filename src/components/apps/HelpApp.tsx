@@ -4,10 +4,11 @@ import { win98Icons } from '../../data/icons'
 import { portfolioData } from '../../data/portfolioData'
 import type { IconKey } from '../../types'
 
-type Topic = 'start' | 'programs' | 'files' | 'safety' | 'recovery' | 'commands' | 'troubleshooting'
+type Topic = 'start' | 'whatsNew' | 'programs' | 'files' | 'safety' | 'recovery' | 'commands' | 'troubleshooting'
 
 const TOPICS: Array<{ id: Topic; label: string; hint: string; icon: IconKey }> = [
   { id: 'start', label: 'Getting Started', hint: 'Desktop, windows, sound, and navigation.', icon: 'windows' },
+  { id: 'whatsNew', label: "What's New", hint: 'Recently added features and behaviors.', icon: 'inbox' },
   { id: 'programs', label: 'The Programs', hint: 'What each app is for.', icon: 'programGroup' },
   { id: 'files', label: 'Files and Drivers', hint: 'Virtual C: drive, Recycle Bin, and simulated drivers.', icon: 'hardDrive' },
   { id: 'safety', label: 'Safety Guide', hint: 'Educational simulations and what is never real.', icon: 'help' },
@@ -22,6 +23,58 @@ const QUICK_START = [
   'Drag a window title bar to move it. Drag an edge or corner to resize it.',
   'Use the taskbar buttons to switch between open apps.',
   'Right-click the desktop for refresh, arrange icons, and display options.',
+]
+
+const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
+  {
+    name: 'Inbox (release history)',
+    icon: 'inbox',
+    text: "Open Inbox on the desktop to read this project's version history, delivered as Microsoft Exchange mail. Each message is a release with its patch notes.",
+  },
+  {
+    name: 'Memory limit (RAM)',
+    icon: 'taskManager',
+    text: 'The simulated PC has 64 MB of RAM. Opening too many programs at once can run it out of memory and cause a protection fault that closes every program. Open fewer at a time.',
+  },
+  {
+    name: 'Disk space limit',
+    icon: 'hardDrive',
+    text: 'The virtual C: drive holds a limited number of files. Creating too many shows "not enough free disk space"; delete some files to free space.',
+  },
+  {
+    name: 'Delete notifications',
+    icon: 'recycleBin',
+    text: 'Deleting a file or folder shows a tray notice of what was affected (file and folder counts), plus a warning if a simulated device was disabled.',
+  },
+  {
+    name: 'Maintenance tools',
+    icon: 'hardDrive',
+    text: 'ScanDisk and Disk Defragmenter live under Programs > System Tools. A startup ScanDisk also runs automatically after an improper shutdown.',
+  },
+  {
+    name: 'Device Manager',
+    icon: 'computer',
+    text: 'Under System Tools. Shows simulated device and driver health and flags problems with a yellow badge.',
+  },
+  {
+    name: 'Startup Menu (F8)',
+    icon: 'gears',
+    text: 'Press F8 during boot for the BIOS-styled Startup Menu: Normal, Safe mode, Command prompt only, and Recovery mode.',
+  },
+  {
+    name: 'System File Checker',
+    icon: 'terminal',
+    text: 'In MS-DOS Prompt, sfc /scannow scans protected files, lists any that are missing, and offers to restore them on the next restart.',
+  },
+]
+
+// Manual reinstall sequence used when the whole System32 folder is wiped and the
+// protected cache can no longer rebuild it. Run from Command prompt only mode.
+const REINSTALL_STEPS: Array<{ cmd: string; text: string }> = [
+  { cmd: 'format C:', text: 'Prepare the simulated disk. Safe simulation only; it never touches your real computer.' },
+  { cmd: 'sys C:', text: 'Write the system boot files to the drive.' },
+  { cmd: 'setup', text: 'Run the simulated Windows installation and copy the system files back.' },
+  { cmd: 'win', text: 'Start Windows and return to the desktop.' },
 ]
 
 const PROGRAMS = [
@@ -108,11 +161,14 @@ const DOS_COMMANDS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'date / time', desc: 'Show the current simulated date or time.' },
   { cmd: 'mem', desc: 'Show simulated memory usage.' },
   { cmd: 'chkdsk / scandisk', desc: 'Check the simulated disk for problems.' },
-  { cmd: 'format', desc: 'Show a safe fake format flow. It does not touch the real computer.' },
+  { cmd: 'defrag', desc: 'Open Disk Defragmenter to optimize the simulated disk.' },
+  { cmd: 'format', desc: 'Prepare the simulated C: drive. First step of a manual reinstall; only available in Command prompt only mode. Never touches the real computer.' },
+  { cmd: 'sys', desc: 'Write system boot files to the drive during a manual reinstall.' },
+  { cmd: 'setup / install', desc: 'Run the simulated Windows installation that copies system files back.' },
   { cmd: 'ping', desc: 'Ping through the simulated network adapter when network drivers are present.' },
   { cmd: 'ipconfig / winipcfg', desc: 'Show simulated TCP/IP adapter details.' },
   { cmd: 'scanreg', desc: 'Scan or restore simulated registry health.' },
-  { cmd: 'sfc', desc: 'Verify protected system files and report missing critical files or drivers.' },
+  { cmd: 'sfc /scannow', desc: 'Verify protected system files, list any that are missing, and offer to restore them on the next restart.' },
   { cmd: 'start <name>', desc: 'Launch an app, for example "start notepad" or "start paint".' },
   { cmd: 'notepad / mspaint / calc / iexplore', desc: 'Open a classic accessory directly.' },
   { cmd: 'win', desc: 'Return to the Windows desktop from DOS-only mode.' },
@@ -140,6 +196,18 @@ const TROUBLESHOOTING = [
   {
     issue: 'Network Neighborhood or ping is unavailable',
     fix: 'Restore network drivers such as winsock.dll, wsock32.dll, netcfg.dll, ndis.vxd, tcpip.sys, or el90xnd3.sys.',
+  },
+  {
+    issue: 'Everything closed and a memory error appeared',
+    fix: 'Too many programs were open and the simulated 64 MB of RAM ran out, so the system closed all programs to recover. Open fewer programs at a time.',
+  },
+  {
+    issue: 'Cannot create a file: "not enough free disk space"',
+    fix: 'The virtual C: drive is full. Delete some files or empty the Recycle Bin to free space, then try again.',
+  },
+  {
+    issue: 'Recovery fails after deleting System32',
+    fix: 'A full System32 wipe removes the protected cache, so Recovery can no longer rebuild it. Restart, press F8, choose Command prompt only, then run format C:, sys C:, setup, and win to reinstall. See BIOS and Recovery.',
   },
 ]
 
@@ -218,6 +286,30 @@ export function HelpApp() {
                   <strong>Maximize</strong>
                   <p>Some apps open wide by default; smaller utilities like Calculator stay compact.</p>
                 </section>
+              </div>
+            </article>
+          )}
+
+          {topic === 'whatsNew' && (
+            <article className="help-article">
+              <h2>What's New</h2>
+              <p>
+                Recent additions to the portfolio OS. Everything below stays inside the browser-only simulation and
+                never touches the real computer.
+              </p>
+              <div className="help-program-grid">
+                {WHATS_NEW.map((feature) => (
+                  <section key={feature.name} className="help-program-card">
+                    <img src={win98Icons[feature.icon]} alt="" />
+                    <div>
+                      <strong>{feature.name}</strong>
+                      <p>{feature.text}</p>
+                    </div>
+                  </section>
+                ))}
+              </div>
+              <div className="help-callout">
+                Tip: open the Inbox on the desktop to browse the full version history as mail, one message per release.
               </div>
             </article>
           )}
@@ -334,6 +426,37 @@ export function HelpApp() {
                 <li>The system reports missing critical System32 files.</li>
                 <li>Safe mode warns that too many core files are missing.</li>
               </ul>
+
+              <h3>If System32 is deleted: manual reinstall</h3>
+              <p>
+                Recovery Mode restores individual missing files from the protected cache. But if the entire{' '}
+                <code>C:\Windows\System32</code> folder is wiped, that cache is gone too, so Recovery can no longer
+                rebuild it and reports the system as unrecoverable.
+              </p>
+              <p>
+                You then reinstall Windows by hand. Restart, press <strong>F8</strong>, choose{' '}
+                <strong>Command prompt only</strong>, and run these commands in order:
+              </p>
+              <table className="help-commands">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>What it does</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {REINSTALL_STEPS.map((step) => (
+                    <tr key={step.cmd}>
+                      <td><code>{step.cmd}</code></td>
+                      <td>{step.text}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="help-callout">
+                This is a safe, browser-only simulation of a classic Windows reinstall. It does not format any real
+                drive or touch the host computer.
+              </div>
             </article>
           )}
 

@@ -61,6 +61,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   paint: {
     id: 'paint',
     title: 'Paint',
+    memoryCost: 8,
     icon: 'paint',
     defaultRect: LARGE_APP_RECT,
     systemDependencies: PAINT_DEPS,
@@ -78,6 +79,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   internetExplorer: {
     id: 'internetExplorer',
     title: 'Internet Explorer',
+    memoryCost: 9,
     icon: 'internet',
     defaultRect: LARGE_APP_RECT,
     safeModeAvailable: false,
@@ -87,6 +89,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   mediaPlayer: {
     id: 'mediaPlayer',
     title: 'Media Player',
+    memoryCost: 11,
     icon: 'mediaPlayer',
     defaultRect: WIDE_APP_RECT,
     singleton: false,
@@ -96,6 +99,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   videoPlayer: {
     id: 'videoPlayer',
     title: 'Video Player',
+    memoryCost: 11,
     icon: 'videoPlayer',
     defaultRect: WIDE_APP_RECT,
     singleton: false,
@@ -105,6 +109,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   gallery: {
     id: 'gallery',
     title: 'My Pictures',
+    memoryCost: 8,
     icon: 'gallery',
     defaultRect: WIDE_APP_RECT,
     driverDependencies: ['video'],
@@ -134,6 +139,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   run: {
     id: 'run',
     title: 'Run',
+    memoryCost: 2,
     icon: 'run',
     defaultRect: { x: 120, y: 320, width: 400, height: 170 },
   },
@@ -182,18 +188,21 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   calculator: {
     id: 'calculator',
     title: 'Calculator',
+    memoryCost: 2,
     icon: 'calculator',
     defaultRect: { x: 360, y: 150, width: 250, height: 340 },
   },
   minesweeper: {
     id: 'minesweeper',
     title: 'Minesweeper',
+    memoryCost: 3,
     icon: 'minesweeper',
     defaultRect: { x: 280, y: 96, width: 360, height: 470 },
   },
   dosGame: {
     id: 'dosGame',
     title: 'DOS Game',
+    memoryCost: 15,
     icon: 'dos',
     defaultRect: LARGE_APP_RECT,
     singleton: false,

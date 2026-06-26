@@ -40,6 +40,7 @@ import {
   moveNode as fsMoveNode,
   normalizePath,
   nowStamp,
+  parentPath,
   openTargetFor,
   renameNode as fsRenameNode,
   restoreEntry as fsRestoreEntry,
@@ -89,6 +90,73 @@ function protectionCrash(path: string): CrashState {
     message: 'The system has become unstable because a required system component was removed.',
     detail: `While initializing device ${baseName(path).toUpperCase()}: the file ${path} could not be found. Explorer, networking, display drivers, and shell services cannot continue.`,
     stopCode: '0E : 0028 : C0011E36',
+    crashedAt: nowStamp(),
+  }
+}
+
+// Build a Win98-style "what was affected" notice for a filesystem change that
+// removed nodes. Returns null for non-deletions (creates, edits) and for
+// moves/renames (which remove an old path but add a new one). Works for both
+// Explorer deletes and terminal `del` since both flow through commitFs.
+function summarizeDeletion(before: FsState, after: FsState): { title: string; body: string } | null {
+  const removed = Object.keys(before.nodes).filter((path) => !(path in after.nodes))
+  if (removed.length === 0) return null
+  const added = Object.keys(after.nodes).some((path) => !(path in before.nodes))
+  if (added) return null // a move or rename, not a deletion
+
+  const recycled = after.recycle.length > before.recycle.length
+  const verb = recycled ? 'moved to the Recycle Bin' : 'permanently deleted'
+  const removedSet = new Set(removed)
+  // Top-level deleted nodes are those whose parent was not also removed.
+  const roots = removed.filter((path) => !removedSet.has(parentPath(path)))
+
+  let files = 0
+  let folders = 0
+  for (const path of removed) {
+    if (before.nodes[path]?.kind === 'folder') folders += 1
+    else files += 1
+  }
+
+  if (roots.length === 1) {
+    const root = before.nodes[roots[0]]
+    const name = root?.name ?? baseName(roots[0])
+    if (root?.kind === 'folder') {
+      if (removed.length === 1) {
+        return { title: 'Folder deleted', body: `Empty folder "${name}" was ${verb}.` }
+      }
+      return {
+        title: 'Folder deleted',
+        body: `"${name}" was ${verb} with its contents: ${files} file(s) and ${folders - 1} folder(s).`,
+      }
+    }
+    return { title: 'File deleted', body: `"${name}" was ${verb}.` }
+  }
+
+  return {
+    title: 'Items deleted',
+    body: `${roots.length} items were ${verb}: ${files} file(s) and ${folders} folder(s).`,
+  }
+}
+
+// ----- simulated RAM budget (out-of-memory guardrail) -----
+// The BIOS reports 64MB. Windows reserves a slice for itself and each open
+// program occupies a little. Opening too many at once overflows RAM and faults
+// out; the CRASH reducer clears every window, so the user is forced back to a
+// clean desktop (mirrors a real low-memory protection fault).
+const SIMULATED_RAM_MB = 64
+const SYSTEM_RESERVED_MB = 12
+const DEFAULT_APP_MEMORY_MB = 5
+
+function appMemoryCost(appId: AppId): number {
+  return appDefinitions[appId].memoryCost ?? DEFAULT_APP_MEMORY_MB
+}
+
+function outOfMemoryCrash(openCount: number, usedMB: number): CrashState {
+  return {
+    title: 'Windows protection error',
+    message: 'The system is dangerously low on memory and Windows must close to recover.',
+    detail: `Too many programs were open at once (${openCount}). Simulated memory use reached ${usedMB} MB of ${SIMULATED_RAM_MB} MB and the system ran out of RAM. All programs have been closed to recover memory. Open fewer programs at a time.`,
+    stopCode: '0D : 0000 : 0001E84F',
     crashedAt: nowStamp(),
   }
 }
@@ -695,6 +763,17 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         focusWindow(instanceId)
         return
       }
+      // RAM guardrail: if opening this window would exceed simulated memory, fault
+      // out instead of opening it. The CRASH reducer clears every window, so all
+      // apps auto-close and the user is dropped back to a clean desktop.
+      const memoryInUse =
+        SYSTEM_RESERVED_MB + current.windows.reduce((sum, win) => sum + appMemoryCost(win.appId), 0)
+      const projectedMemory = memoryInUse + appMemoryCost(appId)
+      if (projectedMemory > SIMULATED_RAM_MB) {
+        playSound('error')
+        dispatch({ type: 'CRASH', crash: outOfMemoryCrash(current.windows.length + 1, projectedMemory) })
+        return
+      }
       const rect = clampRect(def.defaultRect, (current.windows.length % 8) * 22)
       dispatch({
         type: 'OPEN_WINDOW',
@@ -891,6 +970,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       const before = stateRef.current.fs
       stateRef.current = { ...stateRef.current, fs }
       dispatch({ type: 'SET_FS', fs })
+      // Win98-style notice of what a deletion affected (file/folder counts). Covers
+      // both Explorer deletes and terminal `del`, since both flow through here.
+      const deletion = summarizeDeletion(before, fs)
+      if (deletion) {
+        notify(deletion.title, deletion.body)
+      }
       // If this change just broke a driver or feature (deleting a file via Explorer
       // OR the terminal both land here), surface a taskbar balloon so the breakage
       // is visible right away — not only when a dependent app is later launched.
