@@ -405,7 +405,6 @@ export const startMenuModel: StartMenuModel = [
         icon: 'internet',
         appId: 'internetExplorer',
       },
-      { kind: 'item', id: 'inbox', label: 'Inbox', icon: 'inbox', appId: 'inbox' },
       {
         kind: 'item',
         id: 'windowsExplorer',
@@ -482,7 +481,6 @@ export const startMenuModel: StartMenuModel = [
         payload: { filePath: 'C:\\My Documents\\Resume.doc' },
       },
       { kind: 'item', id: 'contact', label: 'Contact', icon: 'contact', appId: 'contact' },
-      { kind: 'item', id: 'whatsNew', label: "What's New (Inbox)", icon: 'inbox', appId: 'inbox' },
       { kind: 'item', id: 'credits', label: 'Credits', icon: 'help', appId: 'credits' },
     ],
   },
