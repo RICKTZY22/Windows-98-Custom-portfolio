@@ -1746,7 +1746,7 @@ export function createInitialFsState(): FsState {
   }
 
   // Desktop
-  folder('C:\\Windows\\Desktop', 'desktop', '05/11/1998 08:04 AM')
+  folder('C:\\Windows\\Desktop', 'computer', '05/11/1998 08:04 AM')
   sysFile('C:\\Windows\\Desktop\\Portfolio OS.lnk', 1024, {
     icon: 'projects',
     fileType: 'Shortcut',
@@ -2067,5 +2067,20 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
       children: seedNode.kind === 'folder' ? seedNode.children ?? [] : undefined,
     })
   }
+  // The fs is restored wholesale, so a changed icon on a system folder would only
+  // reach fresh boots. Re-apply the current seed icon for these paths (children and
+  // everything else preserved) so icon updates also land on existing persisted disks.
+  const systemIconPaths = ['C:\\Windows\\Desktop']
+  const iconNodes = { ...next.nodes }
+  let iconChanged = false
+  for (const path of systemIconPaths) {
+    const node = iconNodes[path]
+    const seedNode = getNode(seed, path)
+    if (node && seedNode && node.icon !== seedNode.icon) {
+      iconNodes[path] = { ...node, icon: seedNode.icon }
+      iconChanged = true
+    }
+  }
+  if (iconChanged) next = { ...next, nodes: iconNodes }
   return normalizeBitmapIcons(next)
 }
