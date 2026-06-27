@@ -137,7 +137,7 @@ function resumeToHtml(): string {
     'HTML5 / Tailwind CSS',
     'Vanilla CSS / Bootstrap',
     'React Router / Zustand',
-    'Axios / REST APIs',
+    'Axios (API client)',
     'GSAP / ScrollTrigger',
     'Rive / Lottie / Motion',
     'Recharts / jsPDF',
@@ -145,8 +145,8 @@ function resumeToHtml(): string {
   const backendSkills = [
     'Node.js / Express.js',
     'Python / Django / DRF',
+    'REST APIs / JWT Auth',
     'PostgreSQL / SQLite',
-    'JWT Authentication',
     'WebSockets (Channels)',
   ]
   const aiSkills = ['Gemini API', 'Local Ollama']
