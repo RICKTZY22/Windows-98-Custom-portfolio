@@ -1,9 +1,11 @@
 import type { DriverType, IconKey } from '../types'
 
 // Single source of truth for the simulated machine spec. Mirrors the POST values
-// shown in BootScreen.tsx (Pentium MMX 266MHz, VIRTUAL_DISK_98 2.1GB, Award
-// v4.51PG, 640K base + 64512K extended = 64 MB) so System Information, Device
-// Manager, and MSConfig never disagree with the boot screen or BIOS setup.
+// shown in BootScreen.tsx (Pentium MMX 266MHz, VIRTUAL_DISK_98 2.1 GB, Award
+// v4.51PG) so System Information, Device Manager, and MSConfig never disagree with
+// the boot screen or BIOS setup.
+// Memory map invariant: base + reserved + extended === total
+//   640K conventional + 384K reserved (upper memory area) + 64,512K extended = 65,536K (64 MB)
 export const MEMORY_TOTAL_KB = 65_536 // 64 MB, matches BootScreen MEM_TOTAL_KB
 
 export const machineProfile = {
@@ -18,6 +20,7 @@ export const machineProfile = {
   biosDate: '06/14/1998',
   totalMemoryKb: MEMORY_TOTAL_KB,
   baseMemoryKb: 640,
+  reservedMemoryKb: 384, // upper memory area (640K-1024K); base + reserved + extended === total
   extendedMemoryKb: 64_512,
   diskModel: 'VIRTUAL_DISK_98',
   diskSize: '2.1 GB',

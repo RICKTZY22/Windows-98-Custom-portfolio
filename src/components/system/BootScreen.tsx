@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { osCreditName, osCreditYear, osProductName } from '../../data/system'
+import { osCreditName, osProductName } from '../../data/system'
 import { bootSequenceLabel } from '../../data/bios'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
@@ -105,7 +105,7 @@ export function BootScreen() {
     () => [
       'Main Processor    : Pentium(R) MMX 266MHz',
       'Floppy Drive A    : 1.44M, 3.5 in.',
-      'Primary Master    : VIRTUAL_DISK_98 2.1GB',
+      'Primary Master    : VIRTUAL_DISK_98 2.1 GB',
       'Primary Slave     : None',
       'Secondary Master  : PORTFOLIO CD-ROM 24X',
       'Secondary Slave   : None',
@@ -145,7 +145,7 @@ export function BootScreen() {
           <header className="boot-post-header">
             <div>
               <strong>Award Modular BIOS v4.51PG</strong>
-              <span>Copyright (C) 1984-{osCreditYear}, Award Software, Inc.</span>
+              <span>Copyright (C) 1984-1998, Award Software, Inc.</span>
             </div>
             <b>ENERGY STAR</b>
           </header>
@@ -154,7 +154,7 @@ export function BootScreen() {
           <pre className="boot-post-log">{postBody}<span className="boot-sequence-caret" /></pre>
           <footer className="boot-post-footer">
             <span>F12: BIOS Setup  F8: Startup Menu</span>
-            <span>06/22/1998-i430VX-JEM-W98P-00</span>
+            <span>06/14/1998-i430VX-JEM-W98P-00</span>
           </footer>
           <BootSignature />
         </section>

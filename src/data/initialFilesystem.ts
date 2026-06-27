@@ -9,6 +9,7 @@ import {
   parentPath,
 } from '../os/filesystem'
 import { portfolioData } from './portfolioData'
+import { aiUprisingDocHtml } from './aiUprisingDoc'
 import { galleryMusic, galleryPhotos, galleryVideos } from './media'
 
 export const REQUIRED_SYSTEM_FILES: string[] = REQUIRED
@@ -164,17 +165,17 @@ function resumeToHtml(): string {
     '<div style="display:grid; grid-template-columns:242px minmax(0,1fr); align-items:stretch">',
     '<aside style="background:#2f3640; padding:38px 22px 28px; color:#f0f3f8">',
     '<div style="color:#8fb4ff; font-weight:700; font-size:16px; border-bottom:1px solid #8fb4ff; padding-bottom:6px; margin-bottom:7px">CONTACT</div>',
-    '<div style="line-height:1.25; margin-bottom:17px">Muntinlupa / Las Piñas, PH' + contactHtml + '</div>',
+    '<div style="line-height:1.25; margin-bottom:17px">Parañaque, PH' + contactHtml + '</div>',
     '<div style="color:#8fb4ff; font-weight:700; font-size:16px; border-bottom:1px solid #8fb4ff; padding-bottom:6px; margin-bottom:7px">SKILLS</div>',
     resumeSidebarGroup('Frontend (Proficient)', frontendSkills),
-    resumeSidebarGroup('Backend (Familiar)', backendSkills),
+    resumeSidebarGroup('Backend (Familiar, AI-assisted)', backendSkills),
     resumeSidebarGroup('AI Integration', aiSkills),
     resumeSidebarGroup('Dev & Tools', toolingSkills),
     '</aside>',
     '<main style="padding:38px 28px 34px 38px; background:#242424; min-width:0">',
     resumeSection(
       'PROFESSIONAL SUMMARY',
-      '<p style="margin:0">Computer Science student at PLMun specializing in frontend development — building polished, interactive React interfaces and creative browser experiences with JavaScript, Tailwind CSS, and animation libraries like GSAP and Rive. Have contributed to full-stack capstone projects using Django and PostgreSQL and am expanding into Node.js and Express. Seeking internship opportunities to contribute meaningfully on the frontend while growing as a developer.</p>',
+      '<p style="margin:0">Computer Science student at PLMun specializing in frontend development: building polished, interactive React interfaces and creative browser experiences with JavaScript, Tailwind CSS, and animation libraries like GSAP and Rive. On full-stack projects the Django and PostgreSQL backend work is AI-assisted, not an area I claim independent proficiency in; the frontend is where I work on my own and to a high bar. Seeking internship opportunities to contribute on the frontend while growing as a developer.</p>',
     ),
     resumeSection(
       'PROJECT EXPERIENCE',
@@ -184,18 +185,18 @@ function resumeToHtml(): string {
           'Implemented startup and recovery flows, custom themes, and sound design, reframing portfolio presentation as a navigable OS.',
           'Demonstrates depth in React architecture, creative state management, and frontend engineering.',
         ]),
-        resumeProject('Between Two Ruins', 'Visual Novel / Interactive Experience Developer • React • GSAP • ScrollTrigger • JavaScript', [
+        resumeProject('Between Two Ruins', 'Visual Novel / Interactive Experience Developer • React • GSAP • ScrollTrigger • TypeScript', [
           'Designed and built a browser-based visual novel with cinematic scroll-driven transitions, reusable story components, and scene-pacing logic.',
           'Blends frontend engineering with narrative craft, showcasing animation fluency and component design.',
         ]),
-        resumeProject('PLMun Inventory Nexus', 'Full-Stack Capstone Developer • React • Vite • Tailwind CSS • Django • PostgreSQL • JWT', [
-          'Architected a full-stack inventory and request management system with role-based access control, JWT authentication, and analytics dashboard reporting tools.',
-          'Built real-time WebSocket chat and AI-assisted messaging using local Ollama and Gemini integrations.',
-          'Delivered QR code rendering, PDF export, and REST API tooling for end-to-end item tracking workflows.',
+        resumeProject('PLMun Inventory Nexus', 'Frontend Developer (Capstone) • React • Vite • Tailwind CSS • Django • PostgreSQL • SQLite • JWT', [
+          'Built the React frontend: role-based access UI, JWT auth flows, the analytics dashboard, QR code rendering, and PDF export.',
+          'Integrated real-time WebSocket chat and AI-assisted messaging (local Ollama and Gemini) into the interface.',
+          'The Django backend and the database design (PostgreSQL for production, SQLite for local development) were built with Claude Opus.',
         ]),
-        resumeProject('Canlas Inventory System', 'Frontend & Integration Developer • React • Django • Daphne • Redis • GitHub Actions • Render', [
-          'Contributed React frontend, API integration, and Render deployment config for a production-ready inventory platform.',
-          'Project includes CI/CD via GitHub Actions, OpenAPI documentation, and security scanning with CodeQL and pip-audit.',
+        resumeProject('Canlas Inventory System', 'Full-Stack Developer, AI-assisted • React • Django • Daphne • Redis • GitHub Actions • Render', [
+          'Built the full package, frontend, backend, and deployment, with Gemini 3.1 as the AI assistant.',
+          'Includes CI/CD via GitHub Actions, OpenAPI documentation, and security scanning with CodeQL and pip-audit.',
         ]),
       ].join(''),
     ),
@@ -1498,6 +1499,14 @@ export function createInitialFsState(): FsState {
     appPayload: { filePath: 'C:\\My Documents\\Resume.doc' },
     modified: '06/13/2026 12:34 AM',
   })
+  file('C:\\My Documents\\The AI Uprising.doc', {
+    content: aiUprisingDocHtml,
+    icon: 'wordpad',
+    appId: 'wordpad',
+    appPayload: { filePath: 'C:\\My Documents\\The AI Uprising.doc' },
+    fileType: 'WordPad Document',
+    modified: '06/27/2026 10:00 AM',
+  })
   folder('C:\\My Documents\\Music', 'folder', '06/12/2026 12:07 AM')
   for (const { path, ...opts } of GALLERY_MUSIC_FILES) {
     file(path, opts)
@@ -1925,6 +1934,7 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Documents\\Private\\Secret Note.txt',
   'C:\\My Documents\\Private\\testdontouch.exe',
   'C:\\My Documents\\Resume.doc',
+  'C:\\My Documents\\The AI Uprising.doc',
   'C:\\Projects',
   ...portfolioData.projects.flatMap((project) => [
     `C:\\Projects\\${project.name}`,
@@ -2047,9 +2057,36 @@ function removePortfolioDocArtifacts(fs: FsState): FsState {
   return next
 }
 
+// A saved disk from an older build can carry a folder whose child list names the
+// same path twice (e.g. a duplicate "Resume.doc" in My Documents). attachChild
+// dedupes on new inserts but never cleaned existing lists, so the duplicate
+// persists and Explorer shows the file twice. Strip repeated entries from every
+// folder's child list. This removes only redundant references; no real node or
+// file content is touched.
+function dedupeFolderChildren(fs: FsState): FsState {
+  let changed = false
+  const nodes = { ...fs.nodes }
+  for (const [path, node] of Object.entries(nodes)) {
+    if (node.kind !== 'folder' || !node.children) continue
+    const seen = new Set<string>()
+    const deduped = node.children.filter((child) => {
+      if (seen.has(child)) return false
+      seen.add(child)
+      return true
+    })
+    if (deduped.length !== node.children.length) {
+      nodes[path] = { ...node, children: deduped }
+      changed = true
+    }
+  }
+  return changed ? { ...fs, nodes } : fs
+}
+
 export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   const seed = createInitialFsState()
-  let next = fs
+  // Clean any stale duplicate file-list entries a saved disk picked up from an
+  // older build (e.g. a doubled "Resume.doc") before topping up the seeds.
+  let next = dedupeFolderChildren(fs)
   // Purge stale artifacts from older disk layouts before topping up the seeds.
   for (const path of LEGACY_ARTIFACT_PATHS) {
     next = removeNodeByPath(next, path)

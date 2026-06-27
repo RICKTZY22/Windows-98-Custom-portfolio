@@ -105,7 +105,7 @@ export function BiosSetupScreen() {
               cmosTime: new Date().toLocaleTimeString('en-US', { hour12: false }),
             })),
         },
-        { label: 'Primary Master', value: 'VIRTUAL_DISK_98 2.1GB' },
+        { label: 'Primary Master', value: 'VIRTUAL_DISK_98 2.1 GB' },
         { label: 'Primary Slave', value: 'None' },
         {
           label: 'Secondary Master',

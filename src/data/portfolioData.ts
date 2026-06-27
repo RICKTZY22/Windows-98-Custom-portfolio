@@ -69,7 +69,7 @@ const aiAssistantStack = [
 ]
 
 const educationItems = [
-  'Las Pinas National High School - Junior High School, 2017-2021',
+  'Las Piñas National High School - Junior High School, 2017-2021',
   'Holy Rosary Academy - HUMSS Strand, 2021-2023',
   'Pamantasan ng Lungsod ng Muntinlupa (PLMun) - BS Computer Science, 2023-2027',
 ]
@@ -84,16 +84,16 @@ const contactPlaceholders = {
 const resumeDocumentContent = [
   'JOHN ERICK MENDOZA',
   'BS Computer Science | Frontend Developer',
-  'Muntinlupa / Las Piñas, Philippines',
+  'Parañaque, Philippines',
   `${contactPlaceholders.email} | ${contactPlaceholders.github} | ${contactPlaceholders.linkedin} | ${contactPlaceholders.portfolio}`,
   '',
   'PROFESSIONAL SUMMARY',
-  'Computer Science student at PLMun specializing in frontend development — building polished, interactive React interfaces and creative browser experiences with JavaScript, Tailwind CSS, and animation libraries like GSAP and Rive. Familiar with TypeScript and able to read and navigate it confidently, with AI-assisted support when writing it. Have contributed to full-stack capstone projects using Django and PostgreSQL, and am expanding into Node.js and Express. Seeking internship opportunities to contribute meaningfully on the frontend while growing as a developer.',
+  'Computer Science student at PLMun specializing in frontend development: building polished, interactive React interfaces and creative browser experiences with JavaScript, Tailwind CSS, and animation libraries like GSAP and Rive. Familiar with TypeScript and able to read and navigate it confidently, with AI-assisted support when writing it. On full-stack projects the Django and PostgreSQL backend work is AI-assisted rather than an area of independent proficiency; the frontend is where I work on my own and to a high bar. Seeking internship opportunities to contribute on the frontend while growing as a developer.',
   '',
   'SKILLS',
   'Frontend (Proficient): React 18, Vite, JavaScript (ES6+), HTML5, Tailwind CSS, Vanilla CSS, Bootstrap, React Router, Zustand, Axios, REST APIs, GSAP, ScrollTrigger, Rive, Lottie, Motion, Recharts, jsPDF',
   'TypeScript (Can read; AI-assisted writing): Able to read and navigate TS confidently; writes with AI assistance',
-  'Backend (Familiar): Node.js, Express.js, Python, Django, DRF, PostgreSQL, SQLite, JWT Authentication, WebSockets (Django Channels)',
+  'Backend (Familiar, AI-assisted): Node.js, Express.js, Python, Django, DRF, PostgreSQL, SQLite, JWT Authentication, WebSockets (Django Channels)',
   'AI Integration: Gemini API, Local Ollama',
   'Dev & Tools: Git, GitHub Actions, ESLint, Vitest, React Testing Library, Render, CodeQL, pip-audit',
   '',
@@ -109,15 +109,16 @@ const resumeDocumentContent = [
   '- Designed and built a browser-based visual novel in React and TypeScript with cinematic scroll-driven transitions, reusable story components, and scene-pacing logic.',
   '- Blends frontend engineering with narrative craft — showcasing animation fluency and component design.',
   '',
-  'PLMun Inventory Nexus — Full-Stack Capstone Developer',
-  'React · Vite · Tailwind CSS · Django · PostgreSQL · JWT',
-  '- Architected a full-stack inventory and request management system with role-based access control, JWT authentication, and an analytics dashboard with reporting tools.',
-  '- Built real-time WebSocket chat and AI-assisted messaging using local Ollama and Gemini integrations.',
-  '- Delivered QR code rendering, PDF export, and REST API tooling for end-to-end item tracking workflows.',
+  'PLMun Inventory Nexus — Frontend Developer (Capstone)',
+  'React · Vite · Tailwind CSS · Django · PostgreSQL · SQLite · JWT',
+  '- Built the React frontend: role-based access UI, JWT auth flows, the analytics dashboard, QR code rendering, and PDF export.',
+  '- Integrated the real-time WebSocket chat and AI-assisted messaging (local Ollama and Gemini) into the interface.',
+  '- The Django backend and the database design (PostgreSQL for production, SQLite for local dev) were built with Claude Opus.',
   '',
-  'Canlas Inventory System — Freelance Developer',
-  'React · Django · JWT · SQLite · Local',
-  '- Built and sold a basic inventory system with CRUD operations and JWT authentication to a student — React frontend, Django backend, running locally.',
+  'Canlas Inventory System — Full-Stack Developer (AI-assisted)',
+  'React · Django · Daphne · Redis · GitHub Actions · Render',
+  '- Built the full package, frontend, backend, and deployment, with Gemini 3.1 as the AI assistant.',
+  '- Includes CI/CD via GitHub Actions, OpenAPI documentation, and security scanning with CodeQL and pip-audit.',
   '',
   'TapTap Foodtrip — Architecture & Design Consultant',
   'React · Node.js · Firebase',
@@ -145,7 +146,7 @@ export const portfolioData = {
     highlights: [
       'Frontend developer who genuinely loves React: polished, interactive interfaces and creative browser experiences',
       'Maximizes AI for speed and productivity, while keeping the quality bar high',
-      'Full stack capstone systems: PLMun Inventory Nexus and Canlas (React, Django, PostgreSQL, JWT, WebSockets)',
+      'Built the frontend for the PLMun Inventory Nexus capstone, and the full Canlas platform with AI assistance on the backend',
       'Creative builds: Between Two Ruins (animated visual novel) and this Windows 98 Portfolio OS',
       'Flashy, distinctive UI work with GSAP, Motion, Lottie, and Rive',
     ],
@@ -156,9 +157,9 @@ export const portfolioData = {
       name: 'PLMun Inventory Nexus',
       fileName: 'plmun_inventory_nexus.url',
       stack: [...inventoryFrontendStack, ...inventoryBackendStack, ...aiAssistantStack, ...inventoryQualityStack],
-      summary: 'Full-stack inventory/request management system with dashboards, auth, WebSockets, reports, QR codes, and AI assistant support.',
+      summary: 'Capstone inventory and request system. I built the React frontend; the Django backend and database design (PostgreSQL, SQLite) were built with Claude Opus.',
       details:
-        'Built by John Erick Mendoza as a full-stack capstone system using React 18, Vite, Tailwind CSS, Zustand, Axios, Django 6, Django REST Framework, JWT auth with cookie refresh flow, PostgreSQL, Django Channels, and deployment-ready environment configuration. The system includes role-based access control, inventory/request workflows, dashboard analytics, QR code rendering, PDF exports, real-time WebSocket chat, and an AI-assisted read-only messaging assistant.',
+        'A capstone inventory and request system. John Erick Mendoza built the React frontend (React 18, Vite, Tailwind CSS, Zustand, Axios): role-based access control UI, JWT auth flows, dashboard analytics, QR code rendering, PDF export, and the integration of the real-time WebSocket chat and AI-assisted messaging (local Ollama and Gemini). The Django 6 / Django REST Framework backend, the JWT cookie-refresh flow, Django Channels, and the database design (PostgreSQL for production, SQLite for local development) were built with Claude Opus.',
       links: {
         demo: '#',
         source: '#',
@@ -178,9 +179,9 @@ export const portfolioData = {
         'CodeQL',
         'Render',
       ],
-      summary: 'Production-minded inventory platform focused on item tracking, requests, reporting, CI/CD, testing, and security scanning.',
+      summary: 'A full inventory platform I built end to end (frontend, backend, and deployment) with Gemini 3.1 as the AI assistant.',
       details:
-        'Built by John Erick Mendoza as an inventory/request platform using REST APIs, WebSockets, PostgreSQL in production and CI, SQLite-friendly local development, Redis-backed channel layers, drf-spectacular Swagger schema, WhiteNoise, Gunicorn, Render deployment config, GitHub Actions, pip-audit, CodeQL Advanced, Vitest, React Testing Library, and the Django test runner.',
+        'Built by John Erick Mendoza as the full package, frontend, backend, and deployment, with Gemini 3.1 as the AI assistant. Uses REST APIs, WebSockets, PostgreSQL in production and CI, SQLite-friendly local development, Redis-backed channel layers, drf-spectacular Swagger schema, WhiteNoise, Gunicorn, Render deployment config, GitHub Actions, pip-audit, CodeQL Advanced, Vitest, React Testing Library, and the Django test runner.',
       links: {
         demo: '#',
         source: '#',
@@ -190,7 +191,7 @@ export const portfolioData = {
       id: 'between-two-ruins',
       name: 'Between Two Ruins',
       fileName: 'between_two_ruins.exe',
-      stack: ['React', 'GSAP', 'ScrollTrigger', 'JavaScript', 'Interactive Storytelling'],
+      stack: ['React', 'TypeScript', 'GSAP', 'ScrollTrigger', 'Interactive Storytelling'],
       summary: 'A visual novel / interactive book with animated scenes and scroll-driven reading flow.',
       details:
         'Built by John Erick Mendoza with React and GSAP ScrollTrigger to create a storybook-style visual novel experience. The project focuses on cinematic transitions, scroll-based scene pacing, reusable story components, and a polished browser reading experience.',
@@ -226,16 +227,16 @@ export const portfolioData = {
       {
         title: 'Projects',
         items: [
-          'PLMun Inventory Nexus - full-stack capstone with REST APIs, WebSockets, JWT auth, dashboards, reports, QR codes, PDF export, and AI assistant support.',
-          'Canlas Inventory System - production-style inventory platform with CI/CD, testing, PostgreSQL, Render deployment config, security scanning, and API documentation.',
-          'Between Two Ruins - React and GSAP ScrollTrigger interactive visual novel with animated reading scenes.',
+          'PLMun Inventory Nexus - built the React frontend (dashboards, JWT auth UI, QR codes, PDF export); the Django backend and database design were built with Claude Opus.',
+          'Canlas Inventory System - full package (frontend, backend, deployment) built with Gemini 3.1; CI/CD, security scanning, and API documentation.',
+          'Between Two Ruins - React, TypeScript, and GSAP ScrollTrigger interactive visual novel with animated reading scenes.',
         ],
       },
       {
         title: 'Skills',
         items: [
           'Frontend: React, Vite, Tailwind CSS, Zustand, Axios, GSAP, Motion, Lottie, Recharts',
-          'Backend: Python, Django, Django REST Framework, Django Channels, PostgreSQL, Redis, Gunicorn',
+          'Backend (AI-assisted): Python, Django, Django REST Framework, Django Channels, PostgreSQL, Redis, Gunicorn',
           'Quality: Vitest, React Testing Library, Django tests, ESLint, GitHub Actions, pip-audit, CodeQL',
         ],
       },
@@ -243,7 +244,7 @@ export const portfolioData = {
   },
   contact: {
     email: contactPlaceholders.email,
-    location: 'Muntinlupa / Las Piñas, Philippines',
+    location: 'Parañaque, Philippines',
     availability: 'Open to internship, junior frontend, and full-stack project opportunities.',
     summary:
       'Reach me through email for direct messages, GitHub for source work, and LinkedIn for professional updates. I am open to frontend internships, junior frontend roles, and practical full-stack project work.',

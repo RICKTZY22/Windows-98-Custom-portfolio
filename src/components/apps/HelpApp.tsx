@@ -27,6 +27,11 @@ const QUICK_START = [
 
 const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
   {
+    name: 'New essay: The AI Uprising',
+    icon: 'wordpad',
+    text: 'A new document in My Documents, "The AI Uprising," is an honest take on AI tools, vibe coding, and why foundations still matter. Double-click it to read in WordPad.',
+  },
+  {
     name: 'Inbox (release history)',
     icon: 'inbox',
     text: "Open Inbox on the desktop to read this project's version history, delivered as Microsoft Exchange mail. Each message is a release with its patch notes.",
@@ -77,47 +82,129 @@ const REINSTALL_STEPS: Array<{ cmd: string; text: string }> = [
   { cmd: 'win', text: 'Start Windows and return to the desktop.' },
 ]
 
-const PROGRAMS = [
+type Program = { name: string; icon: IconKey; text: string }
+
+// Desktop and core shell apps.
+const PROGRAMS_CORE: Program[] = [
   {
     name: 'My Computer / File Manager',
-    icon: 'computer' as IconKey,
+    icon: 'computer',
     text: 'Browse the virtual C: drive, create folders, rename items, copy, move, delete, and inspect simulated system files.',
   },
   {
-    name: 'Network Neighborhood',
-    icon: 'network' as IconKey,
-    text: 'Classic network browser with safe sample hosts. It depends on simulated network drivers and never touches the real network.',
+    name: 'Recycle Bin',
+    icon: 'recycleBin',
+    text: 'Deleted virtual files go here first. Restore them safely or empty the bin to test recovery behavior.',
   },
   {
     name: 'Internet Explorer',
-    icon: 'internet' as IconKey,
+    icon: 'internet',
     text: 'Retro browser surface for archive-style browsing. Network-driver checks keep the educational simulation consistent.',
   },
   {
-    name: 'Paint',
-    icon: 'paint' as IconKey,
-    text: 'Draw with pencil, brush, shapes, fill, picker, and text. Save browser-only images into the virtual Paint folder.',
+    name: 'Network Neighborhood',
+    icon: 'network',
+    text: 'Classic network browser with safe sample hosts. It depends on simulated network drivers and never touches the real network.',
   },
   {
+    name: 'Inbox',
+    icon: 'inbox',
+    text: 'A Microsoft Exchange style mailbox. Every message is a release of this portfolio with its patch notes; Reply, Forward, and New all work.',
+  },
+]
+
+// Accessories.
+const PROGRAMS_ACCESSORIES: Program[] = [
+  { name: 'Notepad', icon: 'notepad', text: 'Plain-text editor for quick notes and .txt files inside the portfolio OS.' },
+  {
+    name: 'WordPad',
+    icon: 'wordpad',
+    text: 'Rich-text editor that opens .doc files like the resume and the AI Uprising essay, with formatting and Save As.',
+  },
+  {
+    name: 'Paint',
+    icon: 'paint',
+    text: 'Draw with pencil, brush, shapes, fill, picker, and text. Save browser-only images into the virtual Paint folder.',
+  },
+  { name: 'Calculator', icon: 'calculator', text: 'The standard Windows 98 calculator for quick arithmetic.' },
+  { name: 'My Pictures', icon: 'gallery', text: 'Picture gallery for the virtual image library, with thumbnail previews.' },
+  { name: 'Imaging Preview', icon: 'imageFile', text: 'Kodak-style image viewer for opening individual picture files.' },
+  {
     name: 'Media Player / Sound Recorder / Video Player',
-    icon: 'mediaPlayer' as IconKey,
+    icon: 'mediaPlayer',
     text: 'Audio and video surfaces demonstrate driver dependencies without accessing your real device drivers.',
   },
   {
     name: 'MS-DOS Prompt',
-    icon: 'terminal' as IconKey,
+    icon: 'terminal',
     text: 'A simulated command line for file commands, network checks, system file scans, app launching, and help output.',
   },
+]
+
+// System tools and settings.
+const PROGRAMS_SYSTEM: Program[] = [
   {
     name: 'Control Panel',
-    icon: 'controlPanel' as IconKey,
+    icon: 'controlPanel',
     text: 'Change wallpaper, colors, pointer style, sounds, display settings, and network status inside the portfolio OS.',
   },
   {
-    name: 'Recycle Bin',
-    icon: 'recycleBin' as IconKey,
-    text: 'Deleted virtual files go here first. Restore them safely or empty the bin to test recovery behavior.',
+    name: 'System Information',
+    icon: 'adminTools',
+    text: 'Microsoft System Information: OS, processor, memory map, BIOS, and component details for the simulated machine.',
   },
+  {
+    name: 'Device Manager',
+    icon: 'computer',
+    text: 'Lists simulated devices and driver health, flagging any problem with a yellow badge.',
+  },
+  {
+    name: 'System Configuration Utility',
+    icon: 'gears',
+    text: 'MSConfig: startup programs and the Config.sys, Autoexec.bat, System.ini, and Win.ini tabs.',
+  },
+  { name: 'Registry Editor', icon: 'gears', text: 'Browse the simulated registry hives in a read-only RegEdit surface.' },
+  {
+    name: 'ScanDisk',
+    icon: 'hardDrive',
+    text: 'Checks the simulated disk for errors. Also runs automatically at startup after an improper shutdown.',
+  },
+  { name: 'Disk Defragmenter', icon: 'hardDrive', text: 'Optimizes the simulated disk with the classic block animation.' },
+  {
+    name: 'Task Manager',
+    icon: 'taskManager',
+    text: 'Shows running programs and simulated memory use. End a task to close its window.',
+  },
+]
+
+// Games, security, and the portfolio surfaces.
+const PROGRAMS_MORE: Program[] = [
+  {
+    name: 'Antivirus 98',
+    icon: 'sysFile',
+    text: 'A period-styled antivirus scan surface. Educational only; it never touches real files.',
+  },
+  { name: 'Minesweeper', icon: 'minesweeper', text: 'The classic Windows 98 Minesweeper game.' },
+  {
+    name: 'DOOM & Wolfenstein 3D',
+    icon: 'dos',
+    text: 'The free shareware episodes, running entirely in the browser via js-dos. Controls use the keyboard and mouse.',
+  },
+  { name: 'About Me', icon: 'student', text: "John Erick Mendoza's background, story, and highlights." },
+  { name: 'My Projects', icon: 'projects', text: 'Project gallery. Open a project for its details, stack, and links.' },
+  { name: 'Contact', icon: 'contact', text: 'Email, GitHub, LinkedIn, and availability.' },
+  {
+    name: 'Credits',
+    icon: 'help',
+    text: 'Tools, libraries, AI assistants, and preservation projects behind this portfolio OS.',
+  },
+]
+
+const PROGRAM_GROUPS: Array<{ title: string; items: Program[] }> = [
+  { title: 'Desktop & Core', items: PROGRAMS_CORE },
+  { title: 'Accessories', items: PROGRAMS_ACCESSORIES },
+  { title: 'System Tools', items: PROGRAMS_SYSTEM },
+  { title: 'Games, Security & Portfolio', items: PROGRAMS_MORE },
 ]
 
 const DRIVER_RULES = [
@@ -318,20 +405,25 @@ export function HelpApp() {
             <article className="help-article">
               <h2>The Programs</h2>
               <p>
-                Each program is a portfolio surface. Some are functional tools, some are educational simulations, and
-                some are nostalgic wrappers around your projects.
+                Every program in the OS, grouped the way you find them on the Start menu and desktop. Some are
+                functional tools, some are educational simulations, and some are nostalgic wrappers around the projects.
               </p>
-              <div className="help-program-grid">
-                {PROGRAMS.map((program) => (
-                  <section key={program.name} className="help-program-card">
-                    <img src={win98Icons[program.icon]} alt="" />
-                    <div>
-                      <strong>{program.name}</strong>
-                      <p>{program.text}</p>
-                    </div>
-                  </section>
-                ))}
-              </div>
+              {PROGRAM_GROUPS.map((group) => (
+                <section key={group.title}>
+                  <h3>{group.title}</h3>
+                  <div className="help-program-grid">
+                    {group.items.map((program) => (
+                      <section key={program.name} className="help-program-card">
+                        <img src={win98Icons[program.icon]} alt="" />
+                        <div>
+                          <strong>{program.name}</strong>
+                          <p>{program.text}</p>
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </article>
           )}
 

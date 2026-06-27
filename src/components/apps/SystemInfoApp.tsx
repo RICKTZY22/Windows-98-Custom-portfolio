@@ -70,6 +70,7 @@ function detailFor(
             <Row label="BIOS Date" value={machineProfile.biosDate} />
             <Row label="Total Physical Memory" value={formatMemoryMb(machineProfile.totalMemoryKb)} />
             <Row label="Base Memory" value={`${machineProfile.baseMemoryKb} KB`} />
+            <Row label="Reserved (UMA)" value={`${machineProfile.reservedMemoryKb} KB`} />
             <Row label="Extended Memory" value={`${machineProfile.extendedMemoryKb.toLocaleString('en-US')} KB`} />
             <Row label="Boot Sequence" value={bootSeq} />
             <Row label="Boot Device" value="Fixed disk (C:)" />

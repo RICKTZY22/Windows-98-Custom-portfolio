@@ -66,7 +66,7 @@ export function ContactApp() {
             </div>
             <div>
               <dt>Focus</dt>
-              <dd>Frontend, React, full-stack systems</dd>
+              <dd>Frontend &amp; React; full-stack with AI assistance</dd>
             </div>
           </dl>
         </fieldset>
