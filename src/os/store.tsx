@@ -67,6 +67,7 @@ import {
   persistState,
   wasSessionDirty,
 } from './persistence'
+import { deleteLocalMediaRefs, pruneUnreferencedLocalMedia, unreferencedLocalMediaRefs } from './localMedia'
 import { OsContext, type OsContextValue } from './useOs'
 import {
   clampIconPosition,
@@ -155,6 +156,16 @@ function driverRemovedNotice(type: DriverType, missing: string[]): Omit<MessageB
     icon: type === 'input' ? 'warning' : 'error',
     buttons: ['ok'],
   }
+}
+
+const LOCAL_MEDIA_DROPZONE_SELECTOR = '[data-local-media-dropzone="true"]'
+
+function dragEventHasFiles(event: DragEvent): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
+}
+
+function isInsideLocalMediaDropzone(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(LOCAL_MEDIA_DROPZONE_SELECTOR))
 }
 
 // ----- simulated RAM budget (out-of-memory guardrail) -----
@@ -740,6 +751,46 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     dispatch({ type: 'PUSH_NOTIFICATION', notification: { id: `note-${notificationCounter}`, title, body } })
   }, [])
 
+  // Prevent the browser's native "drop a file to navigate to it" behavior. The
+  // Gallery still receives drops normally; this only catches drops that miss a
+  // portfolio import zone so the whole site does not reload.
+  const rejectedFileDropNoticeRef = useRef(0)
+  useEffect(() => {
+    function handleDragOver(event: DragEvent) {
+      if (!dragEventHasFiles(event)) return
+      event.preventDefault()
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'copy'
+      }
+    }
+
+    function handleDrop(event: DragEvent) {
+      if (!dragEventHasFiles(event)) return
+      event.preventDefault()
+      if (isInsideLocalMediaDropzone(event.target)) return
+      const now = Date.now()
+      if (now - rejectedFileDropNoticeRef.current < 1500) return
+      rejectedFileDropNoticeRef.current = now
+      notify('Drop target not available', 'Open My Pictures and drop media inside the window to import it locally.')
+    }
+
+    window.addEventListener('dragover', handleDragOver, { capture: true })
+    window.addEventListener('drop', handleDrop, { capture: true })
+    return () => {
+      window.removeEventListener('dragover', handleDragOver, { capture: true })
+      window.removeEventListener('drop', handleDrop, { capture: true })
+    }
+  }, [notify])
+
+  // Clean any IndexedDB blobs left behind by older builds or failed imports. The
+  // virtual filesystem references local media lazily, so this does not load the
+  // files into memory; it only compares lightweight indexeddb:// refs.
+  useEffect(() => {
+    void pruneUnreferencedLocalMedia(stateRef.current.fs).catch(() => {
+      // If IndexedDB is blocked/unavailable, the portfolio simply skips cleanup.
+    })
+  }, [])
+
   // ----- windows -----
   const focusWindow = useCallback(
     (id: string) => {
@@ -995,6 +1046,9 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     }
     stateRef.current = fresh
     dispatch({ type: 'RESET', state: fresh })
+    void pruneUnreferencedLocalMedia(fresh.fs).catch(() => {
+      // Best-effort cleanup; reset still succeeds if IndexedDB is unavailable.
+    })
   }, [])
 
   // ----- filesystem ops (synchronous; optimistic stateRef updates) -----
@@ -1003,6 +1057,18 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       const before = stateRef.current.fs
       stateRef.current = { ...stateRef.current, fs }
       dispatch({ type: 'SET_FS', fs })
+      const abandonedLocalMedia = unreferencedLocalMediaRefs(before, fs)
+      if (abandonedLocalMedia.length) {
+        void deleteLocalMediaRefs(abandonedLocalMedia)
+          .then((count) => {
+            if (count) {
+              notify('Local media storage cleaned', `${count} imported file blob(s) removed from this browser.`)
+            }
+          })
+          .catch(() => {
+            // Storage cleanup is best-effort; the virtual OS state was already updated.
+          })
+      }
       // Win98-style notice of what a deletion affected (file/folder counts). Covers
       // both Explorer deletes and terminal `del`, since both flow through here.
       const deletion = summarizeDeletion(before, fs)
@@ -1069,7 +1135,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         commitFs(result.fs)
         return null
       },
-      createFile(parent: string, name: string, opts?: { content?: string; dataUrl?: string }): string | null {
+      createFile(parent: string, name: string, opts?: { content?: string; dataUrl?: string; size?: number }): string | null {
         const result = fsCreateFile(stateRef.current.fs, parent, name, opts)
         if (result.error) return result.error
         commitFs(result.fs)

@@ -6,6 +6,7 @@ import { localMediaLibrary } from '../../data/media'
 import { extensionOf, formatSize, getNode, listDirectory } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 import { driverFailureBox, requiredDriverMissing } from '../../os/systemHealth'
+import { useResolvedMediaUrl } from '../../os/useResolvedMediaUrl'
 
 const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'webm', 'mov', 'mkv', 'ogg'])
 
@@ -47,6 +48,7 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
   const initialTrack = payloadNode ? trackFromNode(payloadNode) : null
   const [currentTrack, setCurrentTrack] = useState<VideoTrack | null>(() => initialTrack)
   const [currentSrc, setCurrentSrc] = useState<string | undefined>(() => initialTrack?.src)
+  const playableSrc = useResolvedMediaUrl(currentSrc)
   const [isPlaying, setIsPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -117,16 +119,16 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
 
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !currentSrc) return
+    if (!video || !playableSrc) return
     video.volume = volumeRef.current
     if (isPlayingRef.current) {
       void video.play().catch(() => setIsPlaying(false))
     }
-  }, [currentSrc])
+  }, [playableSrc])
 
   function togglePlay() {
     const video = videoRef.current
-    if (!video || !currentSrc) return
+    if (!video || !playableSrc) return
     const missingDriver = requiredDriverMissing(state.fs, ['video', 'audio'])
     if (missingDriver) {
       showMessageBox(driverFailureBox(missingDriver.type, 'Video Player', missingDriver.missing))
@@ -169,10 +171,10 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
       </ul>
       <div className="video-player-main">
         <div className="sunken-panel video-stage">
-          {currentSrc ? (
+          {playableSrc ? (
             <video
               ref={videoRef}
-              src={currentSrc}
+              src={playableSrc}
               className="video-screen"
               onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
               onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
@@ -209,10 +211,10 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
         </div>
       </div>
       <div className="video-controls">
-        <button type="button" onClick={togglePlay} disabled={!currentSrc}>
+        <button type="button" onClick={togglePlay} disabled={!playableSrc}>
           {isPlaying ? 'Pause' : 'Play'}
         </button>
-        <button type="button" onClick={stop} disabled={!currentSrc}>
+        <button type="button" onClick={stop} disabled={!playableSrc}>
           Stop
         </button>
         <input
@@ -222,7 +224,7 @@ export function VideoPlayerApp({ windowId, payload }: AppProps) {
           max={duration || 0}
           step={0.1}
           value={Math.min(position, duration || 0)}
-          disabled={!currentSrc}
+          disabled={!playableSrc}
           onChange={(event) => seek(Number(event.target.value))}
         />
         <span>{formatTime(position)} / {formatTime(duration)}</span>

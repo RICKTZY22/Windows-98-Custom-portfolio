@@ -66,6 +66,21 @@ Personal content lives in `src/data/portfolioData.ts` · desktop & Start-menu en
 
 React 19 · TypeScript · Vite · Vitest · ESLint · [98.css](https://jdan.github.io/98.css/)
 
+## Analytics
+
+Vercel Analytics is mounted at the React root through `@vercel/analytics/react`.
+Enable Analytics in the Vercel project dashboard for production traffic.
+
+Microsoft Clarity is optional and production-only. Add this environment variable
+in Vercel when you want session insights:
+
+```text
+VITE_CLARITY_PROJECT_ID=your_clarity_project_id
+```
+
+Do not put personal/private tracking IDs in committed files. Use `.env.local`
+for local tests or Vercel Environment Variables for deployment.
+
 ## Credits
 
 Game IP (c) **id Software / Bethesda (ZeniMax)** · DOS emulation by **js-dos** & **DOSBox** ·

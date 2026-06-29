@@ -59,9 +59,12 @@ export function DesktopIcon({
   // Tracks whether the pointer is currently over the Recycle Bin during a drag,
   // so we report hover changes once and decide delete-vs-move on release.
   const overBinRef = useRef(false)
+  const [dragListening, setDragListening] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
+    if (!dragListening) return undefined
+
     function flushPendingPosition() {
       if (!pendingPositionRef.current) {
         return
@@ -131,6 +134,7 @@ export function DesktopIcon({
       setBinHover(false)
       dragRef.current = null
       pendingPositionRef.current = null
+      setDragListening(false)
       setIsDragging(false)
     }
 
@@ -146,7 +150,7 @@ export function DesktopIcon({
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('pointercancel', handlePointerUp)
     }
-  }, [iconDef.id, onMove, deletable, onRecycleHoverChange, onDropOnRecycle])
+  }, [iconDef.id, onMove, deletable, onRecycleHoverChange, onDropOnRecycle, dragListening])
 
   function startDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) {
@@ -163,6 +167,7 @@ export function DesktopIcon({
       startPosition: position,
       moved: false,
     }
+    setDragListening(true)
   }
 
   return (

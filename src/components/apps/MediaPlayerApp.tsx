@@ -7,6 +7,7 @@ import { getNode, listDirectory } from '../../os/filesystem'
 import { renderSoundToWavDataUrl } from '../../os/audio'
 import { useOs } from '../../os/useOs'
 import { driverFailureBox, requiredDriverMissing } from '../../os/systemHealth'
+import { useResolvedMediaUrl } from '../../os/useResolvedMediaUrl'
 
 const soundByFileName: Record<string, SoundId> = {
   'startup.wav': 'startup',
@@ -35,7 +36,7 @@ type Track = {
 }
 
 function isMediaFile(node: FsNode): boolean {
-  return Boolean(node.dataUrl) && /\.(wav|mp3|mp4|webm|ogg|avi|mid)$/i.test(node.name)
+  return Boolean(node.dataUrl) && /\.(wav|mp3|mp4|webm|ogg|avi|mov|mkv|mid)$/i.test(node.name)
 }
 
 function formatTime(seconds: number): string {
@@ -51,6 +52,7 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
   const synthCache = useRef(new Map<SoundId, string>())
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
   const [currentSrc, setCurrentSrc] = useState<string>()
+  const playableSrc = useResolvedMediaUrl(currentSrc)
   const [isPlaying, setIsPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -78,7 +80,7 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
           tracks.push({
             id: node.path,
             name: node.name,
-            kind: /\.(mp4|webm|avi)$/i.test(node.name) ? 'video' : 'audio',
+            kind: /\.(mp4|webm|avi|mov|mkv)$/i.test(node.name) ? 'video' : 'audio',
             src: node.dataUrl,
           })
         }
@@ -137,7 +139,7 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
       void playTrack({
         id: node.path,
         name: node.name,
-        kind: /\.(mp4|webm|avi)$/i.test(node.name) ? 'video' : 'audio',
+        kind: /\.(mp4|webm|avi|mov|mkv)$/i.test(node.name) ? 'video' : 'audio',
         src: node.dataUrl,
         synthId,
       })
@@ -152,12 +154,12 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
 
   useEffect(() => {
     const media = mediaRef.current
-    if (!media || !currentSrc) return
+    if (!media || !playableSrc) return
     media.volume = volumeRef.current
     if (isPlayingRef.current) {
       void media.play().catch(() => setIsPlaying(false))
     }
-  }, [currentSrc])
+  }, [playableSrc])
 
   useEffect(() => {
     const media = mediaRef.current
@@ -166,7 +168,7 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
 
   function togglePlay() {
     const media = mediaRef.current
-    if (!media || !currentSrc || !currentTrack) return
+    if (!media || !playableSrc || !currentTrack) return
     const missingDriver = requiredDriverMissing(state.fs, currentTrack.kind === 'video' ? ['video', 'audio'] : ['audio'])
     if (missingDriver) {
       showMessageBox(driverFailureBox(missingDriver.type, 'Media Player', missingDriver.missing))
@@ -211,7 +213,7 @@ export function MediaPlayerApp({ windowId, payload }: AppProps) {
         <video
           ref={mediaRef}
           className={currentTrack?.kind === 'video' ? 'media-video' : 'media-audio-element'}
-          src={currentSrc}
+          src={playableSrc}
           onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
           onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
           onEnded={() => setIsPlaying(false)}

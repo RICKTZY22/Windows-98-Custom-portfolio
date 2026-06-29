@@ -12,6 +12,7 @@
     "verify:origin": "node scripts/verify-origin.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "98.css": "^0.1.21",
     "js-dos": "^8.3.20",
     "react": "^19.2.6",

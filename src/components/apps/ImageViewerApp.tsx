@@ -5,6 +5,7 @@ import { win98Icons } from '../../data/icons'
 import { baseName, extensionOf, formatSize, getNode, listDirectory, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 import { driverHealthy } from '../../os/systemHealth'
+import { useResolvedMediaUrl } from '../../os/useResolvedMediaUrl'
 
 const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg'])
 
@@ -24,7 +25,7 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
   // its preserve-memoization rule because state.fs is provider-owned.
   const folderImages = listDirectory(state.fs, folderPath).filter(isImageFile)
   const currentIndex = currentNode ? folderImages.findIndex((node) => node.path === currentNode.path) : -1
-  const imageSrc = currentNode?.dataUrl ?? ''
+  const imageSrc = useResolvedMediaUrl(currentNode?.dataUrl)
   const fitBackground = imageSrc ? { backgroundImage: `url("${imageSrc.replace(/"/g, '\\"')}")` } : undefined
   const videoDriverReady = driverHealthy(state.fs, 'video')
 
@@ -56,7 +57,7 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
     })
   }
 
-  const canShowImage = Boolean(videoDriverReady && currentNode?.dataUrl && !imageError)
+  const canShowImage = Boolean(videoDriverReady && imageSrc && !imageError)
 
   return (
     <div className="app-content image-viewer-app">

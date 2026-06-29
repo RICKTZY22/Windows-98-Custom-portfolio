@@ -4,6 +4,10 @@ import type { NetworkState, WindowState } from '../../types'
 
 const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
+function formatClock(date: Date) {
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
 function calendarCells(date: Date): Array<number | null> {
   const year = date.getFullYear()
   const month = date.getMonth()
@@ -23,8 +27,6 @@ type TaskbarProps = {
   windows: WindowState[]
   activeWindowId?: string
   startOpen: boolean
-  timeLabel: string
-  clockDate: Date
   network: NetworkState
   audioEnabled: boolean
   audioMuted: boolean
@@ -51,8 +53,6 @@ export function Taskbar({
   windows,
   activeWindowId,
   startOpen,
-  timeLabel,
-  clockDate,
   network,
   audioEnabled,
   audioMuted,
@@ -71,11 +71,17 @@ export function Taskbar({
   onOpenTaskbarProperties,
 }: TaskbarProps) {
   const soundOn = audioEnabled && !audioMuted
+  const [clockDate, setClockDate] = useState(() => new Date())
   const [volumeOpen, setVolumeOpen] = useState(false)
   const [clockOpen, setClockOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<TaskbarContextMenu | null>(null)
   const volumeRef = useRef<HTMLDivElement>(null)
   const clockRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockDate(new Date()), 1000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   // Close tray flyouts on Escape or a click anywhere outside them. The
   // taskbar swallows its own pointerdown events, so this window listener only
@@ -116,6 +122,7 @@ export function Taskbar({
     year: 'numeric',
   })
   const monthLabel = clockDate.toLocaleDateString([], { month: 'long', year: 'numeric' })
+  const timeLabel = formatClock(clockDate)
   const contextWindow =
     contextMenu?.kind === 'window' ? windows.find((window) => window.instanceId === contextMenu.instanceId) : null
   const hasVisibleWindows = windows.some((window) => !window.minimized)

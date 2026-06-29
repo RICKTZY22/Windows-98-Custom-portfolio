@@ -20,6 +20,7 @@ import './styles/system-screens.css'
 import './styles/bios.css'
 import './styles/message-box.css'
 import App from './App.tsx'
+import { AnalyticsScripts } from './analytics'
 import { OsProvider } from './os/store'
 import { stampOrigin } from './origin'
 
@@ -32,5 +33,6 @@ createRoot(document.getElementById('root')!).render(
     <OsProvider>
       <App />
     </OsProvider>
+    <AnalyticsScripts />
   </StrictMode>,
 )

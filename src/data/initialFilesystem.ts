@@ -214,6 +214,73 @@ function resumeToHtml(): string {
   ].join('')
 }
 
+function persistenceNotesDocHtml(): string {
+  const block = (line: string) =>
+    line.trim().startsWith('<')
+      ? line
+      : `<p style="margin:0 0 7px; line-height:1.42">${escapeResumeHtml(line)}</p>`
+  const section = (title: string, body: string[]) =>
+    [
+      '<div style="margin:0 0 18px">',
+      `<div style="font-size:18px; font-weight:700; color:#003399; border-bottom:1px solid #b5b5b5; padding-bottom:4px; margin-bottom:8px">${escapeResumeHtml(title)}</div>`,
+      ...body.map(block),
+      '</div>',
+    ].join('')
+
+  const bulletList = (items: string[]) =>
+    `<ul style="margin:6px 0 0 22px; padding:0; line-height:1.4">${items
+      .map((item) => `<li style="margin:3px 0">${escapeResumeHtml(item)}</li>`)
+      .join('')}</ul>`
+
+  return [
+    '<div style="font-family:Arial,Helvetica,sans-serif; color:#111; font-size:14px; line-height:1.35">',
+    '<div style="border:2px solid #003399; padding:16px 18px; margin-bottom:18px; background:#f7f9ff">',
+    '<div style="font-size:26px; font-weight:700; color:#003399; margin-bottom:4px">Persistence and Loading Notes</div>',
+    '<div style="font-size:13px; color:#555">Portfolio 98 technical note - browser-only storage, lazy loading, and optimization work.</div>',
+    '</div>',
+    section('What persistence means in this portfolio OS', [
+      'The portfolio keeps a simulated Windows 98 disk in the visitor browser so actions can feel real between sessions.',
+      'If a visitor deletes a simulated file, changes a theme, moves icons, or imports local media, that state can be restored the next time they open the same browser profile.',
+      'This is not a real operating system. It cannot repair, scan, or modify the visitor actual Windows files.',
+    ]),
+    section('Where data is stored', [
+      'Small simulated OS state is saved in browser storage. This includes the virtual filesystem tree, desktop layout, settings, window state, and safe app preferences.',
+      'Large user-imported media is stored separately in IndexedDB. The simulated disk only keeps a lightweight reference, so localStorage does not get filled with large base64 files.',
+      bulletList([
+        'localStorage: small settings and simulated filesystem metadata.',
+        'IndexedDB: user-dropped images, audio, and video blobs.',
+        'Vercel / Blob storage: only project-owned hosted assets, not private user imports.',
+      ]),
+    ]),
+    section('How user media imports work', [
+      'When a visitor drags a picture, sound, or video into the Gallery app, the file stays on that visitor device inside the browser sandbox.',
+      'The file is not uploaded to the portfolio server, Vercel Blob, GitHub, or any backend endpoint.',
+      'Imported media is private to that browser profile. If the visitor clears site data, switches browsers, or uses another device, those local imports are gone.',
+    ]),
+    section('Lazy chunk loading', [
+      'The app uses lazy loading so heavier programs are loaded only when the visitor opens them.',
+      'This keeps the first boot lighter and lets the desktop appear faster while apps like Paint, WordPad, media players, system tools, and games can load as separate chunks.',
+      'The goal is to preserve the nostalgic OS feeling without forcing every feature to download before the visitor can interact with the desktop.',
+    ]),
+    section('Current optimization work', [
+      'The next optimization pass focuses on clearer module boundaries, smaller app bundles, and keeping UI markup separate from OS state rules.',
+      'Media handling is being moved toward safer browser-native storage patterns, with IndexedDB handling large local files and the virtual filesystem handling names, paths, and metadata.',
+      bulletList([
+        'Keep large media out of localStorage.',
+        'Load app chunks only when needed.',
+        'Keep simulated OS state predictable and recoverable.',
+        'Make driver, BIOS, recovery, and error behavior educational and browser-only.',
+      ]),
+    ]),
+    section('Safety notes', [
+      'All recovery, driver, BIOS, malware-awareness, and system-file behavior is simulated for education and portfolio storytelling.',
+      'The app may display warnings or disabled features when simulated drivers are missing, but those effects stay inside the portfolio page.',
+      'Nothing here has access to the visitor real operating system, private folders, installed drivers, or hardware.',
+    ]),
+    '</div>',
+  ].join('')
+}
+
 type FileOpts = {
   size?: number
   content?: string
@@ -1513,6 +1580,14 @@ export function createInitialFsState(): FsState {
     fileType: 'WordPad Document',
     modified: '06/27/2026 10:00 AM',
   })
+  file('C:\\My Documents\\Persistence and Loading Notes.doc', {
+    content: persistenceNotesDocHtml(),
+    icon: 'wordpad',
+    appId: 'wordpad',
+    appPayload: { filePath: 'C:\\My Documents\\Persistence and Loading Notes.doc' },
+    fileType: 'WordPad Document',
+    modified: '06/29/2026 11:15 AM',
+  })
   folder('C:\\My Documents\\Music', 'folder', '06/12/2026 12:07 AM')
   for (const { path, ...opts } of GALLERY_MUSIC_FILES) {
     file(path, opts)
@@ -1941,6 +2016,7 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Documents\\Private\\testdontouch.exe',
   'C:\\My Documents\\Resume.doc',
   'C:\\My Documents\\The AI Uprising.doc',
+  'C:\\My Documents\\Persistence and Loading Notes.doc',
   'C:\\Projects',
   ...portfolioData.projects.flatMap((project) => [
     `C:\\Projects\\${project.name}`,

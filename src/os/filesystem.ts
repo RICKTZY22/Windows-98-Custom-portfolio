@@ -315,7 +315,7 @@ export function createFile(
   fs: FsState,
   parent: string,
   name: string,
-  opts?: { content?: string; dataUrl?: string; icon?: IconKey; fileType?: string },
+  opts?: { content?: string; dataUrl?: string; icon?: IconKey; fileType?: string; size?: number },
 ): FsResult {
   if (isProtectedPath(parent)) {
     return fail(fs, ACCESS_DENIED)
@@ -341,7 +341,7 @@ export function createFile(
     kind: 'file',
     icon: opts?.icon ?? iconForFileName(name),
     fileType: opts?.fileType ?? fileTypeForName(name),
-    size: opts?.content?.length ?? opts?.dataUrl?.length ?? 0,
+    size: opts?.size ?? opts?.content?.length ?? opts?.dataUrl?.length ?? 0,
     modified: nowStamp(),
     content: opts?.content,
     dataUrl: opts?.dataUrl,

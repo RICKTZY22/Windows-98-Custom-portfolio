@@ -43,7 +43,7 @@ export type OsContextValue = {
   // filesystem
   fsOps: {
     createFolder(parent: string, name: string): string | null
-    createFile(parent: string, name: string, opts?: { content?: string; dataUrl?: string }): string | null
+    createFile(parent: string, name: string, opts?: { content?: string; dataUrl?: string; size?: number }): string | null
     writeFile(path: string, data: { content?: string; dataUrl?: string }): string | null
     renameNode(path: string, newName: string): string | null
     moveNode(path: string, targetFolder: string): string | null

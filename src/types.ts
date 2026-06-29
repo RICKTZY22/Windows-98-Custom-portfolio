@@ -177,7 +177,7 @@ export type FsNode = {
   size: number // bytes (folders: 0)
   modified: string // 'MM/DD/YYYY hh:mm AM'
   content?: string // text payload
-  dataUrl?: string // media payload (images/audio/video as data: URL)
+  dataUrl?: string // media payload URL/data URL, or indexeddb:// ref for local imports
   attributes?: FsAttributes
   appId?: AppId // launcher nodes (.exe/.cpl/.lnk) open this app
   appPayload?: WindowPayload
