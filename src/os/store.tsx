@@ -138,6 +138,25 @@ function summarizeDeletion(before: FsState, after: FsState): { title: string; bo
   }
 }
 
+function driverRemovedNotice(type: DriverType, missing: string[]): Omit<MessageBoxRequest, 'id'> {
+  const files = missing.map(baseName).join(', ') || 'driver package'
+  const title = `${driverDeviceLabels[type]} Driver Missing`
+  const featureImpact: Record<DriverType, string> = {
+    network: 'Network Neighborhood, Internet Explorer, ping, and DHCP are offline until the simulated network driver is restored.',
+    audio: 'Startup sounds, Media Player audio, Sound Recorder, and volume controls are disabled until the simulated audio driver is restored.',
+    video: 'The desktop has switched to Standard VGA compatibility mode. Paint, Imaging Preview, video rendering, gallery preview, and display settings are unavailable until the simulated video driver is restored.',
+    input: 'Keyboard and mouse warnings are shown only. Real browser input remains usable so the portfolio OS cannot trap the visitor.',
+    storage: 'Disk tools may report a storage controller warning until the simulated driver is restored.',
+  }
+  return {
+    title,
+    message: `${title}: Windows found a device problem after a system file was deleted.`,
+    detail: `Missing: ${files}\n\n${featureImpact[type]}\n\nOpen BIOS Setup > Recovery Mode, Device Manager, or run SFC /SCANNOW to restore from the protected cache.`,
+    icon: type === 'input' ? 'warning' : 'error',
+    buttons: ['ok'],
+  }
+}
+
 // ----- simulated RAM budget (out-of-memory guardrail) -----
 // The BIOS reports 64MB. Windows reserves a slice for itself and each open
 // program occupies a little. Opening too many at once overflows RAM and faults
@@ -250,6 +269,7 @@ type Action =
   | { type: 'PUSH_NOTIFICATION'; notification: OsNotification }
   | { type: 'DISMISS_NOTIFICATION'; id: string }
   | { type: 'SET_FS'; fs: FsState }
+  | { type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS'; driver: DriverType }
   | { type: 'SET_CLIPBOARD'; clipboard: ClipboardState }
   | { type: 'SET_NETWORK'; network: NetworkState }
   | { type: 'SET_THEME'; themeId: string; wallpaperId?: string }
@@ -401,6 +421,19 @@ export function reducer(state: OsState, action: Action): OsState {
       return { ...state, notifications: state.notifications.filter((note) => note.id !== action.id) }
     case 'SET_FS':
       return { ...state, fs: action.fs }
+    case 'CLOSE_DRIVER_DEPENDENT_WINDOWS': {
+      const windows = state.windows.filter(
+        (win) => !(appDefinitions[win.appId].driverDependencies ?? []).includes(action.driver),
+      )
+      return {
+        ...state,
+        windows,
+        activeWindowId:
+          state.activeWindowId && windows.some((win) => win.instanceId === state.activeWindowId)
+            ? state.activeWindowId
+            : nextActiveWindow(windows),
+      }
+    }
     case 'SET_CLIPBOARD':
       return { ...state, clipboard: action.clipboard }
     case 'SET_NETWORK':
@@ -979,18 +1012,53 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       // If this change just broke a driver or feature (deleting a file via Explorer
       // OR the terminal both land here), surface a taskbar balloon so the breakage
       // is visible right away — not only when a dependent app is later launched.
+      const bootableAfterChange = isSystemHealthy(fs)
       for (const type of Object.keys(driverDeviceLabels) as DriverType[]) {
         if (driverHealthy(before, type) && !driverHealthy(fs, type)) {
-          notify(`${driverDeviceLabels[type]} disabled`, 'A device driver file was removed. Run SFC /SCANNOW or open Device Manager.')
+          const missing = missingDriverFiles(fs, type)
+          const recoveryHint = 'Run SFC /SCANNOW, open Device Manager, or use BIOS Recovery Mode.'
+          const impact: Record<DriverType, string> = {
+            network: 'Network link released; internet and LAN features are offline.',
+            audio: 'Sound output has been muted; media and recorder features are offline.',
+            video: 'Desktop switched to Standard VGA compatibility mode.',
+            input: 'Input warning only; real keyboard and mouse remain usable.',
+            storage: 'Storage controller warning reported by Device Manager.',
+          }
+          notify(`${driverDeviceLabels[type]} disabled`, `${impact[type]} ${recoveryHint}`)
+          dispatch({ type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS', driver: type })
+          if (type === 'network') {
+            const network = releasedNetworkState()
+            stateRef.current = { ...stateRef.current, network }
+            dispatch({ type: 'SET_NETWORK', network })
+          }
+          if (type === 'audio') {
+            const audio: AudioState = { ...stateRef.current.audio, enabled: false, muted: true }
+            stateRef.current = { ...stateRef.current, audio }
+            dispatch({ type: 'SET_AUDIO', audio })
+          }
+          if (bootableAfterChange) {
+            showMessageBox(driverRemovedNotice(type, missing))
+          }
         }
       }
       for (const feature of Object.keys(FEATURE_FILES)) {
         if (featureAvailable(before, feature) && !featureAvailable(fs, feature)) {
           notify(`${feature} unavailable`, 'A required system file was removed. Run SFC /SCANNOW to restore it.')
+          if (bootableAfterChange) {
+            showMessageBox({
+              title: 'System File Missing',
+              message: `${feature} is unavailable because a required simulated system file was deleted.`,
+              detail:
+                'This affects only the portfolio OS sandbox. Run SFC /SCANNOW, SCANREG /RESTORE, or BIOS Recovery Mode to restore from the protected cache.',
+              icon: 'warning',
+              buttons: ['ok'],
+              errorCode: 'ERR_SYSTEM_FILE_MISSING',
+            })
+          }
         }
       }
     },
-    [notify],
+    [notify, showMessageBox],
   )
 
   const fsOps = useMemo(
@@ -1204,18 +1272,32 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   // ----- DOM effects: theme / wallpaper / cursor -----
   const inSafeDesktop = state.phase === 'desktop' && state.bootMode === 'safe'
+  const displayDriverDegraded =
+    state.phase === 'desktop' && state.bootMode !== 'safe' && !driverHealthy(state.fs, 'video')
   const { themeId, wallpaperId, wallpaperMode, appearanceEffects, cursorScheme } = state
   useEffect(() => {
-    const theme = inSafeDesktop ? getTheme('safeMode16') : getTheme(themeId)
-    const wallpaper = inSafeDesktop ? getWallpaper('none') : getWallpaper(wallpaperId)
-    const effects = inSafeDesktop
+    const fallbackDisplay = inSafeDesktop || displayDriverDegraded
+    const theme = fallbackDisplay ? getTheme('safeMode16') : getTheme(themeId)
+    const wallpaper = fallbackDisplay ? getWallpaper('none') : getWallpaper(wallpaperId)
+    const effects = fallbackDisplay
       ? { mouseTrails: false, menuShadows: false, windowAnimations: false }
       : appearanceEffects
     applyTheme(theme)
-    applyWallpaper(wallpaper, inSafeDesktop ? 'stretch' : wallpaperMode)
+    applyWallpaper(wallpaper, fallbackDisplay ? 'stretch' : wallpaperMode)
     applyAppearanceEffects(effects)
     applyCursorScheme(cursorScheme)
-  }, [themeId, wallpaperId, wallpaperMode, appearanceEffects, cursorScheme, inSafeDesktop])
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-display-driver', displayDriverDegraded ? 'missing' : 'ok')
+    }
+  }, [
+    themeId,
+    wallpaperId,
+    wallpaperMode,
+    appearanceEffects,
+    cursorScheme,
+    inSafeDesktop,
+    displayDriverDegraded,
+  ])
 
   // ----- desktop shell readiness -----
   const prevPhaseRef = useRef(state.phase)

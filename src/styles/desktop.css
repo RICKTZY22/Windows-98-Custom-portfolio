@@ -22,6 +22,53 @@
   filter: contrast(1.05);
 }
 
+.desktop.is-display-degraded {
+  background: #000;
+}
+
+.desktop.is-display-degraded::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 128, 0.24) 0 2px, transparent 2px 5px),
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.08), transparent 18rem);
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.desktop.is-display-degraded::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
+    rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.os-shell.display-driver-missing .desktop-grid {
+  filter: grayscale(1) blur(1.35px) contrast(1.28) brightness(0.72);
+  transform: translateZ(0);
+}
+
+.os-shell.display-driver-missing .window {
+  filter: grayscale(1) blur(0.9px) contrast(1.18) brightness(0.84);
+}
+
+.os-shell.display-driver-missing .desktop-icon {
+  color: #d8d8d8;
+  text-shadow: 1px 1px #000;
+}
+
+.os-shell.display-driver-missing .desktop-icon.is-shortcut::after {
+  filter: grayscale(1);
+}
+
 .os-shell.is-shell-starting .desktop {
   animation: desktop-shell-background-in 280ms steps(2, end);
 }

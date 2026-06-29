@@ -2,6 +2,8 @@ import './HelpApp.css'
 import { useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { portfolioData } from '../../data/portfolioData'
+import { SYSTEM_FILE_CATALOG } from '../../data/systemFileCatalog'
+import { systemFileDeletionConsequence, systemFileRole } from '../../os/systemFiles'
 import type { IconKey } from '../../types'
 
 type Topic = 'start' | 'whatsNew' | 'programs' | 'files' | 'safety' | 'recovery' | 'commands' | 'troubleshooting'
@@ -215,7 +217,7 @@ const DRIVER_RULES = [
   },
   {
     name: 'Audio drivers',
-    files: 'sound.drv, wdmaud.drv',
+    files: 'sound.drv, wdmaud.drv, winmm.dll, dsound.dll, mmsystem.dll',
     result: 'Startup sounds, Media Player sound, Sound Recorder, and sound settings enter a disabled state.',
   },
   {
@@ -229,6 +231,42 @@ const DRIVER_RULES = [
     result: 'Missing critical files can trigger load failure, crash screens, or safe-mode failure.',
   },
 ]
+
+function displayPath(path: string): string {
+  return path.replace(/^C:\\Windows\\/i, '')
+}
+
+function fileName(path: string): string {
+  return path.slice(path.lastIndexOf('\\') + 1)
+}
+
+function titleCase(value: string): string {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+}
+
+function systemFileCategory(path: string): string {
+  const role = systemFileRole(path)
+  switch (role.kind) {
+    case 'critical':
+      return 'Boot critical'
+    case 'driver':
+      return `${titleCase(role.driver)} driver`
+    case 'feature':
+      return role.feature
+    case 'app':
+      return 'App dependency'
+    case 'minimal':
+      return 'Low impact'
+  }
+}
+
+const SYSTEM_FILE_ROWS = SYSTEM_FILE_CATALOG.map((path) => ({
+  path,
+  name: fileName(path),
+  location: displayPath(path),
+  category: systemFileCategory(path),
+  consequence: systemFileDeletionConsequence(path),
+}))
 
 const DOS_COMMANDS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'dir', desc: 'List files and folders in the current directory.' },
@@ -460,6 +498,33 @@ export function HelpApp() {
               <div className="help-callout">
                 Input drivers may show warnings only. The app will not intentionally trap the real mouse or keyboard.
               </div>
+              <h3>System file consequences</h3>
+              <p>
+                This list covers the seeded files marked as system files inside <code>C:\Windows</code>. Consequences
+                match the portfolio OS dependency model: boot-critical files can stop startup, driver files degrade a
+                device category, and low-impact files are kept mostly for realism.
+              </p>
+              <table className="help-commands help-system-file-table">
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Role</th>
+                    <th>If deleted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SYSTEM_FILE_ROWS.map((file) => (
+                    <tr key={file.path}>
+                      <td>
+                        <strong>{file.name}</strong>
+                        <code>{file.location}</code>
+                      </td>
+                      <td>{file.category}</td>
+                      <td>{file.consequence}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </article>
           )}
 

@@ -243,6 +243,35 @@
   font-weight: 700;
 }
 
+.help-system-file-table {
+  font-size: 10px;
+}
+
+.help-system-file-table th:first-child {
+  width: 34%;
+}
+
+.help-system-file-table th:nth-child(2) {
+  width: 18%;
+}
+
+.help-system-file-table td:first-child {
+  min-width: 185px;
+}
+
+.help-system-file-table td:first-child strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.help-system-file-table td:first-child code {
+  display: block;
+  max-width: 260px;
+  color: #333;
+  white-space: normal;
+  word-break: break-word;
+}
+
 .help-commands td code,
 .help-article code {
   padding: 0 2px;

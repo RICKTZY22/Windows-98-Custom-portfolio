@@ -4,6 +4,7 @@ import { desktopIconDefs } from './data/apps'
 import type { AppId, DesktopIconDef, FsNode, OsNotification, Point, WindowPayload, WindowState } from './types'
 import { useOs } from './os/useOs'
 import { DESKTOP_FOLDER, getNode, openTargetFor } from './os/filesystem'
+import { driverHealthy } from './os/systemHealth'
 import { BootScreen } from './components/system/BootScreen'
 import { CrashScreen } from './components/system/CrashScreen'
 import { BiosSetupScreen } from './components/system/BiosSetupScreen'
@@ -418,6 +419,7 @@ function Desktop() {
   const orderedWindows = useMemo(() => [...state.windows].sort((a, b) => a.zIndex - b.zIndex), [state.windows])
   const primarySelectedIcon = selectedIconIds[0]
   const keyboardAnchorIcon = primarySelectedIcon ?? selectedIcon ?? desktopIconDefs[0]?.id
+  const displayDriverDegraded = state.bootMode !== 'safe' && !driverHealthy(state.fs, 'video')
 
   // The desktop mirrors C:\Windows\Desktop: those FS nodes render as extra icons
   // alongside the hardcoded system icons. "Send to Desktop" drops shortcuts here.
@@ -750,7 +752,9 @@ function Desktop() {
 
   return (
     <main
-      className={`os-shell ${state.bootMode === 'safe' ? 'safe-mode' : ''} ${shellIntroActive ? 'is-shell-starting' : ''}`}
+      className={`os-shell ${state.bootMode === 'safe' ? 'safe-mode' : ''} ${
+        displayDriverDegraded ? 'display-driver-missing' : ''
+      } ${shellIntroActive ? 'is-shell-starting' : ''}`}
       onPointerDown={() => {
         setStartMenuOpen(false)
         setContextMenu(null)
@@ -758,7 +762,9 @@ function Desktop() {
     >
       <div
         ref={desktopRef}
-        className={`desktop ${refreshingDesktop ? 'is-refreshing' : ''}`}
+        className={`desktop ${refreshingDesktop ? 'is-refreshing' : ''} ${
+          displayDriverDegraded ? 'is-display-degraded' : ''
+        }`}
         aria-label="Windows 98 portfolio desktop"
         onPointerDown={(event) => {
           const target = event.target as HTMLElement

@@ -293,13 +293,29 @@ export const releaseNotes: ReleaseNote[] = [
     version: '1.8.0',
     label: 'v1.8',
     codename: 'Service Pack',
-    date: 'June 26, 2026',
-    shortDate: '6/26/2026',
-    status: 'current',
-    headline: 'Maintenance tools & deep system files (in development)',
+    date: 'June 27, 2026',
+    shortDate: '6/27/2026',
+    status: 'released',
+    headline: 'Maintenance tools, Inbox & deep system files',
     summary:
-      'The current build. Windows 98 maintenance tools arrive, system files and drivers become deeply tied to apps and errors, and system repair is reworked end-to-end. This release is still in development.',
+      'Windows 98 maintenance tools arrive, the release history becomes a working Exchange-style Inbox, system files and drivers become deeply tied to apps and errors, and the portfolio content gets a major accuracy pass.',
     sections: [
+      {
+        title: 'Inbox & release history',
+        items: [
+          'Added the Microsoft Exchange-style Inbox app that renders release notes as mail.',
+          'Kept Inbox as a desktop-only app so the Start menu stays closer to classic Windows 98.',
+          'Grounded the release-history messages in real git commit subjects.',
+        ],
+      },
+      {
+        title: 'Boot realism & system tools',
+        items: [
+          'Added the BIOS-style Startup Menu with Normal, Safe Mode, Command Prompt Only, and Recovery choices.',
+          'Added System Information, Device Manager, MSConfig, Registry Editor, ScanDisk, and Disk Defragmenter.',
+          'Added a startup ScanDisk flow that runs automatically after an improper shutdown.',
+        ],
+      },
       {
         title: 'Maintenance tools',
         items: [
@@ -315,6 +331,7 @@ export const releaseNotes: ReleaseNote[] = [
           'Removing a driver file disables the matching device and raises real errors.',
           'Safe Mode loads generic drivers so the system stays repairable.',
           'Device Manager reflects live driver health with problem badges.',
+          'Memory and virtual disk limits now produce period-accurate errors instead of unbounded localStorage growth.',
         ],
       },
       {
@@ -326,14 +343,76 @@ export const releaseNotes: ReleaseNote[] = [
         ],
       },
       {
-        title: 'Other',
+        title: 'Portfolio content',
         items: [
-          'Inbox (this app): the release history delivered as Microsoft Exchange mail.',
+          'Added the AI Uprising essay to My Documents.',
+          'Expanded Help with a full program list and safer, clearer educational guidance.',
+          'Moved resume REST API descriptions from frontend skills to backend skills for accuracy.',
           'Boot disclaimer expanded with Microsoft and Windows context.',
           'Run dialog temporarily marked work-in-progress while it is rebuilt.',
         ],
       },
     ],
-    commits: ['(in development, not yet committed)'],
+    commits: [
+      'Add Inbox app, BIOS-style startup menu, icon overhaul, and bug fixes',
+      'Use the PC icon for the Desktop folder',
+      'Show Inbox only on the desktop, not in the Start menu',
+      'Add memory and disk guardrails, delete notifications, and Help docs',
+      'Add AI Uprising essay, content accuracy pass, and full Help program list',
+      'Resume: move REST APIs from frontend to backend skills',
+    ],
+  },
+  {
+    version: '1.9.0',
+    label: 'v1.9',
+    codename: 'Driver Lab',
+    date: 'June 29, 2026',
+    shortDate: '6/29/2026',
+    status: 'current',
+    headline: 'Driver effects, controls & repair notes',
+    summary:
+      'The current in-progress build focuses on making driver deletion feel more believable without making the simulation hostile: video failure is visual, game controls are modernized, and Help now documents what every system file does.',
+    sections: [
+      {
+        title: 'Driver behavior',
+        items: [
+          'Deleting display drivers no longer throws a persistent desktop warning banner.',
+          'Missing video drivers now push the desktop into a blurrier, grayscale Standard VGA-style degraded mode.',
+          'Driver removals use targeted simulated errors and close or disable only the affected feature category.',
+        ],
+      },
+      {
+        title: 'System file education',
+        items: [
+          'Help > Files and Drivers now lists the seeded Windows system files and what happens if each one is deleted.',
+          'Critical files, app dependencies, feature files, driver files, and low-impact files all share the same classifier used by runtime errors.',
+          'Display-driver consequences now explain degraded visuals instead of implying a real OS failure.',
+        ],
+      },
+      {
+        title: 'Games',
+        items: [
+          'DOOM and Wolfenstein 3D now support modern WASD movement through the js-dos wrapper.',
+          'A/D strafe, Q/E turn, and the original arrow/Ctrl/Alt/Space controls still work.',
+          'A small in-game hint documents the updated control scheme.',
+        ],
+      },
+      {
+        title: 'Media hosting',
+        items: [
+          'Fixed Vercel Blob photo seeding so My Pictures loads hosted images consistently, matching the working video flow.',
+          'The media env parser now tolerates extra JSON quoting, URL-only lists, and src/url keys for easier Vercel dashboard setup.',
+          'Gallery, Explorer thumbnails, and Imaging Preview now recognize WebP, AVIF, and SVG in addition to the existing classic image types.',
+          'Existing saved virtual disks refresh hosted media URLs without overwriting user-created Paint or gallery files.',
+        ],
+      },
+      {
+        title: 'Verification',
+        items: [
+          'Build, lint, and test pass after the driver, Help, control, and Vercel Blob media changes.',
+        ],
+      },
+    ],
+    commits: ['Add driver effects, system file docs, game controls, and Blob media fixes'],
   },
 ]

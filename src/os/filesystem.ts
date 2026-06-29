@@ -19,7 +19,6 @@ export const REQUIRED_SYSTEM_FILES: string[] = [
   'C:\\Windows\\System32\\gdi32.dll',
   'C:\\Windows\\System32\\shell32.dll',
   'C:\\Windows\\System32\\vmm32.vxd',
-  'C:\\Windows\\System32\\display.drv',
   'C:\\Windows\\EXPLORER.EXE',
   'C:\\Windows\\Command\\COMMAND.COM',
   'C:\\Windows\\WIN.INI',
@@ -640,7 +639,7 @@ export function emptyRecycleBin(fs: FsState): FsState {
 const TEXT_EXTENSIONS = new Set(['txt', 'ini', 'log', 'inf', 'bat', 'md'])
 const DOCUMENT_EXTENSIONS = new Set(['doc', 'docx', 'rtf'])
 const PDF_EXTENSIONS = new Set(['pdf'])
-const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif'])
+const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg'])
 const AUDIO_EXTENSIONS = new Set(['wav', 'mp3', 'mid'])
 const VIDEO_EXTENSIONS = new Set(['mp4', 'avi', 'webm', 'mov', 'mkv', 'ogg'])
 const WEB_EXTENSIONS = new Set(['url', 'htm', 'html'])
@@ -728,6 +727,12 @@ export function fileTypeForName(name: string): string {
       return 'JPEG Image'
     case 'gif':
       return 'GIF Image'
+    case 'webp':
+      return 'WebP Image'
+    case 'avif':
+      return 'AVIF Image'
+    case 'svg':
+      return 'SVG Image'
     case 'wav':
       return 'Wave Sound'
     case 'mp3':

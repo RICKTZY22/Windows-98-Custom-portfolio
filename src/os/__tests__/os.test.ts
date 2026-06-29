@@ -191,6 +191,7 @@ describe('virtual filesystem', () => {
     const fs = createInitialFsState()
     const audioMissing = deleteNode(fs, 'C:\\Windows\\System32\\sound.drv')
     const videoMissing = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv')
+    const displayDriverMissing = deleteNode(fs, 'C:\\Windows\\System32\\display.drv')
 
     expect(audioMissing.criticalDeleted).toBe(false)
     expect(driverHealthy(audioMissing.fs, 'audio')).toBe(false)
@@ -202,6 +203,10 @@ describe('virtual filesystem', () => {
     expect(missingAppDriverDependency('paint', videoMissing.fs)?.type).toBe('video')
     expect(missingAppDriverDependency('gallery', videoMissing.fs)?.type).toBe('video')
     expect(missingAppDriverDependency('notepad', videoMissing.fs)).toBeNull()
+
+    expect(displayDriverMissing.criticalDeleted).toBe(false)
+    expect(isSystemHealthy(displayDriverMissing.fs)).toBe(true)
+    expect(driverHealthy(displayDriverMissing.fs, 'video')).toBe(false)
   })
 
   it('restores missing simulated drivers from the protected cache', () => {
@@ -259,6 +264,17 @@ describe('virtual filesystem', () => {
     expect(written.error).toBeNull()
     const node = getNode(written.fs, 'C:\\My Pictures\\Sketch.png')
     expect(node?.fileType).toBe('PNG Image')
+    expect(node?.icon).toBe('imageFile')
+    expect(openTargetFor(node!)?.appId).toBe('imageViewer')
+  })
+
+  it('opens modern hosted image formats through the image viewer association', () => {
+    const written = writeFile(createInitialFsState(), 'C:\\My Pictures\\Portfolio.webp', {
+      dataUrl: 'https://blob.example/portfolio.webp',
+    })
+    expect(written.error).toBeNull()
+    const node = getNode(written.fs, 'C:\\My Pictures\\Portfolio.webp')
+    expect(node?.fileType).toBe('WebP Image')
     expect(node?.icon).toBe('imageFile')
     expect(openTargetFor(node!)?.appId).toBe('imageViewer')
   })

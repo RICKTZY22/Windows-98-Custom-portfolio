@@ -6,7 +6,7 @@ import { baseName, extensionOf, formatSize, getNode, listDirectory, parentPath }
 import { useOs } from '../../os/useOs'
 import { driverHealthy } from '../../os/systemHealth'
 
-const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif'])
+const IMAGE_EXTENSIONS = new Set(['bmp', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg'])
 
 function isImageFile(node: FsNode): boolean {
   return node.kind === 'file' && IMAGE_EXTENSIONS.has(extensionOf(node.name))
@@ -114,7 +114,7 @@ export function ImageViewerApp({ windowId, payload }: AppProps) {
                 ? 'Use Recovery Mode to restore the simulated video driver from the protected cache.'
                 : currentNode
                   ? 'The file has no browser-readable image data.'
-                  : 'JPG, PNG, BMP, and GIF files open here.'}
+                  : 'JPG, PNG, BMP, GIF, WebP, AVIF, and SVG files open here.'}
             </span>
           </div>
         )}

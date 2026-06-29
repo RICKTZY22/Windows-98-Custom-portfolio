@@ -245,9 +245,9 @@ export const portfolioData = {
   contact: {
     email: contactPlaceholders.email,
     location: 'Parañaque, Philippines',
-    availability: 'Open to internship, junior frontend, and full-stack project opportunities.',
+    availability: 'Open to frontend development and UI/UX design opportunities, with some backend knowledge.',
     summary:
-      'Reach me through email for direct messages, GitHub for source work, and LinkedIn for professional updates. I am open to frontend internships, junior frontend roles, and practical full-stack project work.',
+      'Reach me through email for direct messages, GitHub for source work, and LinkedIn for professional updates. I am open to frontend development and UI/UX design opportunities, with some backend knowledge for practical integration work.',
     links: [
       { label: 'GitHub', href: 'https://github.com/RICKTZY22' },
       { label: 'LinkedIn', href: 'https://www.linkedin.com/in/erick-mendoza-9492513a8/' },

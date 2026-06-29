@@ -32,7 +32,7 @@ const VIEW_MODES: Array<{ id: ViewMode; label: string }> = [
   { id: 'thumbnails', label: 'Thumbnails' },
 ]
 
-const IMAGE_NAME_RE = /\.(bmp|png|jpe?g|gif)$/i
+const IMAGE_NAME_RE = /\.(bmp|png|jpe?g|gif|webp|avif|svg)$/i
 const VIRTUAL_DRIVE_BYTES = Math.round(2.1 * 1024 * 1024 * 1024)
 
 /** Image files with a data URL can show a real thumbnail instead of a generic icon. */

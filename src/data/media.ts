@@ -9,7 +9,8 @@
  *
  * Each variable is a JSON array of { name, src }. `name` MUST include a real file
  * extension so the Gallery recognizes it:
- *   images -> .png .jpg .jpeg .gif        videos -> .mp4 .webm .mov .mkv .avi .ogg
+ *   images -> .png .jpg .jpeg .gif .webp .avif .svg
+ *   videos -> .mp4 .webm .mov .mkv .avi .ogg
  *   music  -> .wav .mp3 .mid .ogg
  *
  *   VITE_GALLERY_PHOTOS=[{"name":"trip.jpg","src":"https://host/trip.jpg"}]
@@ -19,20 +20,72 @@
 
 export type MediaItem = { name: string; src: string }
 
-function parseMediaEnv(raw: unknown): MediaItem[] {
-  if (typeof raw !== 'string' || raw.trim() === '') return []
+type RawMediaObject = {
+  name?: unknown
+  src?: unknown
+  url?: unknown
+}
+
+function mediaNameFromSrc(src: string, fallback: string): string {
   try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (item): item is MediaItem =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof (item as MediaItem).name === 'string' &&
-        typeof (item as MediaItem).src === 'string',
-    )
+    const url = new URL(src)
+    const fileName = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '')
+    return fileName || fallback
   } catch {
-    return []
+    const withoutQuery = src.split(/[?#]/)[0]
+    const fileName = withoutQuery.split('/').filter(Boolean).pop()
+    return fileName || fallback
+  }
+}
+
+function normalizeMediaItem(item: unknown, index: number): MediaItem | null {
+  if (typeof item === 'string') {
+    const src = item.trim()
+    if (!src) return null
+    return { name: mediaNameFromSrc(src, `media-${index + 1}`), src }
+  }
+  if (typeof item !== 'object' || item === null) return null
+
+  const raw = item as RawMediaObject
+  const src = typeof raw.src === 'string' ? raw.src.trim() : typeof raw.url === 'string' ? raw.url.trim() : ''
+  if (!src) return null
+
+  const name = typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : mediaNameFromSrc(src, `media-${index + 1}`)
+  return { name, src }
+}
+
+function normalizeMediaValue(value: unknown): MediaItem[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => {
+      const normalized = normalizeMediaItem(item, index)
+      return normalized ? [normalized] : []
+    })
+  }
+
+  const single = normalizeMediaItem(value, 0)
+  return single ? [single] : []
+}
+
+export function parseMediaEnv(raw: unknown): MediaItem[] {
+  if (typeof raw !== 'string' || raw.trim() === '') return []
+
+  let candidate: unknown = raw.trim()
+  try {
+    // Some hosting dashboards accidentally add an extra quoting layer. Parse up
+    // to twice so '"[{...}]"' still becomes the intended array.
+    for (let pass = 0; pass < 2 && typeof candidate === 'string'; pass += 1) {
+      candidate = JSON.parse(candidate)
+    }
+    return normalizeMediaValue(candidate)
+  } catch {
+    return raw
+      .split(/[\n,]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .flatMap((entry, index) => {
+        const normalized = normalizeMediaItem(entry, index)
+        return normalized ? [normalized] : []
+      })
   }
 }
 

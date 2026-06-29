@@ -870,6 +870,12 @@ const GALLERY_VIDEO_FILES: ScaffoldFile[] = galleryVideos.map((item) => ({
   modified: MODERN_STAMP,
 }))
 
+const EXTERNAL_MEDIA_SEED_PATHS = new Set([
+  ...GALLERY_PHOTO_FILES.map((file) => file.path),
+  ...GALLERY_MUSIC_FILES.map((file) => file.path),
+  ...GALLERY_VIDEO_FILES.map((file) => file.path),
+])
+
 function btrPath(...parts: string[]): string {
   return `${BETWEEN_TWO_RUINS_WEB_ROOT}\\${parts.join('\\')}`
 }
@@ -2033,6 +2039,16 @@ function normalizeBitmapIcons(fs: FsState): FsState {
   return changed ? { ...fs, nodes } : fs
 }
 
+function shouldRefreshExternalMediaSeed(existing: FsNode, seedNode: FsNode): boolean {
+  if (existing.kind !== 'file' || seedNode.kind !== 'file') return false
+  if (!EXTERNAL_MEDIA_SEED_PATHS.has(seedNode.path)) return false
+  if (!seedNode.dataUrl || existing.dataUrl === seedNode.dataUrl) return false
+
+  // Paint/user-created images are saved as data: URLs and should stay personal.
+  // Blob/hosted seed entries are safe to refresh when their public URL changes.
+  return !existing.dataUrl || /^https?:\/\//i.test(existing.dataUrl)
+}
+
 // Confidential documentation subtrees that must never ship inside the portfolio
 // OS. They are no longer seeded (see WIN98_PORTFOLIO_PDF_FILES / FOLDER_PATHS),
 // and this strips them from disks seeded by older builds so they cannot reappear.
@@ -2099,6 +2115,20 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
     if (!seedNode) continue
     const existing = getNode(next, seedNode.path)
     if (existing?.kind === 'folder') continue
+    if (existing && shouldRefreshExternalMediaSeed(existing, seedNode)) {
+      const refreshed: FsNode = {
+        ...existing,
+        icon: seedNode.icon,
+        fileType: seedNode.fileType,
+        size: seedNode.size,
+        dataUrl: seedNode.dataUrl,
+        appId: seedNode.appId,
+        appPayload: seedNode.appPayload,
+      }
+      next = internalInsertNode(next, refreshed)
+      continue
+    }
+    if (existing) continue
     next = internalInsertNode(next, {
       ...seedNode,
       children: seedNode.kind === 'folder' ? seedNode.children ?? [] : undefined,

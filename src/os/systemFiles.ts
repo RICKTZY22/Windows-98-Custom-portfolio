@@ -101,6 +101,37 @@ export function describeSystemFile(path: string): string {
   }
 }
 
+export function systemFileDeletionConsequence(path: string): string {
+  const role = systemFileRole(path)
+  switch (role.kind) {
+    case 'critical':
+      return 'Boot-critical. Normal boot can fail or crash; multiple missing critical files can also break Safe Mode until Recovery or reinstall restores them.'
+    case 'driver': {
+      switch (role.driver) {
+        case 'network':
+          return 'Network features go offline: Network Neighborhood, Internet Explorer networking, PING, IPCONFIG, DHCP, and LAN status stop working.'
+        case 'audio':
+          return 'Sound features stop: startup sound, Media Player audio, Sound Recorder, volume controls, and sound schemes are disabled.'
+        case 'video':
+          return 'Display degrades into blurry Standard VGA mode. Paint, image preview, video rendering, gallery previews, and display settings can be blocked.'
+        case 'input':
+          return 'Device Manager shows an input-driver warning only. Real browser keyboard and mouse input are intentionally kept usable.'
+        case 'storage':
+          return 'Storage warnings appear, but the virtual drive remains usable so the user is not trapped.'
+      }
+      return 'The matching simulated device category becomes unavailable until the driver is restored.'
+    }
+    case 'feature':
+      return `${role.feature} becomes unavailable until the missing simulated system file is restored.`
+    case 'app': {
+      const apps = appsNeedingFile(path).map(appLabel)
+      return `${apps.join(', ')} ${apps.length === 1 ? 'fails' : 'fail'} to open or shows a missing-file error.`
+    }
+    case 'minimal':
+      return 'No current portfolio OS feature depends on this file. Deleting it is logged/restorable but has no functional loss.'
+  }
+}
+
 // ----- feature availability (printing) -----
 export function missingFeatureFiles(fs: FsState, feature: string): string[] {
   return (FEATURE_FILES[feature] ?? []).filter((path) => !fs.nodes[normalizePath(path)])
