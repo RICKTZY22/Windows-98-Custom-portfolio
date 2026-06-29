@@ -272,13 +272,10 @@ export function scheduleSound(ctx: BaseAudioContext, dest: AudioNode, id: SoundI
 // and they replace the synthesized jingles. The synth remains the fallback.
 // ---------------------------------------------------------------------------
 
-const FILE_EXTENSIONS = ['mp3', 'wav', 'ogg'] as const
-
 // Map OS sound events to the authentic Win98 sample files dropped into
-// public/sounds/ under their original Windows names. These are tried FIRST;
-// any id without an entry still falls back to the `<id>.<ext>` convention, and
-// then to the built-in synth. Keeping the map means the real filenames need not
-// be renamed.
+// public/sounds/ under their original Windows names. Keeping the map means the
+// real filenames need not be renamed, and unmapped ids can stay synth-only
+// without producing optional-file 404s in production.
 const CUSTOM_SOUND_FILES: Partial<Record<SoundId, string>> = {
   startup: 'The Microsoft Sound.wav',
   shutdown: 'LOGOFF.WAV',
@@ -295,12 +292,12 @@ const soundFiles = new Map<SoundId, HTMLAudioElement | null>()
 let filesProbed = false
 
 async function probeSoundFile(id: SoundId): Promise<void> {
-  const candidates: string[] = []
   const mapped = CUSTOM_SOUND_FILES[id]
-  if (mapped) candidates.push(`/sounds/${encodeURIComponent(mapped)}`)
-  for (const ext of FILE_EXTENSIONS) {
-    candidates.push(`/sounds/${id}.${ext}`)
+  if (!mapped) {
+    soundFiles.set(id, null)
+    return
   }
+  const candidates = [`/sounds/${encodeURIComponent(mapped)}`]
 
   for (const url of candidates) {
     try {

@@ -6,8 +6,7 @@ Files you do not provide fall back to the synthesized versions automatically.
 
 The OS resolves each event in this order:
   1. The authentic Win98 sample mapped to the event (see table below).
-  2. A file named <event>.mp3 / <event>.wav / <event>.ogg.
-  3. The built-in synthesized sound.
+  2. The built-in synthesized sound.
 
 AUTHENTIC SAMPLES CURRENTLY WIRED (original Windows file names, kept as-is):
 
@@ -24,7 +23,8 @@ AUTHENTIC SAMPLES CURRENTLY WIRED (original Windows file names, kept as-is):
 The mapping lives in src/os/audio.ts (CUSTOM_SOUND_FILES). Add or change an
 entry there to point an event at a different file name.
 
-EVENTS WITHOUT A SAMPLE (still synthesized) -- drop <event>.wav to override:
+EVENTS WITHOUT A SAMPLE (still synthesized) -- add a CUSTOM_SOUND_FILES entry in
+src/os/audio.ts to override:
 
   menuOpen     opening menus
   networkUp    ethernet connected
