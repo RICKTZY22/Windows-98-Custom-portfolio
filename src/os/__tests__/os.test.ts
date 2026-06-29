@@ -229,6 +229,9 @@ describe('virtual filesystem', () => {
     fs = createFile(fs, 'C:\\My Pictures', 'MyPhoto.png', { content: 'mine' }).fs
     fs = createFile(fs, 'C:\\My Pictures', 'media.bmp', { content: 'saved bitmap', icon: 'imageFile' }).fs
     fs = createFile(fs, 'C:\\My Pictures', 'Old Upload.jpg', { dataUrl: '/media/user/Old%20Upload.jpg' }).fs
+    fs = createFile(fs, 'C:\\My Pictures', 'gallery-photo.png', {
+      dataUrl: 'https://old.public.blob.vercel-storage.com/gallery-photo.png',
+    }).fs
     fs = createFile(fs, 'C:\\My Videos', 'Old Upload.mp4', { dataUrl: '/media/user/Old%20Upload.mp4' }).fs
     fs = createFile(fs, 'C:\\My Documents\\Music', 'Old Upload.mp3', { dataUrl: '/media/user/Old%20Upload.mp3' }).fs
     fs = createFile(fs, 'C:\\My Documents', 'Education.txt', { content: 'old education seed' }).fs
@@ -248,6 +251,7 @@ describe('virtual filesystem', () => {
     expect(getNode(cleaned, 'C:\\My Pictures\\MyPhoto.png')).toBeDefined() // user file kept
     expect(getNode(cleaned, 'C:\\My Pictures\\media.bmp')?.icon).toBe('paint')
     expect(getNode(cleaned, 'C:\\My Pictures\\Old Upload.jpg')).toBeUndefined()
+    expect(getNode(cleaned, 'C:\\My Pictures\\gallery-photo.png')).toBeUndefined()
     expect(getNode(cleaned, 'C:\\My Documents\\Music\\Old Upload.mp3')).toBeUndefined()
     expect(getNode(cleaned, 'C:\\My Documents\\Education.txt')).toBeUndefined()
     expect(getNode(cleaned, 'C:\\Windows\\Desktop\\Portfolio OS.lnk')?.appId).toBe('explorer')

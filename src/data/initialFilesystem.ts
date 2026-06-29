@@ -2010,6 +2010,22 @@ function removeSeededUserMedia(fs: FsState): FsState {
   return next
 }
 
+function removeStaleHostedMediaSeeds(fs: FsState): FsState {
+  let next = fs
+  for (const node of Object.values(fs.nodes)) {
+    const isStaleHostedSeed =
+      node.kind === 'file' &&
+      typeof node.dataUrl === 'string' &&
+      /^https?:\/\//i.test(node.dataUrl) &&
+      USER_MEDIA_ROOTS.some((root) => node.path.startsWith(root)) &&
+      !EXTERNAL_MEDIA_SEED_PATHS.has(node.path)
+    if (isStaleHostedSeed) {
+      next = removeNodeByPath(next, node.path)
+    }
+  }
+  return next
+}
+
 function normalizePortfolioLaunchers(fs: FsState): FsState {
   const launcherPaths = ['C:\\Windows\\Desktop\\Portfolio OS.lnk', 'C:\\Network\\Portfolio.local']
   let changed = false
@@ -2109,6 +2125,7 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   }
   next = removePortfolioDocArtifacts(next)
   next = removeSeededUserMedia(next)
+  next = removeStaleHostedMediaSeeds(next)
   next = normalizePortfolioLaunchers(next)
   for (const path of PORTFOLIO_SEEDED_PATHS) {
     const seedNode = getNode(seed, path)
