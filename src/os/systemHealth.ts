@@ -66,6 +66,16 @@ export type MissingDriver = {
   missing: string[]
 }
 
+export type VideoDriverHealthLevel = 'ok' | 'warning' | 'degraded' | 'unstable' | 'critical'
+
+export type VideoDriverHealth = {
+  type: 'video'
+  level: VideoDriverHealthLevel
+  missingCount: number
+  totalFiles: number
+  missingFiles: string[]
+}
+
 export type MissingHealthGroup = {
   id: 'criticalSystem' | DriverType
   label: string
@@ -90,7 +100,29 @@ export function missingDrivers(fs: FsState): Record<DriverType, string[]> {
   }
 }
 
+function videoDriverLevelForMissingCount(count: number): VideoDriverHealthLevel {
+  if (count <= 0) return 'ok'
+  if (count === 1) return 'warning'
+  if (count === 2) return 'degraded'
+  if (count === 3) return 'unstable'
+  return 'critical'
+}
+
+export function videoDriverHealth(fs: FsState): VideoDriverHealth {
+  const missingFiles = missingDriverFiles(fs, 'video')
+  return {
+    type: 'video',
+    level: videoDriverLevelForMissingCount(missingFiles.length),
+    missingCount: missingFiles.length,
+    totalFiles: driverFileMap.video.length,
+    missingFiles,
+  }
+}
+
 export function driverHealthy(fs: FsState, type: DriverType): boolean {
+  if (type === 'video') {
+    return videoDriverHealth(fs).missingCount < 2
+  }
   return missingDriverFiles(fs, type).length === 0
 }
 
@@ -109,7 +141,7 @@ export function effectiveDriverHealthy(fs: FsState, type: DriverType, bootMode: 
 export function requiredDriverMissing(fs: FsState, required: DriverType[] = []): MissingDriver | null {
   for (const type of required) {
     const missing = missingDriverFiles(fs, type)
-    if (missing.length) {
+    if (!driverHealthy(fs, type)) {
       return { type, missing }
     }
   }
@@ -133,6 +165,16 @@ export function missingSystemHealthGroups(fs: FsState): MissingHealthGroup[] {
 }
 
 export function driverStatusLabel(fs: FsState, type: DriverType): string {
+  if (type === 'video') {
+    const status: Record<VideoDriverHealthLevel, string> = {
+      ok: 'OK',
+      warning: 'Warning',
+      degraded: 'Degraded',
+      unstable: 'Unstable',
+      critical: 'Critical',
+    }
+    return status[videoDriverHealth(fs).level]
+  }
   return driverHealthy(fs, type) ? 'Detected' : 'Driver Missing'
 }
 
@@ -155,6 +197,28 @@ export function driverFailureBox(
   missing: string[] = [],
 ): Omit<MessageBoxRequest, 'id'> {
   const fileList = missing.length ? missing.map(baseName).join(', ') : 'driver package'
+  if (type === 'video') {
+    const level = videoDriverLevelForMissingCount(missing.length)
+    const detailByLevel: Record<VideoDriverHealthLevel, string> = {
+      ok: 'The simulated VGA driver stack is available.',
+      warning: 'One simulated video driver file is missing. Standard VGA compatibility remains available.',
+      degraded:
+        'Two simulated video driver files are missing. Paint, image preview, video rendering, and display settings are disabled until Recovery restores the files.',
+      unstable:
+        'Three simulated video driver files are missing. The desktop display is unstable and visual apps remain disabled until Recovery restores the files.',
+      critical:
+        'The simulated video driver stack is critically incomplete. Normal boot cannot continue until Recovery restores the protected driver cache.',
+    }
+    return {
+      title,
+      message: `${title} cannot use this feature because the simulated video driver stack is ${level}.`,
+      detail: `Missing: ${fileList}\n\n${detailByLevel[level]} ${driverRecoveryHint(type)}`,
+      icon: level === 'warning' ? 'warning' : 'error',
+      buttons: ['ok'],
+      errorCode: driverErrorCodes[type],
+      recoveryHint: driverRecoveryHint(type),
+    }
+  }
   return {
     title,
     message: `${title} cannot use this feature because a simulated ${type} driver is missing.`,
@@ -165,4 +229,3 @@ export function driverFailureBox(
     recoveryHint: driverRecoveryHint(type),
   }
 }
-

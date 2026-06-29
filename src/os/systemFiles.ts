@@ -113,7 +113,7 @@ export function systemFileDeletionConsequence(path: string): string {
         case 'audio':
           return 'Sound features stop: startup sound, Media Player audio, Sound Recorder, volume controls, and sound schemes are disabled.'
         case 'video':
-          return 'Display degrades into blurry Standard VGA mode. Paint, image preview, video rendering, gallery previews, and display settings can be blocked.'
+          return 'Video drivers use a counter: 1 missing shows a VGA warning, 2 missing disable visual/media apps, 3 missing add display glitches, and 4 missing trigger a simulated boot failure until Recovery restores them.'
         case 'input':
           return 'Device Manager shows an input-driver warning only. Real browser keyboard and mouse input are intentionally kept usable.'
         case 'storage':

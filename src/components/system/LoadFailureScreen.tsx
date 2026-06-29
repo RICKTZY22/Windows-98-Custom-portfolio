@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { missingRequiredSystemFiles } from '../../os/recovery'
 import { baseName } from '../../os/filesystem'
+import { videoDriverHealth } from '../../os/systemHealth'
 import { isSystem32Wiped } from '../../os/systemFiles'
 import { useOs } from '../../os/useOs'
 
@@ -8,9 +9,13 @@ export function LoadFailureScreen() {
   const { state, restart } = useOs()
   const [rebooting, setRebooting] = useState(false)
   const missing = useMemo(() => missingRequiredSystemFiles(state.fs), [state.fs])
+  const videoHealth = useMemo(() => videoDriverHealth(state.fs), [state.fs])
+  const videoCritical = !missing.length && videoHealth.level === 'critical'
   const wiped = useMemo(() => isSystem32Wiped(state.fs), [state.fs])
-  const damaged = missing.map((path) => baseName(path).toUpperCase()).slice(0, 3)
-  const primary = missing[0] ?? 'C:\\Windows\\System32'
+  const damaged = (videoCritical ? videoHealth.missingFiles : missing)
+    .map((path) => baseName(path).toUpperCase())
+    .slice(0, 4)
+  const primary = videoCritical ? (videoHealth.missingFiles[0] ?? 'C:\\Windows\\System32\\display.drv') : (missing[0] ?? 'C:\\Windows\\System32')
 
   function reboot() {
     if (rebooting) return
@@ -31,18 +36,22 @@ export function LoadFailureScreen() {
   return (
     <main className="load-failure-screen" role="alert" aria-label="Windows failed to load" onClick={reboot}>
       <section className="load-failure-panel">
-        <p className="load-failure-lead">Windows could not start because the following file is missing or corrupt:</p>
+        <p className="load-failure-lead">
+          {videoCritical
+            ? 'Windows could not start because the simulated display driver stack is missing or corrupt:'
+            : 'Windows could not start because the following file is missing or corrupt:'}
+        </p>
         <p className="load-failure-path">&lt;Windows root&gt;\SYSTEM32\{baseName(primary).toUpperCase()}</p>
 
         <p>Status: 0xc0000098</p>
         <p>
           Info: The operating system could not be loaded because a critical
           <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;system file is corrupted.
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{videoCritical ? 'simulated video driver package is incomplete.' : 'system file is corrupted.'}
         </p>
 
         <div className="load-failure-fault">
-          <p>Faulting module&nbsp;&nbsp;&nbsp;: VMM32.VXD</p>
+          <p>Faulting module&nbsp;&nbsp;&nbsp;: {videoCritical ? 'DISPLAY.DRV' : 'VMM32.VXD'}</p>
           <p>Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 0028:C0011E36</p>
           <p>Damaged files&nbsp;&nbsp;&nbsp;&nbsp;: {damaged.length ? damaged.join(', ') : 'UNKNOWN'}</p>
         </div>

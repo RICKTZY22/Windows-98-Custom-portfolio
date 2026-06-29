@@ -195,6 +195,7 @@ const PROGRAMS_MORE: Program[] = [
   { name: 'About Me', icon: 'student', text: "John Erick Mendoza's background, story, and highlights." },
   { name: 'My Projects', icon: 'projects', text: 'Project gallery. Open a project for its details, stack, and links.' },
   { name: 'Contact', icon: 'contact', text: 'Email, GitHub, LinkedIn, and availability.' },
+  { name: 'Certificates', icon: 'html', text: 'Certificate cabinet with verification links for online credentials.' },
   {
     name: 'Credits',
     icon: 'help',

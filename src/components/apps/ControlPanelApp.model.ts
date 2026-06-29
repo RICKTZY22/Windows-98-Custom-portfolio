@@ -20,7 +20,13 @@ import { controlPanelSections } from '../../data/system'
 import { getTheme, getWallpaper, selectableThemes, wallpapers } from '../../data/themes'
 import { soundCatalog } from '../../os/audio'
 import { useOs } from '../../os/useOs'
-import { driverFailureBox, driverHealthy, driverStatusLabel, missingDriverFiles } from '../../os/systemHealth'
+import {
+  driverFailureBox,
+  driverHealthy,
+  driverStatusLabel,
+  missingDriverFiles,
+  videoDriverHealth,
+} from '../../os/systemHealth'
 
 export type ControlPanelSection = (typeof controlPanelSections)[number]
 
@@ -140,6 +146,7 @@ export const INSTALLED_PROGRAMS: readonly InstalledProgram[] = [
   { name: 'Microsoft Paint', appId: 'paint', icon: 'paint', size: '1.1 MB' },
   { name: 'WordPad', appId: 'wordpad', icon: 'wordpad', size: '1.8 MB' },
   { name: 'Notepad', appId: 'notepad', icon: 'notepad', size: '0.3 MB' },
+  { name: 'Portfolio Certificates', appId: 'certificates', icon: 'html', size: '0.2 MB' },
   { name: 'Calculator', appId: 'calculator', icon: 'calculator', size: '0.4 MB' },
   { name: 'Minesweeper', appId: 'minesweeper', icon: 'minesweeper', size: '0.6 MB' },
   {
@@ -181,6 +188,13 @@ function row(label: string, value: string): ControlPanelRow {
   return { label, value }
 }
 
+function displayDriverSummary(fs: FsState, bootMode: BootMode): string {
+  const health = videoDriverHealth(fs)
+  if (health.level === 'warning') return 'VGA Display: Warning'
+  if (!driverHealthy(fs, 'video')) return `VGA Display: ${driverStatusLabel(fs, 'video')}`
+  return bootMode === 'safe' ? 'Standard VGA, 16 colors' : 'Accelerated CSS desktop'
+}
+
 export function getControlPanelRows(input: ControlPanelRowsInput): readonly ControlPanelRow[] {
   const now = input.now ?? new Date()
   const timeZone = input.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -195,11 +209,7 @@ export function getControlPanelRows(input: ControlPanelRowsInput): readonly Cont
         row('Memory', '64 MB simulated RAM'),
         row(
           'Display',
-          !driverHealthy(input.fs, 'video')
-            ? 'VGA Display: Driver Missing'
-            : input.bootMode === 'safe'
-              ? 'Standard VGA, 16 colors'
-              : 'Accelerated CSS desktop',
+          displayDriverSummary(input.fs, input.bootMode),
         ),
       ]
     case 'network':

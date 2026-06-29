@@ -24,20 +24,27 @@ function removeNode(fs: FsState, path: string): FsState {
 }
 
 describe('ControlPanelApp model helpers', () => {
-  it('reports missing video drivers in system rows', () => {
-    const fs = removeNode(createInitialFsState(), 'C:\\Windows\\System32\\display.drv')
-    const rows = getControlPanelRows({
+  it('reports tiered video driver status in system rows', () => {
+    const warningFs = removeNode(createInitialFsState(), 'C:\\Windows\\System32\\display.drv')
+    const degradedFs = removeNode(warningFs, 'C:\\Windows\\System32\\gpu.vxd')
+    const input = {
       sectionId: 'system',
-      fs,
       network,
       bootMode: 'normal',
       cursorScheme: 'win98',
       themeId: 'windowsStandard',
       wallpaperId: 'portfolioSky',
       audio: { enabled: true, muted: false, volume: 0.7 },
-    })
+    } as const
 
-    expect(rows).toContainEqual({ label: 'Display', value: 'VGA Display: Driver Missing' })
+    expect(getControlPanelRows({ ...input, fs: warningFs })).toContainEqual({
+      label: 'Display',
+      value: 'VGA Display: Warning',
+    })
+    expect(getControlPanelRows({ ...input, fs: degradedFs })).toContainEqual({
+      label: 'Display',
+      value: 'VGA Display: Degraded',
+    })
   })
 
   it('keeps audio status derived from driver health and user audio state', () => {

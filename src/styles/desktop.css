@@ -51,6 +51,19 @@
   mix-blend-mode: screen;
 }
 
+.desktop.is-display-unstable::before {
+  opacity: 0.92;
+  animation: display-driver-scan-roll 1.1s steps(5, end) infinite;
+}
+
+.desktop.is-display-unstable::after {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(90deg, rgba(0, 128, 255, 0.07) 0 1px, transparent 1px 3px),
+    rgba(0, 0, 0, 0.18);
+  animation: display-driver-noise 640ms steps(4, end) infinite;
+}
+
 .os-shell.display-driver-missing .desktop-grid {
   filter: grayscale(1) blur(1.35px) contrast(1.28) brightness(0.72);
   transform: translateZ(0);
@@ -67,6 +80,19 @@
 
 .os-shell.display-driver-missing .desktop-icon.is-shortcut::after {
   filter: grayscale(1);
+}
+
+.os-shell.display-driver-unstable .desktop-grid {
+  filter: grayscale(1) blur(2.25px) contrast(1.45) brightness(0.62);
+  animation: display-driver-jitter 820ms steps(4, end) infinite;
+}
+
+.os-shell.display-driver-unstable .window {
+  filter: grayscale(1) blur(1.35px) contrast(1.28) brightness(0.78);
+}
+
+.os-shell.display-driver-unstable .desktop-icon img {
+  filter: grayscale(1) contrast(1.6) brightness(0.72);
 }
 
 .os-shell.is-shell-starting .desktop {
@@ -326,6 +352,54 @@
 @keyframes desktop-loader-icon-pulse {
   50% {
     filter: invert(1);
+  }
+}
+
+@keyframes display-driver-jitter {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(1px, 0);
+  }
+
+  50% {
+    transform: translate(-1px, 1px);
+  }
+
+  75% {
+    transform: translate(0, -1px);
+  }
+}
+
+@keyframes display-driver-noise {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes display-driver-scan-roll {
+  0% {
+    background-position: 0 0, 0 0, center;
+  }
+
+  100% {
+    background-position: 0 12px, 8px 0, center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop.is-display-unstable::before,
+  .desktop.is-display-unstable::after,
+  .os-shell.display-driver-unstable .desktop-grid {
+    animation: none;
   }
 }
 

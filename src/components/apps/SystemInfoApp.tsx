@@ -43,7 +43,9 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
 
 function driverValue(fs: FsState, type: DriverType) {
   const label = driverStatusLabel(fs, type)
-  return <span className={label === 'Detected' ? 'sysinfo-ok' : 'sysinfo-bad'}>{label}</span>
+  const className =
+    label === 'Detected' || label === 'OK' ? 'sysinfo-ok' : label === 'Warning' ? 'sysinfo-warn' : 'sysinfo-bad'
+  return <span className={className}>{label}</span>
 }
 
 function detailFor(

@@ -3,6 +3,9 @@ import type { AppId, WindowPayload, WindowState } from '../../types'
 
 const AboutApp = lazy(() => import('../apps/AboutApp').then((m) => ({ default: m.AboutApp })))
 const CalculatorApp = lazy(() => import('../apps/CalculatorApp').then((m) => ({ default: m.CalculatorApp })))
+const CertificatesApp = lazy(() =>
+  import('../apps/CertificatesApp').then((m) => ({ default: m.CertificatesApp })),
+)
 const ContactApp = lazy(() => import('../apps/ContactApp').then((m) => ({ default: m.ContactApp })))
 const ControlPanelApp = lazy(() => import('../apps/ControlPanelApp').then((m) => ({ default: m.ControlPanelApp })))
 const CreditsApp = lazy(() => import('../apps/CreditsApp').then((m) => ({ default: m.CreditsApp })))
@@ -113,6 +116,8 @@ function appWindowBody(windowState: WindowState, openApp: (appId: AppId, payload
       return <AboutApp />
     case 'contact':
       return <ContactApp />
+    case 'certificates':
+      return <CertificatesApp />
     case 'projects':
       return <ProjectsApp openApp={openApp} />
     case 'projectDetails':

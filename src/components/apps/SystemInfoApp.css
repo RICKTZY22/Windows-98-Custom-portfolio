@@ -103,6 +103,11 @@
   font-weight: 700;
 }
 
+.sysinfo-warn {
+  color: #a36b00;
+  font-weight: 700;
+}
+
 .sysinfo-bad {
   color: #c00;
   font-weight: 700;

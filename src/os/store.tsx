@@ -55,6 +55,7 @@ import {
   effectiveDriverHealthy,
   missingDriverFiles,
   requiredDriverMissing,
+  videoDriverHealth,
 } from './systemHealth'
 import { FEATURE_FILES, featureAvailable, systemFileFailureBox } from './systemFiles'
 import { applyAppearanceEffects, applyCursorScheme, applyTheme, applyWallpaper } from './themes'
@@ -155,6 +156,51 @@ function driverRemovedNotice(type: DriverType, missing: string[]): Omit<MessageB
     detail: `Missing: ${files}\n\n${featureImpact[type]}\n\nOpen BIOS Setup > Recovery Mode, Device Manager, or run SFC /SCANNOW to restore from the protected cache.`,
     icon: type === 'input' ? 'warning' : 'error',
     buttons: ['ok'],
+  }
+}
+
+type VideoDriverNoticeTier = 'warning' | 'degraded' | 'unstable' | 'critical'
+
+function videoDriverRemovedNotice(missing: string[]): Omit<MessageBoxRequest, 'id'> {
+  const count = missing.length
+  const files = missing.map(baseName).join(', ') || 'driver package'
+  const tier: VideoDriverNoticeTier =
+    count <= 1
+      ? 'warning'
+      : count === 2
+        ? 'degraded'
+        : count === 3
+          ? 'unstable'
+          : 'critical'
+  const title = `VGA Display ${tier[0].toUpperCase()}${tier.slice(1)}`
+  const detail: Record<VideoDriverNoticeTier, string> = {
+    warning:
+      'One simulated video driver file is missing. The desktop can continue in compatibility mode and visual apps still open.',
+    degraded:
+      'Two simulated video driver files are missing. Paint, image preview, video rendering, and Display settings are disabled until Recovery restores the protected driver cache.',
+    unstable:
+      'Three simulated video driver files are missing. The desktop will show stronger blur, scanlines, and bounded display errors until Recovery restores the protected driver cache.',
+    critical:
+      'The simulated video driver stack is critically incomplete. Normal boot cannot continue until Recovery restores the protected driver cache.',
+  }
+  return {
+    title,
+    message: `Windows detected a simulated display driver ${tier}.`,
+    detail: `Missing: ${files}\n\n${detail[tier]}\n\nOpen BIOS Setup > Recovery Mode, Device Manager, or run SFC /SCANNOW to restore from the protected cache.`,
+    icon: tier === 'warning' ? 'warning' : 'error',
+    buttons: ['ok'],
+    errorCode: 'ERR_DRIVER_VIDEO_MISSING',
+  }
+}
+
+function videoDriverCrash(missing: string[]): CrashState {
+  const drivers = missing.slice(0, 4).map((path) => baseName(path).toUpperCase()).join(', ')
+  return {
+    title: 'Windows protection error',
+    message: 'The display driver stack has become critically unstable.',
+    detail: `While initializing device VGA: too many simulated video driver files are missing (${drivers || 'unknown display drivers'}). Restart, press F12, and open Recovery Mode to restore the protected driver cache.`,
+    stopCode: '0E : 0028 : C00D15A1',
+    crashedAt: nowStamp(),
   }
 }
 
@@ -575,6 +621,17 @@ export function reducer(state: OsState, action: Action): OsState {
       switch (state.bootTarget) {
         case 'normal':
           if (!isSystemHealthy(state.fs)) {
+            return {
+              ...state,
+              phase: 'loadFailed',
+              bootTarget: 'normal',
+              windows: [],
+              activeWindowId: undefined,
+              messageBoxes: [],
+              startMenuOpen: false,
+            }
+          }
+          if (videoDriverHealth(state.fs).level === 'critical') {
             return {
               ...state,
               phase: 'loadFailed',
@@ -1079,7 +1136,27 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       // OR the terminal both land here), surface a taskbar balloon so the breakage
       // is visible right away — not only when a dependent app is later launched.
       const bootableAfterChange = isSystemHealthy(fs)
+      const previousVideo = videoDriverHealth(before)
+      const nextVideo = videoDriverHealth(fs)
+      if (nextVideo.missingCount > previousVideo.missingCount && nextVideo.level !== previousVideo.level) {
+        const recoveryHint = 'Run SFC /SCANNOW, open Device Manager, or use BIOS Recovery Mode.'
+        const impact: Record<typeof nextVideo.level, string> = {
+          ok: 'Display driver stack is healthy.',
+          warning: 'Standard VGA warning only; visual apps still open.',
+          degraded: 'Paint, image preview, video rendering, and Display settings are disabled.',
+          unstable: 'Display subsystem is unstable; stronger blur, scanlines, and bounded errors are active.',
+          critical: 'Display stack is critical; Windows must restart into Recovery.',
+        }
+        notify(`VGA Display ${nextVideo.level}`, `${impact[nextVideo.level]} ${recoveryHint}`)
+        if (nextVideo.missingCount >= 2) {
+          dispatch({ type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS', driver: 'video' })
+        }
+        if (bootableAfterChange && nextVideo.level !== 'critical') {
+          showMessageBox(videoDriverRemovedNotice(nextVideo.missingFiles))
+        }
+      }
       for (const type of Object.keys(driverDeviceLabels) as DriverType[]) {
+        if (type === 'video') continue
         if (driverHealthy(before, type) && !driverHealthy(fs, type)) {
           const missing = missingDriverFiles(fs, type)
           const recoveryHint = 'Run SFC /SCANNOW, open Device Manager, or use BIOS Recovery Mode.'
@@ -1174,12 +1251,22 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       },
       deleteNode(path: string, opts?: { skipConfirm?: boolean }): string | null {
         void opts // confirmation lives in the UI layer; accepted for API compatibility
+        const previousVideo = videoDriverHealth(stateRef.current.fs)
         const result = fsDeleteNode(stateRef.current.fs, path)
         if (result.error) return result.error
+        const nextVideo = videoDriverHealth(result.fs)
         commitFs(result.fs)
         if (result.criticalDeleted) {
           // Let Explorer render the file disappearing before the lights go out.
           const crash = protectionCrash(normalizePath(path))
+          if (typeof window !== 'undefined') {
+            window.setTimeout(() => crashSystem(crash), 900)
+          } else {
+            crashSystem(crash)
+          }
+        } else if (previousVideo.level !== 'critical' && nextVideo.level === 'critical') {
+          const crash = videoDriverCrash(nextVideo.missingFiles)
+          playSound('error')
           if (typeof window !== 'undefined') {
             window.setTimeout(() => crashSystem(crash), 900)
           } else {
@@ -1338,8 +1425,11 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   // ----- DOM effects: theme / wallpaper / cursor -----
   const inSafeDesktop = state.phase === 'desktop' && state.bootMode === 'safe'
+  const videoHealth = videoDriverHealth(state.fs)
   const displayDriverDegraded =
-    state.phase === 'desktop' && state.bootMode !== 'safe' && !driverHealthy(state.fs, 'video')
+    state.phase === 'desktop' &&
+    state.bootMode !== 'safe' &&
+    (videoHealth.level === 'degraded' || videoHealth.level === 'unstable' || videoHealth.level === 'critical')
   const { themeId, wallpaperId, wallpaperMode, appearanceEffects, cursorScheme } = state
   useEffect(() => {
     const fallbackDisplay = inSafeDesktop || displayDriverDegraded
@@ -1353,7 +1443,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     applyAppearanceEffects(effects)
     applyCursorScheme(cursorScheme)
     if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-display-driver', displayDriverDegraded ? 'missing' : 'ok')
+      document.documentElement.setAttribute('data-display-driver', displayDriverDegraded ? videoHealth.level : 'ok')
     }
   }, [
     themeId,
@@ -1363,6 +1453,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     cursorScheme,
     inSafeDesktop,
     displayDriverDegraded,
+    videoHealth.level,
   ])
 
   // ----- desktop shell readiness -----

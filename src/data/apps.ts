@@ -234,6 +234,12 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'contact',
     defaultRect: WIDE_APP_RECT,
   },
+  certificates: {
+    id: 'certificates',
+    title: 'Certificates',
+    icon: 'html',
+    defaultRect: WIDE_APP_RECT,
+  },
   projects: {
     id: 'projects',
     title: 'My Projects',
@@ -490,6 +496,7 @@ export const startMenuModel: StartMenuModel = [
         payload: { filePath: 'C:\\My Documents\\Resume.doc' },
       },
       { kind: 'item', id: 'contact', label: 'Contact', icon: 'contact', appId: 'contact' },
+      { kind: 'item', id: 'certificates', label: 'Certificates', icon: 'html', appId: 'certificates' },
       { kind: 'item', id: 'credits', label: 'Credits', icon: 'help', appId: 'credits' },
     ],
   },

@@ -32,9 +32,11 @@ import {
 } from '../../data/bios'
 import {
   driverHealthy,
+  driverStatusLabel,
   missingDriverFiles,
   missingSystemHealthGroups,
   systemStatusLabel,
+  videoDriverHealth,
 } from '../systemHealth'
 import {
   EMPTY_WORDPAD_PAGE_HTML,
@@ -187,26 +189,36 @@ describe('virtual filesystem', () => {
     expect(missingAppDriverDependency('notepad', deleted.fs)).toBeNull()
   })
 
-  it('classifies audio and video drivers as feature-scoped dependencies', () => {
+  it('classifies audio drivers and escalates video drivers by missing-file count', () => {
     const fs = createInitialFsState()
     const audioMissing = deleteNode(fs, 'C:\\Windows\\System32\\sound.drv')
-    const videoMissing = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv')
-    const displayDriverMissing = deleteNode(fs, 'C:\\Windows\\System32\\display.drv')
+    const oneVideoMissing = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv')
+    const twoVideoMissing = deleteNode(oneVideoMissing.fs, 'C:\\Windows\\System32\\display.drv')
+    const threeVideoMissing = deleteNode(twoVideoMissing.fs, 'C:\\Windows\\System32\\gpu.vxd')
+    const fourVideoMissing = deleteNode(threeVideoMissing.fs, 'C:\\Windows\\System32\\ddraw.dll')
 
     expect(audioMissing.criticalDeleted).toBe(false)
     expect(driverHealthy(audioMissing.fs, 'audio')).toBe(false)
     expect(missingAppDriverDependency('mediaPlayer', audioMissing.fs)?.type).toBe('audio')
     expect(missingAppDriverDependency('paint', audioMissing.fs)).toBeNull()
 
-    expect(videoMissing.criticalDeleted).toBe(false)
-    expect(driverHealthy(videoMissing.fs, 'video')).toBe(false)
-    expect(missingAppDriverDependency('paint', videoMissing.fs)?.type).toBe('video')
-    expect(missingAppDriverDependency('gallery', videoMissing.fs)?.type).toBe('video')
-    expect(missingAppDriverDependency('notepad', videoMissing.fs)).toBeNull()
+    expect(oneVideoMissing.criticalDeleted).toBe(false)
+    expect(videoDriverHealth(oneVideoMissing.fs).level).toBe('warning')
+    expect(driverStatusLabel(oneVideoMissing.fs, 'video')).toBe('Warning')
+    expect(driverHealthy(oneVideoMissing.fs, 'video')).toBe(true)
+    expect(missingAppDriverDependency('paint', oneVideoMissing.fs)).toBeNull()
+    expect(missingAppDriverDependency('gallery', oneVideoMissing.fs)).toBeNull()
 
-    expect(displayDriverMissing.criticalDeleted).toBe(false)
-    expect(isSystemHealthy(displayDriverMissing.fs)).toBe(true)
-    expect(driverHealthy(displayDriverMissing.fs, 'video')).toBe(false)
+    expect(twoVideoMissing.criticalDeleted).toBe(false)
+    expect(videoDriverHealth(twoVideoMissing.fs).level).toBe('degraded')
+    expect(driverHealthy(twoVideoMissing.fs, 'video')).toBe(false)
+    expect(missingAppDriverDependency('paint', twoVideoMissing.fs)?.type).toBe('video')
+    expect(missingAppDriverDependency('gallery', twoVideoMissing.fs)?.type).toBe('video')
+    expect(missingAppDriverDependency('notepad', twoVideoMissing.fs)).toBeNull()
+
+    expect(videoDriverHealth(threeVideoMissing.fs).level).toBe('unstable')
+    expect(videoDriverHealth(fourVideoMissing.fs).level).toBe('critical')
+    expect(isSystemHealthy(fourVideoMissing.fs)).toBe(true)
   })
 
   it('restores missing simulated drivers from the protected cache', () => {
@@ -219,6 +231,22 @@ describe('virtual filesystem', () => {
     expect(restored.restored).toEqual(['C:\\Windows\\System32\\Drivers\\el90xnd3.sys'])
     expect(driverHealthy(restored.fs, 'network')).toBe(true)
     expect(systemStatusLabel(restored.fs)).toBe('Detected')
+  })
+
+  it('restores critical video driver stacks from the protected cache', () => {
+    let fs = createInitialFsState()
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv').fs
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\display.drv').fs
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\gpu.vxd').fs
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\ddraw.dll').fs
+
+    expect(videoDriverHealth(fs).level).toBe('critical')
+    expect(missingSystemHealthGroups(fs).map((group) => group.label)).toContain('Video Drivers')
+
+    const restored = restoreSystemFiles(fs)
+    expect(missingDriverFiles(restored.fs, 'video')).toEqual([])
+    expect(videoDriverHealth(restored.fs).level).toBe('ok')
+    expect(driverStatusLabel(restored.fs, 'video')).toBe('OK')
   })
 
   it('purges legacy seed artifacts and restores My Videos when topping up a migrated disk', () => {
@@ -430,6 +458,31 @@ describe('window reducer', () => {
 
     const desktop = reducer(training, { type: 'COMPLETE_SAFETY_TRAINING' })
     expect(desktop.phase).toBe('desktop')
+  })
+
+  it('fails normal boot when the video driver stack is critical', () => {
+    let fs = createInitialFsState()
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv').fs
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\display.drv').fs
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\gpu.vxd').fs
+    fs = deleteNode(fs, 'C:\\Windows\\System32\\ddraw.dll').fs
+
+    const initial = {
+      ...baseState(),
+      phase: 'boot',
+      bootTarget: 'normal',
+      bootMode: 'normal',
+      bootProfile: 'warm',
+      fs,
+      messageBoxes: [],
+      clipboard: null,
+      pendingSystemRestore: false,
+      pendingSafetyTraining: false,
+      pendingStartupScan: false,
+    } as OsState
+
+    const failed = reducer(initial, { type: 'FINISH_BOOT' })
+    expect(failed.phase).toBe('loadFailed')
   })
 })
 

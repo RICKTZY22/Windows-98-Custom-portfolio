@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getNode } from '../../os/filesystem'
-import { driverHealthy } from '../../os/systemHealth'
+import { videoDriverHealth } from '../../os/systemHealth'
 import { useOs } from '../../os/useOs'
 import { BootDisclaimer } from '../system/BootDisclaimer'
 import { DesktopContextMenu, type DesktopArrangeMode } from './DesktopContextMenu'
@@ -59,7 +59,12 @@ export function Desktop() {
   })
   const primarySelectedIcon = selectedIconIds[0]
   const keyboardAnchorIcon = primarySelectedIcon ?? selectedIcon ?? builtInDesktopIconFallbackId
-  const displayDriverDegraded = state.bootMode !== 'safe' && !driverHealthy(state.fs, 'video')
+  const videoHealth = videoDriverHealth(state.fs)
+  const displayDriverDegraded =
+    state.bootMode !== 'safe' &&
+    (videoHealth.level === 'degraded' || videoHealth.level === 'unstable' || videoHealth.level === 'critical')
+  const displayDriverUnstable =
+    state.bootMode !== 'safe' && (videoHealth.level === 'unstable' || videoHealth.level === 'critical')
 
   useEffect(() => {
     const delay = state.bootMode === 'safe' ? 300 : desktopShellIntroMs
@@ -293,7 +298,7 @@ export function Desktop() {
     <main
       className={`os-shell ${state.bootMode === 'safe' ? 'safe-mode' : ''} ${
         displayDriverDegraded ? 'display-driver-missing' : ''
-      } ${shellIntroActive ? 'is-shell-starting' : ''}`}
+      } ${displayDriverUnstable ? 'display-driver-unstable' : ''} ${shellIntroActive ? 'is-shell-starting' : ''}`}
       onPointerDown={() => {
         setStartMenuOpen(false)
         setContextMenu(null)
@@ -303,7 +308,7 @@ export function Desktop() {
         ref={desktopRef}
         className={`desktop ${refreshingDesktop ? 'is-refreshing' : ''} ${
           displayDriverDegraded ? 'is-display-degraded' : ''
-        }`}
+        } ${displayDriverUnstable ? 'is-display-unstable' : ''}`}
         aria-label="Windows 98 portfolio desktop"
         onPointerDown={(event) => {
           const target = event.target as HTMLElement

@@ -99,6 +99,7 @@ export type AppId =
   | 'setupSafety'
   | 'about'
   | 'contact'
+  | 'certificates'
   | 'projects'
   | 'projectDetails'
   | 'credits'
