@@ -87,6 +87,11 @@
   background: linear-gradient(90deg, #000080, #1084d0);
 }
 
+.certificates-heading > div {
+  min-width: 0;
+  flex: 1;
+}
+
 .certificates-heading img {
   width: 38px;
   height: 38px;
@@ -100,6 +105,15 @@
 
 .certificates-heading p {
   margin: 2px 0 0;
+}
+
+.certificates-rank {
+  padding: 3px 8px;
+  color: #000080;
+  background: #ffffe1;
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+  white-space: nowrap;
 }
 
 .certificates-meta {

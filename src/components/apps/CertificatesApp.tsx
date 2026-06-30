@@ -44,7 +44,9 @@ export function CertificatesApp() {
               <img src={win98Icons.html} alt="" />
               <span>
                 <strong>{certificate.title}</strong>
-                <small>{certificate.issuer}</small>
+                <small>
+                  {certificate.issuer} - {certificate.ranking}
+                </small>
               </span>
             </button>
           ))}
@@ -60,12 +62,21 @@ export function CertificatesApp() {
                   <h2>{selected.title}</h2>
                   <p>{selected.category}</p>
                 </div>
+                <strong className="certificates-rank">{selected.ranking}</strong>
               </div>
 
               <dl className="certificates-meta">
                 <div>
                   <dt>Issuer</dt>
                   <dd>{selected.issuer}</dd>
+                </div>
+                <div>
+                  <dt>Passed</dt>
+                  <dd>{selected.passedOn}</dd>
+                </div>
+                <div>
+                  <dt>Ranking</dt>
+                  <dd>{selected.ranking}</dd>
                 </div>
                 <div>
                   <dt>Credential ID</dt>
