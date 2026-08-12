@@ -21,6 +21,7 @@ import { getTheme, getWallpaper, selectableThemes, wallpapers } from '../../data
 import { soundCatalog } from '../../os/audio'
 import { useOs } from '../../os/useOs'
 import {
+  audioSystemSoundsAvailable,
   driverFailureBox,
   driverHealthy,
   driverStatusLabel,
@@ -195,6 +196,13 @@ function displayDriverSummary(fs: FsState, bootMode: BootMode): string {
   return bootMode === 'safe' ? 'Standard VGA, 16 colors' : 'Accelerated CSS desktop'
 }
 
+function soundOutputSummary(fs: FsState, audio: AudioState): string {
+  if (!driverHealthy(fs, 'audio')) return 'Disabled'
+  if (!audio.enabled) return 'Disabled'
+  if (!audioSystemSoundsAvailable(fs)) return 'Media only'
+  return 'Enabled'
+}
+
 export function getControlPanelRows(input: ControlPanelRowsInput): readonly ControlPanelRow[] {
   const now = input.now ?? new Date()
   const timeZone = input.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -262,7 +270,7 @@ export function getControlPanelRows(input: ControlPanelRowsInput): readonly Cont
         row('Theme', input.themeId),
         row('Wallpaper', input.wallpaperId),
         row('Audio driver', driverStatusLabel(input.fs, 'audio')),
-        row('Sound', input.audio.enabled && driverHealthy(input.fs, 'audio') ? 'Enabled' : 'Disabled'),
+        row('Sound', soundOutputSummary(input.fs, input.audio)),
       ]
   }
 }

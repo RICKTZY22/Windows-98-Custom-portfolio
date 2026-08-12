@@ -11,6 +11,7 @@ import {
 import { portfolioData } from './portfolioData'
 import { aiUprisingDocHtml } from './aiUprisingDoc'
 import { galleryMusic, galleryPhotos, galleryVideos } from './media'
+import { SYSTEM_FILE_CATALOG } from './systemFileCatalog'
 
 export const REQUIRED_SYSTEM_FILES: string[] = REQUIRED
 
@@ -1528,11 +1529,29 @@ export function createInitialFsState(): FsState {
     })
   }
 
+  function systemIconFor(path: string, name: string, attributes?: FsAttributes): IconKey {
+    switch (attributes?.driverType) {
+      case 'audio':
+        return 'audioDriverFile'
+      case 'video':
+        return 'videoDriverFile'
+      case 'network':
+        return 'networkDriverFile'
+      case 'input':
+        return 'inputDriverFile'
+      case 'storage':
+        return 'driverFile'
+    }
+    if (REQUIRED.includes(path)) return 'coreSystemFile'
+    return iconForFileName(name)
+  }
+
   function sysFile(path: string, size: number, opts: FileOpts = {}): FsNode {
     const name = path.slice(path.lastIndexOf('\\') + 1)
     return file(path, {
       size,
       content: opts.content ?? systemFileContent(name),
+      icon: opts.icon ?? systemIconFor(path, name, opts.attributes),
       modified: RETRO_STAMP,
       ...opts,
     })
@@ -2230,7 +2249,7 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   // The fs is restored wholesale, so a changed icon on a system folder would only
   // reach fresh boots. Re-apply the current seed icon for these paths (children and
   // everything else preserved) so icon updates also land on existing persisted disks.
-  const systemIconPaths = ['C:\\Windows\\Desktop']
+  const systemIconPaths = Array.from(new Set(['C:\\Windows\\Desktop', ...SYSTEM_FILE_CATALOG]))
   const iconNodes = { ...next.nodes }
   let iconChanged = false
   for (const path of systemIconPaths) {

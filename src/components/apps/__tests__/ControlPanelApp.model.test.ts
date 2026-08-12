@@ -49,7 +49,9 @@ describe('ControlPanelApp model helpers', () => {
 
   it('keeps audio status derived from driver health and user audio state', () => {
     const fs = createInitialFsState()
-    const missingAudioFs = removeNode(fs, 'C:\\Windows\\System32\\sound.drv')
+    const warningAudioFs = removeNode(fs, 'C:\\Windows\\System32\\sound.drv')
+    const degradedAudioFs = removeNode(warningAudioFs, 'C:\\Windows\\System32\\wdmaud.drv')
+    const unstableAudioFs = removeNode(degradedAudioFs, 'C:\\Windows\\System32\\winmm.dll')
 
     expect(
       getControlPanelRows({
@@ -67,7 +69,33 @@ describe('ControlPanelApp model helpers', () => {
     expect(
       getControlPanelRows({
         sectionId: 'sounds',
-        fs: missingAudioFs,
+        fs: warningAudioFs,
+        network,
+        bootMode: 'normal',
+        cursorScheme: 'win98',
+        themeId: 'windowsStandard',
+        wallpaperId: 'portfolioSky',
+        audio: { enabled: true, muted: false, volume: 0.7 },
+      }),
+    ).toContainEqual({ label: 'Sound', value: 'Enabled' })
+
+    expect(
+      getControlPanelRows({
+        sectionId: 'sounds',
+        fs: degradedAudioFs,
+        network,
+        bootMode: 'normal',
+        cursorScheme: 'win98',
+        themeId: 'windowsStandard',
+        wallpaperId: 'portfolioSky',
+        audio: { enabled: true, muted: false, volume: 0.7 },
+      }),
+    ).toContainEqual({ label: 'Sound', value: 'Media only' })
+
+    expect(
+      getControlPanelRows({
+        sectionId: 'sounds',
+        fs: unstableAudioFs,
         network,
         bootMode: 'normal',
         cursorScheme: 'win98',

@@ -259,6 +259,19 @@
   min-width: 185px;
 }
 
+.help-system-file-label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 5px;
+}
+
+.help-system-file-label img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
 .help-system-file-table td:first-child strong {
   display: block;
   margin-bottom: 2px;

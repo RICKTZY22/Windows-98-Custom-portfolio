@@ -29,6 +29,31 @@ const QUICK_START = [
 
 const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
   {
+    name: 'Tray balloons and System Log',
+    icon: 'adminTools',
+    text: 'Notifications now behave more like Windows tray balloons: typed messages, duplicate counters, action buttons, and a clearable session-only System Log under System Tools.',
+  },
+  {
+    name: 'Softer audio driver tiers',
+    icon: 'audioDriverFile',
+    text: 'Audio drivers now degrade gently: one missing file warns only, two missing files quiet system sounds, and three or more disable audio apps until Recovery restores them.',
+  },
+  {
+    name: 'Cleaner error dialogs',
+    icon: 'help',
+    text: 'Warnings and runtime errors now use a cleaner Win98-style dialog with a title-bar close button, readable details, and consistent error codes.',
+  },
+  {
+    name: 'Clearer System32 icons',
+    icon: 'coreSystemFile',
+    text: 'System files now use clearer icons: Windows logo for boot-critical core files, speaker for audio drivers, monitor for video drivers, and device icons for network/input drivers.',
+  },
+  {
+    name: 'Certificates app',
+    icon: 'html',
+    text: 'Start > Portfolio > Certificates now stores the TestDome HTML/CSS, React, and JavaScript certificates with rankings and verification links.',
+  },
+  {
     name: 'New essay: The AI Uprising',
     icon: 'wordpad',
     text: 'A new document in My Documents, "The AI Uprising," is an honest take on AI tools, vibe coding, and why foundations still matter. Double-click it to read in WordPad.',
@@ -51,7 +76,7 @@ const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
   {
     name: 'Delete notifications',
     icon: 'recycleBin',
-    text: 'Deleting a file or folder shows a tray notice of what was affected (file and folder counts), plus a warning if a simulated device was disabled.',
+    text: 'Deleting a file or folder shows a tray balloon of what was affected, stores the event in System Log, and offers a useful action when possible.',
   },
   {
     name: 'Maintenance tools',
@@ -156,6 +181,11 @@ const PROGRAMS_SYSTEM: Program[] = [
     text: 'Microsoft System Information: OS, processor, memory map, BIOS, and component details for the simulated machine.',
   },
   {
+    name: 'System Log',
+    icon: 'adminTools',
+    text: 'A notification history viewer for driver warnings, imports, deleted files, cleanup events, and system alerts.',
+  },
+  {
     name: 'Device Manager',
     icon: 'computer',
     text: 'Lists simulated devices and driver health, flagging any problem with a yellow badge.',
@@ -210,24 +240,28 @@ const PROGRAM_GROUPS: Array<{ title: string; items: Program[] }> = [
   { title: 'Games, Security & Portfolio', items: PROGRAMS_MORE },
 ]
 
-const DRIVER_RULES = [
+const DRIVER_RULES: Array<{ name: string; icon: IconKey; files: string; result: string }> = [
   {
     name: 'Network drivers',
+    icon: 'networkDriverFile',
     files: 'winsock.dll, wsock32.dll, netcfg.dll, ndis.vxd, tcpip.sys, el90xnd3.sys',
     result: 'Network Neighborhood, Internet Explorer networking, ping, ipconfig, and network status become unavailable.',
   },
   {
     name: 'Audio drivers',
+    icon: 'audioDriverFile',
     files: 'sound.drv, wdmaud.drv, winmm.dll, dsound.dll, mmsystem.dll',
-    result: 'Startup sounds, Media Player sound, Sound Recorder, and sound settings enter a disabled state.',
+    result: '1 missing warns only, 2 missing quiet system sounds, and 3+ missing disable Media Player audio, Sound Recorder, and sound settings.',
   },
   {
     name: 'Video drivers',
+    icon: 'videoDriverFile',
     files: 'display.drv, vga.drv, gpu.vxd, ddraw.dll',
-    result: 'Paint, image preview, video rendering, gallery previews, and display settings can be blocked.',
+    result: '1 missing shows a warning, 2 missing block visual apps, 3 missing add display glitches, and 4 missing require Recovery.',
   },
   {
     name: 'Core System32 files',
+    icon: 'coreSystemFile',
     files: 'Protected shell, kernel, registry, and boot files',
     result: 'Missing critical files can trigger load failure, crash screens, or safe-mode failure.',
   },
@@ -261,10 +295,33 @@ function systemFileCategory(path: string): string {
   }
 }
 
+function systemFileIcon(path: string): IconKey {
+  const role = systemFileRole(path)
+  if (role.kind === 'critical') return 'coreSystemFile'
+  if (role.kind === 'driver') {
+    switch (role.driver) {
+      case 'audio':
+        return 'audioDriverFile'
+      case 'video':
+        return 'videoDriverFile'
+      case 'network':
+        return 'networkDriverFile'
+      case 'input':
+        return 'inputDriverFile'
+      case 'storage':
+        return 'driverFile'
+    }
+  }
+  if (role.kind === 'feature') return 'sysFile'
+  if (role.kind === 'app') return 'dllFile'
+  return 'windowsFile'
+}
+
 const SYSTEM_FILE_ROWS = SYSTEM_FILE_CATALOG.map((path) => ({
   path,
   name: fileName(path),
   location: displayPath(path),
+  icon: systemFileIcon(path),
   category: systemFileCategory(path),
   consequence: systemFileDeletionConsequence(path),
 }))
@@ -489,7 +546,12 @@ export function HelpApp() {
                 <tbody>
                   {DRIVER_RULES.map((rule) => (
                     <tr key={rule.name}>
-                      <td><strong>{rule.name}</strong></td>
+                      <td>
+                        <span className="help-system-file-label">
+                          <img src={win98Icons[rule.icon]} alt="" />
+                          <strong>{rule.name}</strong>
+                        </span>
+                      </td>
                       <td>{rule.files}</td>
                       <td>{rule.result}</td>
                     </tr>
@@ -498,6 +560,20 @@ export function HelpApp() {
               </table>
               <div className="help-callout">
                 Input drivers may show warnings only. The app will not intentionally trap the real mouse or keyboard.
+              </div>
+              <div className="help-card-grid">
+                <section>
+                  <strong>Windows logo</strong>
+                  <p>Boot-critical core files. Deleting these can stop normal boot until Recovery restores them.</p>
+                </section>
+                <section>
+                  <strong>Speaker / monitor</strong>
+                  <p>Audio and video driver files. These degrade only their matching simulated device category.</p>
+                </section>
+                <section>
+                  <strong>Board / device icons</strong>
+                  <p>Network, input, and generic driver files. These make Explorer easier to scan at a glance.</p>
+                </section>
               </div>
               <h3>System file consequences</h3>
               <p>
@@ -517,8 +593,13 @@ export function HelpApp() {
                   {SYSTEM_FILE_ROWS.map((file) => (
                     <tr key={file.path}>
                       <td>
-                        <strong>{file.name}</strong>
-                        <code>{file.location}</code>
+                        <span className="help-system-file-label">
+                          <img src={win98Icons[file.icon]} alt="" />
+                          <span>
+                            <strong>{file.name}</strong>
+                            <code>{file.location}</code>
+                          </span>
+                        </span>
                       </td>
                       <td>{file.category}</td>
                       <td>{file.consequence}</td>

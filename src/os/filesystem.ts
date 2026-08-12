@@ -8,6 +8,7 @@ import type { AppId, FsNode, FsState, IconKey, RecycleEntry, WindowPayload } fro
  *
  * Taglish note: ito ang source of truth ng fake C: drive. UI components should
  * call these helpers through fsOps, hindi mag-edit ng nodes object directly.
+ * Erick side quest: pag may weird file bug, dito muna mag-kape at mag-trace.
  */
 
 export const PROTECTED_ROOT = 'C:\\Windows'

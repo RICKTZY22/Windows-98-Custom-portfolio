@@ -3,13 +3,24 @@ import { useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { deviceCategories, type DeviceNode } from '../../data/systemProfile'
 import { useOs } from '../../os/useOs'
-import { effectiveDriverHealthy, missingDriverFiles } from '../../os/systemHealth'
+import { driverStatusLabel, effectiveDriverHealthy, missingDriverFiles } from '../../os/systemHealth'
 import { baseName } from '../../os/filesystem'
 import type { BootMode, FsState } from '../../types'
 
 type DeviceStatus = { ok: boolean; code: string; text: string }
 
 function deviceStatus(fs: FsState, device: DeviceNode, bootMode: BootMode): DeviceStatus {
+  if (device.driver && device.driver === 'audio') {
+    const status = driverStatusLabel(fs, device.driver)
+    if (status !== 'OK' && status !== 'Detected') {
+      const files = missingDriverFiles(fs, device.driver).map(baseName).join(', ')
+      return {
+        ok: false,
+        code: status === 'Warning' || status === 'Degraded' ? 'Code 24' : 'Code 28',
+        text: `This simulated audio device is ${status.toLowerCase()} (${files || 'driver package missing'}). Restore the protected driver cache from BIOS Setup > Recovery Mode when convenient.`,
+      }
+    }
+  }
   if (device.driver && !effectiveDriverHealthy(fs, device.driver, bootMode)) {
     const files = missingDriverFiles(fs, device.driver).map(baseName).join(', ')
     return {

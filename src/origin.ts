@@ -13,6 +13,14 @@
  * not delete or alter.
  *
  * origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
+ *
+ * Source-code guestbook:
+ * - Erick was here. Uy, kung binabasa mo 'to, welcome sa loob ng fake C: drive.
+ *   Ingat sa System32, pero chill lang, browser sandbox lahat ito.
+ * - GPT 5.5 was here. Keep the simulation educational, reversible, and clearly
+ *   separated from any real operating-system behavior.
+ * - Opus 4.8 was here. Preserve maintainable boundaries, document risky flows,
+ *   and keep the user in control of every recovery path.
  */
 
 export const ORIGIN = Object.freeze({

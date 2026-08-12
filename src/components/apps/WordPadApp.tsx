@@ -339,10 +339,28 @@ export function WordPadApp({ windowId, payload }: AppProps) {
   )
 
   function save(path = documentPath) {
-    const target = path ?? joinPath('C:\\My Documents', normalizeDocumentName(saveAsName))
     const pages = readPagesFromDom()
+    let target = path ?? joinPath('C:\\My Documents', normalizeDocumentName(saveAsName))
+    let renamed = false
+    if (documentPath && path === documentPath) {
+      const desiredName = normalizeDocumentName(saveAsName)
+      if (desiredName.toLowerCase() !== baseName(documentPath).toLowerCase()) {
+        const renameError = fsOps.renameNode(documentPath, desiredName)
+        if (renameError) {
+          showError(renameError)
+          return
+        }
+        target = joinPath(parentPath(documentPath), desiredName)
+        renamed = true
+      }
+    }
     const error = fsOps.writeFile(target, { content: wordPadPagesToDocumentHtml(pages) })
     if (error) {
+      if (renamed) {
+        setDocumentPath(target)
+        setSaveAsName(baseName(target))
+        setStatus(`Renamed ${target}; save failed`)
+      }
       showError(error)
       return
     }
@@ -350,7 +368,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
     setDocumentPath(target)
     setSaveAsName(baseName(target))
     setDirty(false)
-    setStatus(`Saved ${target}`)
+    setStatus(renamed ? `Renamed and saved ${target}` : `Saved ${target}`)
   }
 
   function saveAs() {

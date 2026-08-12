@@ -306,6 +306,44 @@
   white-space: pre-wrap;
 }
 
+/* ---------- email attachment ---------- */
+.inbox-attachment-box {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: #f4f4f4;
+  border: 1px solid #c0c0c0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+}
+
+.inbox-attachment-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.inbox-attachment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #000;
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+  cursor: pointer;
+}
+
+.inbox-attachment-btn img {
+  image-rendering: pixelated;
+}
+
+.inbox-attachment-btn:active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+}
+
 /* ---------- structured release view ---------- */
 .inbox-release-head {
   display: flex;

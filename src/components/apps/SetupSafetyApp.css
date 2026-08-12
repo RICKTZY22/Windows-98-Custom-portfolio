@@ -15,6 +15,27 @@
   gap: 12px;
 }
 
+.setup-safety-header-text {
+  flex: 1;
+}
+
+.setup-safety-bypass-btn {
+  flex: none;
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #800000;
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+  cursor: pointer;
+}
+
+.setup-safety-bypass-btn:active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+}
+
 .setup-safety-icon {
   display: inline-flex;
   align-items: center;
@@ -43,6 +64,21 @@
   font-size: 13px;
 }
 
+.setup-safety-app.is-lagging {
+  animation: setup-lag-pulse 180ms infinite alternate ease-in-out;
+}
+
+@keyframes setup-lag-pulse {
+  from {
+    filter: contrast(1) brightness(1);
+    transform: translate(0, 0);
+  }
+  to {
+    filter: contrast(1.15) brightness(0.95);
+    transform: translate(1px, -1px);
+  }
+}
+
 .setup-safety-console {
   min-height: 0;
   padding: 10px;
@@ -58,6 +94,18 @@
 .setup-safety-warn {
   margin-top: 8px;
   color: #ffff55;
+}
+
+.setup-safety-critical {
+  margin-top: 8px;
+  color: #ff3333;
+  font-weight: 700;
+  animation: setup-critical-blink 600ms infinite alternate;
+}
+
+@keyframes setup-critical-blink {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
 }
 
 .setup-safety-meter {
@@ -103,7 +151,7 @@
 
 .setup-spam-dialog {
   position: absolute;
-  width: 320px;
+  width: 340px;
   padding: 3px;
   pointer-events: auto;
   background: #c0c0c0;
@@ -148,6 +196,7 @@
   width: 18px;
   height: 16px;
   padding: 0;
+  font-weight: 700;
   font-size: 11px;
   line-height: 1;
 }
@@ -176,8 +225,10 @@
   height: 32px;
   border-radius: 50%;
   color: #fff;
-  background: radial-gradient(circle at 35% 30%, #ff6b6b, #d40000 70%);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  background: #e21b1b;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.4);
   font-size: 22px;
   font-weight: 900;
   line-height: 1;
@@ -185,8 +236,8 @@
 
 .setup-spam-actions {
   display: flex;
-  justify-content: center;
-  padding: 10px 0 14px;
+  justify-content: flex-end;
+  padding: 10px 14px 14px;
 }
 
 .setup-spam-actions button {
@@ -215,4 +266,116 @@
   .setup-spam-dialog {
     animation: none;
   }
+}
+
+.setup-lag-banner {
+  padding: 4px 8px;
+  background: #ff0000;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  animation: setup-lag-blink 400ms infinite alternate ease-in-out;
+}
+
+@keyframes setup-lag-blink {
+  from { background: #b30000; }
+  to { background: #ff0000; }
+}
+
+/* ---------- realistic simulated deletion modal ---------- */
+.simulated-deletion-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  padding: 3px;
+  pointer-events: auto;
+  background: #c0c0c0;
+  box-shadow:
+    inset 1px 1px #dfdfdf,
+    inset -1px -1px #404040,
+    inset 2px 2px #fff,
+    inset -2px -2px #808080,
+    4px 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 12500;
+  animation: setup-dialog-pop 140ms ease-out;
+}
+
+.deletion-titlebar {
+  background: linear-gradient(90deg, #800000, #d01010) !important;
+}
+
+.simulated-deletion-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 14px 10px;
+}
+
+.simulated-flying-icon {
+  font-size: 28px;
+  animation: flying-file-anim 600ms infinite alternate linear;
+}
+
+@keyframes flying-file-anim {
+  from { transform: translateX(-4px) scale(0.95); }
+  to { transform: translateX(6px) scale(1.05); }
+}
+
+.simulated-deletion-info {
+  flex: 1;
+  font-size: 12px;
+}
+
+.simulated-deletion-info p {
+  margin: 0 0 4px;
+}
+
+.simulated-deletion-info code {
+  display: block;
+  padding: 2px 4px;
+  background: #fff;
+  border: 1px solid #808080;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulated-deletion-count {
+  margin-top: 6px !important;
+  color: #666;
+  font-size: 11px;
+}
+
+.simulated-deletion-meter {
+  height: 18px;
+  margin: 4px 14px 8px;
+  padding: 2px;
+  background: #fff;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #fff, inset 2px 2px #404040;
+}
+
+.simulated-deletion-meter div {
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    #800000 0,
+    #800000 9px,
+    #d01010 9px,
+    #d01010 18px
+  );
+  transition: width 200ms linear;
+}
+
+.simulated-deletion-note {
+  padding: 4px 14px 10px;
+  font-size: 11px;
+  color: #444;
+  font-style: italic;
+  text-align: center;
 }

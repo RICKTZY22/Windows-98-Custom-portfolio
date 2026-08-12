@@ -68,6 +68,9 @@ export type CommandOutput = {
 
 // Taglish note: command processor is pure-ish. It returns text + effects, then
 // TerminalApp/store ang bahala mag-open app, update fs/network, or crash system.
+// Erick note: parang DOS, pero behave tayo; lahat dapat recoverable sa sandbox.
+// Model note: command effects must remain declarative so UI and state mutation
+// stay outside this parser.
 const BAD_COMMAND = 'Bad command or file name'
 const VOLUME_LABEL = 'PORTFOLIO'
 const VOLUME_SERIAL = '1998-0612'

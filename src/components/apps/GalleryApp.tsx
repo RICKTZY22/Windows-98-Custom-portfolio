@@ -160,7 +160,12 @@ export function GalleryApp() {
     void importFiles(files)
       .then((result) => {
         if (result.added > 0) {
-          notify('Files imported', `${result.added} file(s) were saved to the local portfolio disk.`)
+          notify('Files imported', `${result.added} file(s) were saved to the local portfolio disk.`, {
+            kind: 'success',
+            icon: 'gallery',
+            dedupeKey: 'gallery-files-imported',
+            action: { label: 'Open My Pictures', appId: 'gallery' },
+          })
           if (result.skipped || result.failed) {
             showMessageBox({
               title: 'Import Complete',

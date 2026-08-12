@@ -11,6 +11,7 @@ import type {
   MessageBoxButton,
   MessageBoxRequest,
   NetworkState,
+  NotifyOptions,
   OsState,
   Point,
   SoundId,
@@ -38,8 +39,9 @@ export type OsContextValue = {
   arrangeDesktopIcons(): void
   showMessageBox(req: Omit<MessageBoxRequest, 'id'>): void
   dismissMessageBox(id: string, button: MessageBoxButton): void
-  notify(title: string, body: string): void
+  notify(title: string, body: string, options?: NotifyOptions): void
   dismissNotification(id: string): void
+  clearNotificationHistory(): void
   // filesystem
   fsOps: {
     createFolder(parent: string, name: string): string | null

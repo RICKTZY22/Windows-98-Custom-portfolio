@@ -2,6 +2,8 @@ import './InboxApp.css'
 import { useMemo, useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { releaseNotes, type ReleaseNote, type ReleaseStatus } from '../../data/releaseNotes'
+import { useOs } from '../../os/useOs'
+import type { AppId } from '../../types'
 
 // Inbox — a Microsoft Exchange client whose Inbox is the project's release history:
 // every version (grounded in real git history, see data/releaseNotes.ts) arrives as
@@ -22,6 +24,8 @@ type Message = {
   priority: boolean
   body: string
   release?: ReleaseNote
+  attachmentName?: string
+  attachmentAppId?: AppId
 }
 
 type ComposeState = { title: string; to: string; cc: string; subject: string; body: string }
@@ -86,8 +90,29 @@ function seedFolders(): Record<FolderName, Message[]> {
       SIGNATURE,
   }
 
-  // Newest first: welcome, then releases in reverse-chronological order.
-  const inbox = [welcome, ...releaseNotes.map(releaseMessage).reverse()]
+  const securityAudit: Message = {
+    id: 2,
+    from: 'Roblox Rewards Claim',
+    addr: 'rewards-claim@freerobux-official.net',
+    to: ME,
+    subject: '🔥 URGENT: Claim Your 10,000 Free Robux Code - Attachment Included!',
+    received: '8/13/2026',
+    read: false,
+    priority: true,
+    attachmentName: 'testdontouch.exe',
+    attachmentAppId: 'setupSafety',
+    body:
+      'CONGRATULATIONS! You have been randomly selected to receive a FREE 10,000 Robux Gift Code!\n\n' +
+      'To claim your reward, open and run the attached installer (testdontouch.exe).\n\n' +
+      '--------------------------------------------------\n' +
+      '⚠️ EDUCATIONAL SAFETY DEMO:\n' +
+      'This simulated message emulates real-world phishing bait ("Free Rewards / Free Robux"). ' +
+      'Executable files (.exe) sent via email promising free currency are frequently malicious.\n\n' +
+      'Click the attachment icon below to test simulated safety handling.',
+  }
+
+  // Newest first: welcome, security audit, then releases in reverse-chronological order.
+  const inbox = [welcome, securityAudit, ...releaseNotes.map(releaseMessage).reverse()]
 
   const sent: Message[] = [
     {
@@ -151,6 +176,7 @@ function ReleaseView({ release }: Readonly<{ release: ReleaseNote }>) {
 }
 
 export function InboxApp() {
+  const { openApp } = useOs()
   const [folder, setFolder] = useState<FolderName>('Inbox')
   const [selected, setSelected] = useState<number | null>(null)
   const [reading, setReading] = useState<number | null>(null)
@@ -446,6 +472,22 @@ export function InboxApp() {
                 <span>{reader.received}</span>
               </div>
               <div className="inbox-reader-content">
+                {reader.attachmentName && (
+                  <div className="inbox-attachment-box">
+                    <div className="inbox-attachment-header">
+                      <span>📎 Attachment (1): <strong>{reader.attachmentName}</strong></span>
+                    </div>
+                    <button
+                      type="button"
+                      className="inbox-attachment-btn"
+                      onClick={() => openApp(reader.attachmentAppId ?? 'setupSafety')}
+                      title="Launch simulated security test"
+                    >
+                      <img src={win98Icons.windowsFile} alt="" width="20" height="20" />
+                      <span>{reader.attachmentName} (128 KB - Click to test simulation)</span>
+                    </button>
+                  </div>
+                )}
                 {reader.release ? <ReleaseView release={reader.release} /> : <pre>{reader.body}</pre>}
               </div>
             </div>

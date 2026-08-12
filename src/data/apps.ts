@@ -149,6 +149,12 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     icon: 'taskManager',
     defaultRect: WIDE_APP_RECT,
   },
+  systemLog: {
+    id: 'systemLog',
+    title: 'System Log',
+    icon: 'adminTools',
+    defaultRect: WIDE_APP_RECT,
+  },
   systemInfo: {
     id: 'systemInfo',
     title: 'Microsoft System Information',
@@ -346,6 +352,7 @@ export const startMenuModel: StartMenuModel = [
             label: 'System Tools',
             icon: 'folder',
             items: [
+              { kind: 'item', id: 'systemLog', label: 'System Log', icon: 'adminTools', appId: 'systemLog' },
               { kind: 'item', id: 'systemInfo', label: 'System Information', icon: 'adminTools', appId: 'systemInfo' },
               {
                 kind: 'item',

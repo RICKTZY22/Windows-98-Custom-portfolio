@@ -66,11 +66,22 @@ export type MissingDriver = {
   missing: string[]
 }
 
-export type VideoDriverHealthLevel = 'ok' | 'warning' | 'degraded' | 'unstable' | 'critical'
+export type DriverHealthLevel = 'ok' | 'warning' | 'degraded' | 'unstable' | 'critical'
+
+export type VideoDriverHealthLevel = DriverHealthLevel
+export type AudioDriverHealthLevel = DriverHealthLevel
 
 export type VideoDriverHealth = {
   type: 'video'
   level: VideoDriverHealthLevel
+  missingCount: number
+  totalFiles: number
+  missingFiles: string[]
+}
+
+export type AudioDriverHealth = {
+  type: 'audio'
+  level: AudioDriverHealthLevel
   missingCount: number
   totalFiles: number
   missingFiles: string[]
@@ -108,6 +119,14 @@ function videoDriverLevelForMissingCount(count: number): VideoDriverHealthLevel 
   return 'critical'
 }
 
+function audioDriverLevelForMissingCount(count: number): AudioDriverHealthLevel {
+  if (count <= 0) return 'ok'
+  if (count === 1) return 'warning'
+  if (count === 2) return 'degraded'
+  if (count === 3) return 'unstable'
+  return 'critical'
+}
+
 export function videoDriverHealth(fs: FsState): VideoDriverHealth {
   const missingFiles = missingDriverFiles(fs, 'video')
   return {
@@ -119,9 +138,27 @@ export function videoDriverHealth(fs: FsState): VideoDriverHealth {
   }
 }
 
+export function audioDriverHealth(fs: FsState): AudioDriverHealth {
+  const missingFiles = missingDriverFiles(fs, 'audio')
+  return {
+    type: 'audio',
+    level: audioDriverLevelForMissingCount(missingFiles.length),
+    missingCount: missingFiles.length,
+    totalFiles: driverFileMap.audio.length,
+    missingFiles,
+  }
+}
+
+export function audioSystemSoundsAvailable(fs: FsState): boolean {
+  return audioDriverHealth(fs).missingCount < 2
+}
+
 export function driverHealthy(fs: FsState, type: DriverType): boolean {
   if (type === 'video') {
     return videoDriverHealth(fs).missingCount < 2
+  }
+  if (type === 'audio') {
+    return audioDriverHealth(fs).missingCount < 3
   }
   return missingDriverFiles(fs, type).length === 0
 }
@@ -165,15 +202,15 @@ export function missingSystemHealthGroups(fs: FsState): MissingHealthGroup[] {
 }
 
 export function driverStatusLabel(fs: FsState, type: DriverType): string {
-  if (type === 'video') {
-    const status: Record<VideoDriverHealthLevel, string> = {
+  if (type === 'video' || type === 'audio') {
+    const status: Record<DriverHealthLevel, string> = {
       ok: 'OK',
       warning: 'Warning',
       degraded: 'Degraded',
       unstable: 'Unstable',
       critical: 'Critical',
     }
-    return status[videoDriverHealth(fs).level]
+    return status[type === 'video' ? videoDriverHealth(fs).level : audioDriverHealth(fs).level]
   }
   return driverHealthy(fs, type) ? 'Detected' : 'Driver Missing'
 }
@@ -214,6 +251,29 @@ export function driverFailureBox(
       message: `${title} cannot use this feature because the simulated video driver stack is ${level}.`,
       detail: `Missing: ${fileList}\n\n${detailByLevel[level]} ${driverRecoveryHint(type)}`,
       icon: level === 'warning' ? 'warning' : 'error',
+      buttons: ['ok'],
+      errorCode: driverErrorCodes[type],
+      recoveryHint: driverRecoveryHint(type),
+    }
+  }
+  if (type === 'audio') {
+    const level = audioDriverLevelForMissingCount(missing.length)
+    const detailByLevel: Record<AudioDriverHealthLevel, string> = {
+      ok: 'The simulated audio driver stack is available.',
+      warning:
+        'One simulated audio driver file is missing. Audio still works, but the device is marked for repair.',
+      degraded:
+        'Two simulated audio driver files are missing. System event sounds are disabled, but media apps can still open.',
+      unstable:
+        'Three simulated audio driver files are missing. Media Player audio, Video Player audio, Sound Recorder, and sound settings are disabled until Recovery restores the files.',
+      critical:
+        'The simulated audio driver stack is critically incomplete. Multimedia audio stays offline until Recovery restores the protected driver cache. The desktop can still boot.',
+    }
+    return {
+      title,
+      message: `${title} cannot use this feature because the simulated audio driver stack is ${level}.`,
+      detail: `Missing: ${fileList}\n\n${detailByLevel[level]} ${driverRecoveryHint(type)}`,
+      icon: level === 'warning' || level === 'degraded' ? 'warning' : 'error',
       buttons: ['ok'],
       errorCode: driverErrorCodes[type],
       recoveryHint: driverRecoveryHint(type),

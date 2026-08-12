@@ -49,13 +49,18 @@ export type IconKey =
   | 'imageFile'
   | 'gallery'
   | 'audioFile'
+  | 'audioDriverFile'
   | 'videoPlayer'
   | 'videoFile'
+  | 'videoDriverFile'
   | 'urlFile'
   | 'sysFile'
+  | 'coreSystemFile'
   | 'execFile'
   | 'dllFile'
   | 'driverFile'
+  | 'networkDriverFile'
+  | 'inputDriverFile'
   | 'cplFile'
   | 'regFile'
   | 'iniFile'
@@ -86,6 +91,7 @@ export type AppId =
   | 'network'
   | 'run'
   | 'taskManager'
+  | 'systemLog'
   | 'systemInfo'
   | 'deviceManager'
   | 'msconfig'
@@ -276,7 +282,27 @@ export type MessageBoxRequest = {
   onResult?: (button: MessageBoxButton) => void
 }
 
-export type OsNotification = { id: string; title: string; body: string }
+export type OsNotificationKind = 'info' | 'warning' | 'error' | 'success' | 'system'
+
+export type OsNotificationAction = {
+  label: string
+  appId: AppId
+  payload?: WindowPayload
+}
+
+export type OsNotification = {
+  id: string
+  title: string
+  body: string
+  kind: OsNotificationKind
+  icon?: IconKey
+  createdAt: string
+  count: number
+  dedupeKey: string
+  action?: OsNotificationAction
+}
+
+export type NotifyOptions = Partial<Pick<OsNotification, 'kind' | 'icon' | 'dedupeKey' | 'action'>>
 
 export type ClipboardState = { mode: 'copy' | 'cut'; path: string } | null
 
@@ -356,6 +382,7 @@ export type OsState = {
   clipboard: ClipboardState
   messageBoxes: MessageBoxRequest[]
   notifications: OsNotification[] // transient taskbar balloons (e.g. driver removed)
+  notificationHistory: OsNotification[] // System Log history, newest first
   startMenuOpen: boolean
 }
 

@@ -122,7 +122,7 @@ function restoredGroupSummary(fs: Parameters<typeof classifyMissingFiles>[0]): s
 }
 
 export function RecoveryConsole() {
-  const { state, fsOps, restart, playSound } = useOs()
+  const { state, fsOps, restart, playSound, notify } = useOs()
   const [choice, setChoice] = useState(1)
   const [output, setOutput] = useState<string[]>([
     'Windows did not load correctly.',
@@ -284,6 +284,12 @@ export function RecoveryConsole() {
         ],
         () => {
           fsOps.replaceFs(result.fs)
+          notify('Protected files restored', `${result.restored.length} protected item(s) were restored from the cache.`, {
+            kind: 'success',
+            icon: 'coreSystemFile',
+            dedupeKey: 'recovery-protected-files-restored',
+            action: { label: 'Open System Log', appId: 'systemLog' },
+          })
           playSound('ding')
         },
       )

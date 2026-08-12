@@ -31,6 +31,8 @@ import {
   moveBootDevice,
 } from '../../data/bios'
 import {
+  audioDriverHealth,
+  audioSystemSoundsAvailable,
   driverHealthy,
   driverStatusLabel,
   missingDriverFiles,
@@ -191,16 +193,32 @@ describe('virtual filesystem', () => {
 
   it('classifies audio drivers and escalates video drivers by missing-file count', () => {
     const fs = createInitialFsState()
-    const audioMissing = deleteNode(fs, 'C:\\Windows\\System32\\sound.drv')
+    const oneAudioMissing = deleteNode(fs, 'C:\\Windows\\System32\\sound.drv')
+    const twoAudioMissing = deleteNode(oneAudioMissing.fs, 'C:\\Windows\\System32\\wdmaud.drv')
+    const threeAudioMissing = deleteNode(twoAudioMissing.fs, 'C:\\Windows\\System32\\winmm.dll')
+    const fourAudioMissing = deleteNode(threeAudioMissing.fs, 'C:\\Windows\\System32\\dsound.dll')
     const oneVideoMissing = deleteNode(fs, 'C:\\Windows\\System32\\Drivers\\vga.drv')
     const twoVideoMissing = deleteNode(oneVideoMissing.fs, 'C:\\Windows\\System32\\display.drv')
     const threeVideoMissing = deleteNode(twoVideoMissing.fs, 'C:\\Windows\\System32\\gpu.vxd')
     const fourVideoMissing = deleteNode(threeVideoMissing.fs, 'C:\\Windows\\System32\\ddraw.dll')
 
-    expect(audioMissing.criticalDeleted).toBe(false)
-    expect(driverHealthy(audioMissing.fs, 'audio')).toBe(false)
-    expect(missingAppDriverDependency('mediaPlayer', audioMissing.fs)?.type).toBe('audio')
-    expect(missingAppDriverDependency('paint', audioMissing.fs)).toBeNull()
+    expect(oneAudioMissing.criticalDeleted).toBe(false)
+    expect(audioDriverHealth(oneAudioMissing.fs).level).toBe('warning')
+    expect(driverHealthy(oneAudioMissing.fs, 'audio')).toBe(true)
+    expect(audioSystemSoundsAvailable(oneAudioMissing.fs)).toBe(true)
+    expect(missingAppDriverDependency('mediaPlayer', oneAudioMissing.fs)).toBeNull()
+
+    expect(audioDriverHealth(twoAudioMissing.fs).level).toBe('degraded')
+    expect(driverHealthy(twoAudioMissing.fs, 'audio')).toBe(true)
+    expect(audioSystemSoundsAvailable(twoAudioMissing.fs)).toBe(false)
+    expect(missingAppDriverDependency('mediaPlayer', twoAudioMissing.fs)).toBeNull()
+
+    expect(audioDriverHealth(threeAudioMissing.fs).level).toBe('unstable')
+    expect(driverHealthy(threeAudioMissing.fs, 'audio')).toBe(false)
+    expect(missingAppDriverDependency('mediaPlayer', threeAudioMissing.fs)?.type).toBe('audio')
+    expect(missingAppDriverDependency('paint', threeAudioMissing.fs)).toBeNull()
+    expect(audioDriverHealth(fourAudioMissing.fs).level).toBe('critical')
+    expect(isSystemHealthy(fourAudioMissing.fs)).toBe(true)
 
     expect(oneVideoMissing.criticalDeleted).toBe(false)
     expect(videoDriverHealth(oneVideoMissing.fs).level).toBe('warning')
@@ -425,6 +443,37 @@ describe('window reducer', () => {
     expect(reopened.windows).toHaveLength(1)
     expect(reopened.windows[0].minimized).toBe(false)
     expect(reopened.activeWindowId).toBe('internetExplorer')
+  })
+
+  it('dedupes tray notifications and keeps a bounded system log history', () => {
+    const note = {
+      id: 'note-1',
+      title: 'Sound Blaster 16 warning',
+      body: 'Audio still works.',
+      kind: 'warning',
+      icon: 'audioDriverFile',
+      createdAt: '2026-06-30T07:00:00.000Z',
+      count: 1,
+      dedupeKey: 'driver-audio-warning',
+    } as const
+    const secondNote = { ...note, id: 'note-2', createdAt: '2026-06-30T07:00:01.000Z' }
+    const state = {
+      ...baseState(),
+      notifications: [],
+      notificationHistory: [],
+    } as unknown as OsState
+
+    const once = reducer(state, { type: 'PUSH_NOTIFICATION', notification: note })
+    const twice = reducer(once, { type: 'PUSH_NOTIFICATION', notification: secondNote })
+
+    expect(twice.notifications).toHaveLength(1)
+    expect(twice.notifications[0].count).toBe(2)
+    expect(twice.notificationHistory).toHaveLength(1)
+    expect(twice.notificationHistory[0].count).toBe(2)
+
+    const cleared = reducer(twice, { type: 'CLEAR_NOTIFICATION_HISTORY' })
+    expect(cleared.notifications).toHaveLength(0)
+    expect(cleared.notificationHistory).toHaveLength(0)
   })
 
   it('routes setup safety crashes through reboot into safety training before returning to desktop', () => {

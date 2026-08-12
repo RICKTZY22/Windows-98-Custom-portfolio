@@ -111,7 +111,7 @@ export function systemFileDeletionConsequence(path: string): string {
         case 'network':
           return 'Network features go offline: Network Neighborhood, Internet Explorer networking, PING, IPCONFIG, DHCP, and LAN status stop working.'
         case 'audio':
-          return 'Sound features stop: startup sound, Media Player audio, Sound Recorder, volume controls, and sound schemes are disabled.'
+          return 'Audio drivers use a softer counter: 1 missing warns only, 2 missing quiet system event sounds, and 3 or more disable Media Player audio, Sound Recorder, and sound settings until Recovery restores them.'
         case 'video':
           return 'Video drivers use a counter: 1 missing shows a VGA warning, 2 missing disable visual/media apps, 3 missing add display glitches, and 4 missing trigger a simulated boot failure until Recovery restores them.'
         case 'input':

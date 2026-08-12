@@ -38,6 +38,7 @@ const SoundRecorderApp = lazy(() =>
   import('../apps/SoundRecorderApp').then((m) => ({ default: m.SoundRecorderApp })),
 )
 const TaskManagerApp = lazy(() => import('../apps/TaskManagerApp').then((m) => ({ default: m.TaskManagerApp })))
+const SystemLogApp = lazy(() => import('../apps/SystemLogApp').then((m) => ({ default: m.SystemLogApp })))
 const SystemInfoApp = lazy(() => import('../apps/SystemInfoApp').then((m) => ({ default: m.SystemInfoApp })))
 const DeviceManagerApp = lazy(() => import('../apps/DeviceManagerApp').then((m) => ({ default: m.DeviceManagerApp })))
 const MsConfigApp = lazy(() => import('../apps/MsConfigApp').then((m) => ({ default: m.MsConfigApp })))
@@ -90,6 +91,8 @@ function appWindowBody(windowState: WindowState, openApp: (appId: AppId, payload
       return <RunDialogApp {...props} />
     case 'taskManager':
       return <TaskManagerApp />
+    case 'systemLog':
+      return <SystemLogApp />
     case 'systemInfo':
       return <SystemInfoApp />
     case 'deviceManager':

@@ -15,6 +15,7 @@ import type {
   MessageBoxButton,
   MessageBoxRequest,
   NetworkState,
+  NotifyOptions,
   OsNotification,
   OsState,
   Point,
@@ -49,6 +50,8 @@ import {
 import { defaultNetworkState, randomDhcpLease, releasedNetworkState } from './network'
 import { isSystemHealthy, missingRequiredSystemFiles, restoreSystemFiles, shouldSafeModeBlueScreen } from './recovery'
 import {
+  audioDriverHealth,
+  audioSystemSoundsAvailable,
   driverDeviceLabels,
   driverFailureBox,
   driverHealthy,
@@ -145,7 +148,8 @@ function driverRemovedNotice(type: DriverType, missing: string[]): Omit<MessageB
   const title = `${driverDeviceLabels[type]} Driver Missing`
   const featureImpact: Record<DriverType, string> = {
     network: 'Network Neighborhood, Internet Explorer, ping, and DHCP are offline until the simulated network driver is restored.',
-    audio: 'Startup sounds, Media Player audio, Sound Recorder, and volume controls are disabled until the simulated audio driver is restored.',
+    audio:
+      'Audio is tiered: one missing file warns, two missing files quiet system sounds, and three or more disable media audio until the simulated driver is restored.',
     video: 'The desktop has switched to Standard VGA compatibility mode. Paint, Imaging Preview, video rendering, gallery preview, and display settings are unavailable until the simulated video driver is restored.',
     input: 'Keyboard and mouse warnings are shown only. Real browser input remains usable so the portfolio OS cannot trap the visitor.',
     storage: 'Disk tools may report a storage controller warning until the simulated driver is restored.',
@@ -193,6 +197,40 @@ function videoDriverRemovedNotice(missing: string[]): Omit<MessageBoxRequest, 'i
   }
 }
 
+type AudioDriverNoticeTier = 'warning' | 'degraded' | 'unstable' | 'critical'
+
+function audioDriverRemovedNotice(missing: string[]): Omit<MessageBoxRequest, 'id'> {
+  const count = missing.length
+  const files = missing.map(baseName).join(', ') || 'driver package'
+  const tier: AudioDriverNoticeTier =
+    count <= 1
+      ? 'warning'
+      : count === 2
+        ? 'degraded'
+        : count === 3
+          ? 'unstable'
+          : 'critical'
+  const title = `Sound Blaster 16 ${tier[0].toUpperCase()}${tier.slice(1)}`
+  const detail: Record<AudioDriverNoticeTier, string> = {
+    warning:
+      'One simulated audio driver file is missing. Audio remains available, but Device Manager and System Health will mark the device for repair.',
+    degraded:
+      'Two simulated audio driver files are missing. System event sounds are disabled, but media programs can still open so the user can inspect the problem safely.',
+    unstable:
+      'Three simulated audio driver files are missing. Media Player audio, Video Player audio, Sound Recorder, and sound settings are disabled until Recovery restores the protected driver cache.',
+    critical:
+      'Four or more simulated audio driver files are missing. The multimedia stack is offline, but the desktop still boots so Recovery, BIOS, and Explorer remain usable.',
+  }
+  return {
+    title,
+    message: `Windows detected a simulated audio driver ${tier}.`,
+    detail: `Missing: ${files}\n\n${detail[tier]}\n\nOpen BIOS Setup > Recovery Mode, Device Manager, or run SFC /SCANNOW to restore from the protected cache.`,
+    icon: tier === 'warning' || tier === 'degraded' ? 'warning' : 'error',
+    buttons: ['ok'],
+    errorCode: 'ERR_DRIVER_AUDIO_MISSING',
+  }
+}
+
 function videoDriverCrash(missing: string[]): CrashState {
   const drivers = missing.slice(0, 4).map((path) => baseName(path).toUpperCase()).join(', ')
   return {
@@ -205,6 +243,8 @@ function videoDriverCrash(missing: string[]): CrashState {
 }
 
 const LOCAL_MEDIA_DROPZONE_SELECTOR = '[data-local-media-dropzone="true"]'
+const MAX_VISIBLE_NOTIFICATIONS = 2
+const MAX_NOTIFICATION_HISTORY = 80
 
 function dragEventHasFiles(event: DragEvent): boolean {
   return Array.from(event.dataTransfer?.types ?? []).includes('Files')
@@ -265,6 +305,22 @@ const defaultAppearanceEffects: AppearanceEffects = {
   windowAnimations: true,
 }
 
+function mergeNotification(list: OsNotification[], incoming: OsNotification, maxItems: number): OsNotification[] {
+  const existing = list.find((note) => note.dedupeKey === incoming.dedupeKey)
+  if (existing) {
+    return [
+      {
+        ...existing,
+        ...incoming,
+        id: existing.id,
+        count: existing.count + 1,
+      },
+      ...list.filter((note) => note.id !== existing.id),
+    ].slice(0, maxItems)
+  }
+  return [incoming, ...list].slice(0, maxItems)
+}
+
 function createDefaultState(): OsState {
   const persisted = loadPersistedState()
   const themeId = persisted?.themeId ?? defaultThemeId
@@ -299,6 +355,7 @@ function createDefaultState(): OsState {
     clipboard: null,
     messageBoxes: [],
     notifications: [],
+    notificationHistory: [],
     startMenuOpen: false,
   }
 }
@@ -325,6 +382,7 @@ type Action =
   | { type: 'REMOVE_MESSAGE_BOX'; id: string }
   | { type: 'PUSH_NOTIFICATION'; notification: OsNotification }
   | { type: 'DISMISS_NOTIFICATION'; id: string }
+  | { type: 'CLEAR_NOTIFICATION_HISTORY' }
   | { type: 'SET_FS'; fs: FsState }
   | { type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS'; driver: DriverType }
   | { type: 'SET_CLIPBOARD'; clipboard: ClipboardState }
@@ -472,10 +530,25 @@ export function reducer(state: OsState, action: Action): OsState {
       return { ...state, messageBoxes: [...state.messageBoxes, action.box] }
     case 'REMOVE_MESSAGE_BOX':
       return { ...state, messageBoxes: state.messageBoxes.filter((box) => box.id !== action.id) }
-    case 'PUSH_NOTIFICATION':
-      return { ...state, notifications: [...state.notifications, action.notification] }
+    case 'PUSH_NOTIFICATION': {
+      return {
+        ...state,
+        notifications: mergeNotification(
+          state.notifications,
+          action.notification,
+          MAX_VISIBLE_NOTIFICATIONS,
+        ),
+        notificationHistory: mergeNotification(
+          state.notificationHistory,
+          action.notification,
+          MAX_NOTIFICATION_HISTORY,
+        ),
+      }
+    }
     case 'DISMISS_NOTIFICATION':
       return { ...state, notifications: state.notifications.filter((note) => note.id !== action.id) }
+    case 'CLEAR_NOTIFICATION_HISTORY':
+      return { ...state, notifications: [], notificationHistory: [] }
     case 'SET_FS':
       return { ...state, fs: action.fs }
     case 'CLOSE_DRIVER_DEPENDENT_WINDOWS': {
@@ -725,7 +798,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
   const playSound = useCallback((id: SoundId) => {
     const current = stateRef.current
     if (!current.audio.enabled || current.audio.muted || current.audio.volume <= 0) return
-    if (!driverHealthy(current.fs, 'audio')) return
+    if (!audioSystemSoundsAvailable(current.fs)) return
     if (current.bootMode === 'safe' && current.phase === 'desktop') return
     synthPlaySound(id, current.audio.volume)
   }, [])
@@ -737,7 +810,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       startupSoundPlayedRef.current = true
       return
     }
-    if (!driverHealthy(current.fs, 'audio')) return
+    if (!audioSystemSoundsAvailable(current.fs)) return
     if (!current.audio.enabled || current.audio.muted || current.audio.volume <= 0) {
       // Audio isn't available yet (e.g. before the first user gesture enables it).
       // Leave the ref unset so the chime still plays once audio comes on.
@@ -803,10 +876,33 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     dispatch({ type: 'DISMISS_NOTIFICATION', id })
   }, [])
 
-  const notify = useCallback((title: string, body: string) => {
-    notificationCounter += 1
-    dispatch({ type: 'PUSH_NOTIFICATION', notification: { id: `note-${notificationCounter}`, title, body } })
+  const clearNotificationHistory = useCallback(() => {
+    dispatch({ type: 'CLEAR_NOTIFICATION_HISTORY' })
   }, [])
+
+  const notify = useCallback((title: string, body: string, options: NotifyOptions = {}) => {
+    notificationCounter += 1
+    const kind = options.kind ?? 'info'
+    const notification: OsNotification = {
+      id: `note-${notificationCounter}`,
+      title,
+      body,
+      kind,
+      icon: options.icon,
+      createdAt: new Date().toISOString(),
+      count: 1,
+      dedupeKey: options.dedupeKey ?? `${kind}:${title}:${body}`,
+      action: options.action,
+    }
+    dispatch({ type: 'PUSH_NOTIFICATION', notification })
+    if (kind === 'error') {
+      playSound('error')
+    } else if (kind === 'warning') {
+      playSound('warn')
+    } else if (kind === 'success') {
+      playSound('ding')
+    }
+  }, [playSound])
 
   // Prevent the browser's native "drop a file to navigate to it" behavior. The
   // Gallery still receives drops normally; this only catches drops that miss a
@@ -828,7 +924,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       const now = Date.now()
       if (now - rejectedFileDropNoticeRef.current < 1500) return
       rejectedFileDropNoticeRef.current = now
-      notify('Drop target not available', 'Open My Pictures and drop media inside the window to import it locally.')
+      notify('Drop target not available', 'Open My Pictures and drop media inside the window to import it locally.', {
+        kind: 'warning',
+        icon: 'gallery',
+        dedupeKey: 'drop-target-miss',
+        action: { label: 'Open My Pictures', appId: 'gallery' },
+      })
     }
 
     window.addEventListener('dragover', handleDragOver, { capture: true })
@@ -1044,7 +1145,13 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
 
   const stageSystemRestore = useCallback(() => {
     dispatch({ type: 'STAGE_SYSTEM_RESTORE' })
-  }, [])
+    notify('System restore scheduled', 'Protected files will be restored from the cache on the next restart.', {
+      kind: 'system',
+      icon: 'coreSystemFile',
+      dedupeKey: 'system-restore-scheduled',
+      action: { label: 'Open System Log', appId: 'systemLog' },
+    })
+  }, [notify])
 
   const enterBiosSetup = useCallback(() => {
     dispatch({ type: 'ENTER_BIOS_SETUP' })
@@ -1119,7 +1226,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         void deleteLocalMediaRefs(abandonedLocalMedia)
           .then((count) => {
             if (count) {
-              notify('Local media storage cleaned', `${count} imported file blob(s) removed from this browser.`)
+              notify('Local media storage cleaned', `${count} imported file blob(s) removed from this browser.`, {
+                kind: 'success',
+                icon: 'hardDrive',
+                dedupeKey: 'local-media-cleaned',
+                action: { label: 'Open My Pictures', appId: 'gallery' },
+              })
             }
           })
           .catch(() => {
@@ -1130,7 +1242,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       // both Explorer deletes and terminal `del`, since both flow through here.
       const deletion = summarizeDeletion(before, fs)
       if (deletion) {
-        notify(deletion.title, deletion.body)
+        notify(deletion.title, deletion.body, {
+          kind: 'info',
+          icon: 'recycleBin',
+          dedupeKey: `${deletion.title}:${deletion.body}`,
+          action: { label: 'View Recycle Bin', appId: 'recycleBin' },
+        })
       }
       // If this change just broke a driver or feature (deleting a file via Explorer
       // OR the terminal both land here), surface a taskbar balloon so the breakage
@@ -1147,7 +1264,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
           unstable: 'Display subsystem is unstable; stronger blur, scanlines, and bounded errors are active.',
           critical: 'Display stack is critical; Windows must restart into Recovery.',
         }
-        notify(`VGA Display ${nextVideo.level}`, `${impact[nextVideo.level]} ${recoveryHint}`)
+        notify(`VGA Display ${nextVideo.level}`, `${impact[nextVideo.level]} ${recoveryHint}`, {
+          kind: nextVideo.level === 'warning' ? 'warning' : 'error',
+          icon: 'videoDriverFile',
+          dedupeKey: `driver-video-${nextVideo.level}`,
+          action: { label: 'Open Device Manager', appId: 'deviceManager' },
+        })
         if (nextVideo.missingCount >= 2) {
           dispatch({ type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS', driver: 'video' })
         }
@@ -1155,8 +1277,35 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
           showMessageBox(videoDriverRemovedNotice(nextVideo.missingFiles))
         }
       }
+      const previousAudio = audioDriverHealth(before)
+      const nextAudio = audioDriverHealth(fs)
+      if (nextAudio.missingCount > previousAudio.missingCount && nextAudio.level !== previousAudio.level) {
+        const recoveryHint = 'Run SFC /SCANNOW, open Device Manager, or use BIOS Recovery Mode.'
+        const impact: Record<typeof nextAudio.level, string> = {
+          ok: 'Audio driver stack is healthy.',
+          warning: 'Audio still works; Device Manager marks the simulated sound driver for repair.',
+          degraded: 'System event sounds are quiet; media apps can still open.',
+          unstable: 'Media audio, Sound Recorder, and sound settings are disabled.',
+          critical: 'Multimedia audio is offline; the desktop remains repairable.',
+        }
+        notify(`Sound Blaster 16 ${nextAudio.level}`, `${impact[nextAudio.level]} ${recoveryHint}`, {
+          kind: nextAudio.level === 'warning' || nextAudio.level === 'degraded' ? 'warning' : 'error',
+          icon: 'audioDriverFile',
+          dedupeKey: `driver-audio-${nextAudio.level}`,
+          action: { label: 'Open Device Manager', appId: 'deviceManager' },
+        })
+        if (nextAudio.missingCount >= 3) {
+          dispatch({ type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS', driver: 'audio' })
+          const audio: AudioState = { ...stateRef.current.audio, enabled: false, muted: true }
+          stateRef.current = { ...stateRef.current, audio }
+          dispatch({ type: 'SET_AUDIO', audio })
+        }
+        if (bootableAfterChange) {
+          showMessageBox(audioDriverRemovedNotice(nextAudio.missingFiles))
+        }
+      }
       for (const type of Object.keys(driverDeviceLabels) as DriverType[]) {
-        if (type === 'video') continue
+        if (type === 'video' || type === 'audio') continue
         if (driverHealthy(before, type) && !driverHealthy(fs, type)) {
           const missing = missingDriverFiles(fs, type)
           const recoveryHint = 'Run SFC /SCANNOW, open Device Manager, or use BIOS Recovery Mode.'
@@ -1167,17 +1316,22 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
             input: 'Input warning only; real keyboard and mouse remain usable.',
             storage: 'Storage controller warning reported by Device Manager.',
           }
-          notify(`${driverDeviceLabels[type]} disabled`, `${impact[type]} ${recoveryHint}`)
+          notify(`${driverDeviceLabels[type]} disabled`, `${impact[type]} ${recoveryHint}`, {
+            kind: type === 'input' || type === 'storage' ? 'warning' : 'error',
+            icon:
+              type === 'network'
+                ? 'networkDriverFile'
+                : type === 'input'
+                  ? 'inputDriverFile'
+                  : 'driverFile',
+            dedupeKey: `driver-${type}-disabled`,
+            action: { label: type === 'network' ? 'Open Network' : 'Open Device Manager', appId: type === 'network' ? 'network' : 'deviceManager' },
+          })
           dispatch({ type: 'CLOSE_DRIVER_DEPENDENT_WINDOWS', driver: type })
           if (type === 'network') {
             const network = releasedNetworkState()
             stateRef.current = { ...stateRef.current, network }
             dispatch({ type: 'SET_NETWORK', network })
-          }
-          if (type === 'audio') {
-            const audio: AudioState = { ...stateRef.current.audio, enabled: false, muted: true }
-            stateRef.current = { ...stateRef.current, audio }
-            dispatch({ type: 'SET_AUDIO', audio })
           }
           if (bootableAfterChange) {
             showMessageBox(driverRemovedNotice(type, missing))
@@ -1186,7 +1340,12 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       }
       for (const feature of Object.keys(FEATURE_FILES)) {
         if (featureAvailable(before, feature) && !featureAvailable(fs, feature)) {
-          notify(`${feature} unavailable`, 'A required system file was removed. Run SFC /SCANNOW to restore it.')
+          notify(`${feature} unavailable`, 'A required system file was removed. Run SFC /SCANNOW to restore it.', {
+            kind: 'warning',
+            icon: 'coreSystemFile',
+            dedupeKey: `feature-${feature}-unavailable`,
+            action: { label: 'Open Help', appId: 'help' },
+          })
           if (bootableAfterChange) {
             showMessageBox({
               title: 'System File Missing',
@@ -1278,9 +1437,38 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         return null
       },
       restoreEntry(entryId: string): string | null {
-        const result = fsRestoreEntry(stateRef.current.fs, entryId)
+        const beforeFs = stateRef.current.fs
+        const entry = beforeFs.recycle.find((item) => item.id === entryId)
+        const result = fsRestoreEntry(beforeFs, entryId)
         if (result.error) return result.error
         commitFs(result.fs)
+        if (entry) {
+          const restoredDriver = (Object.keys(driverDeviceLabels) as DriverType[]).find(
+            (type) => missingDriverFiles(result.fs, type).length < missingDriverFiles(beforeFs, type).length,
+          )
+          if (restoredDriver) {
+            notify(`${driverDeviceLabels[restoredDriver]} restored`, `"${entry.name}" restored the simulated device file.`, {
+              kind: 'success',
+              icon:
+                restoredDriver === 'audio'
+                  ? 'audioDriverFile'
+                  : restoredDriver === 'video'
+                    ? 'videoDriverFile'
+                    : restoredDriver === 'network'
+                      ? 'networkDriverFile'
+                      : 'driverFile',
+              dedupeKey: `driver-${restoredDriver}-restored`,
+              action: { label: 'Open Device Manager', appId: 'deviceManager' },
+            })
+          } else {
+            notify('File restored', `"${entry.name}" was restored to ${entry.rootPath}.`, {
+              kind: 'success',
+              icon: entry.icon,
+              dedupeKey: `restore-${entry.rootPath}`,
+              action: { label: 'Open Folder', appId: 'explorer', payload: { path: parentPath(entry.rootPath) } },
+            })
+          }
+        }
         return null
       },
       emptyRecycleBin(): void {
@@ -1291,7 +1479,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         commitFs(fs)
       },
     }),
-    [commitFs, crashSystem, playSound],
+    [commitFs, crashSystem, notify, playSound],
   )
 
   const setClipboard = useCallback((clipboard: ClipboardState) => {
@@ -1392,7 +1580,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     const audio: AudioState = { ...stateRef.current.audio, enabled: true, muted: false }
     stateRef.current = { ...stateRef.current, audio }
     dispatch({ type: 'SET_AUDIO', audio })
-    if (!audio.muted && audio.volume > 0) {
+    if (!audio.muted && audio.volume > 0 && audioSystemSoundsAvailable(stateRef.current.fs)) {
       synthPlaySound('ding', audio.volume)
     }
   }, [showMessageBox])
@@ -1411,7 +1599,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     const audio: AudioState = { ...stateRef.current.audio, enabled: true, muted }
     stateRef.current = { ...stateRef.current, audio }
     dispatch({ type: 'SET_AUDIO', audio })
-    if (!muted && audio.volume > 0) {
+    if (!muted && audio.volume > 0 && audioSystemSoundsAvailable(stateRef.current.fs)) {
       synthPlaySound('ding', audio.volume)
     }
   }, [showMessageBox])
@@ -1522,6 +1710,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       dismissMessageBox,
       notify,
       dismissNotification,
+      clearNotificationHistory,
       fsOps,
       setClipboard,
       networkOps,
@@ -1565,6 +1754,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       dismissMessageBox,
       notify,
       dismissNotification,
+      clearNotificationHistory,
       fsOps,
       setClipboard,
       networkOps,

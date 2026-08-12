@@ -434,6 +434,7 @@ export function Desktop() {
           state.windows.filter((window) => !window.minimized).forEach((window) => minimizeWindow(window.instanceId))
         }}
         onOpenTaskManager={() => openApp('taskManager')}
+        onOpenSystemLog={() => openApp('systemLog')}
         onOpenTaskbarProperties={() => openApp('controlPanel', { controlPanelSection: 'display' })}
       />
       {state.appearanceEffects.mouseTrails && <MouseTrails />}

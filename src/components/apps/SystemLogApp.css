@@ -1,0 +1,147 @@
+.system-log-app {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 0;
+  background: #c0c0c0;
+}
+
+.system-log-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-top: 1px solid #dfdfdf;
+  border-bottom: 1px solid #808080;
+  font-size: 11px;
+}
+
+.system-log-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.system-log-toolbar button.active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+}
+
+.system-log-panel {
+  min-height: 0;
+  margin: 0 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fff;
+}
+
+.system-log-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.system-log-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 6px;
+  text-align: left;
+  background: #c0c0c0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #808080;
+}
+
+.system-log-table th:first-child {
+  width: 70px;
+}
+
+.system-log-table th:nth-child(2) {
+  width: 98px;
+}
+
+.system-log-table th:last-child {
+  width: 104px;
+}
+
+.system-log-table td {
+  padding: 5px 6px;
+  vertical-align: top;
+  border-bottom: 1px solid #e4e4e4;
+  overflow: hidden;
+}
+
+.system-log-table td:first-child {
+  width: 70px;
+  color: #333;
+  white-space: nowrap;
+}
+
+.system-log-table td:nth-child(2) {
+  width: 98px;
+}
+
+.system-log-table td:last-child {
+  width: 104px;
+  text-align: right;
+}
+
+.system-log-table strong,
+.system-log-table span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.system-log-table button {
+  max-width: 100%;
+  min-height: 20px;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.system-log-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.system-log-kind img {
+  width: 16px;
+  height: 16px;
+}
+
+.system-log-kind-warning {
+  color: #6f4f00;
+}
+
+.system-log-kind-error {
+  color: #9b0000;
+}
+
+.system-log-kind-success {
+  color: #006a16;
+}
+
+.system-log-muted {
+  color: #666;
+}
+
+.system-log-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 260px;
+  padding: 24px;
+  color: #333;
+  text-align: center;
+}
+
+.system-log-empty img {
+  width: 32px;
+  height: 32px;
+}

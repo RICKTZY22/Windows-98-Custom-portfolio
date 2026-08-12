@@ -368,7 +368,7 @@ export const releaseNotes: ReleaseNote[] = [
     codename: 'Driver Lab',
     date: 'June 29, 2026',
     shortDate: '6/29/2026',
-    status: 'current',
+    status: 'released',
     headline: 'Driver effects, controls & repair notes',
     summary:
       'The current in-progress build focuses on making driver deletion feel more believable without making the simulation hostile: video failure is visual, game controls are modernized, and Help now documents what every system file does.',
@@ -414,5 +414,112 @@ export const releaseNotes: ReleaseNote[] = [
       },
     ],
     commits: ['Add driver effects, system file docs, game controls, and Blob media fixes'],
+  },
+  {
+    version: '1.10.0',
+    label: 'v1.10',
+    codename: 'Visual Labels',
+    date: 'June 30, 2026',
+    shortDate: '6/30/2026',
+    status: 'released',
+    headline: 'Certificates, clearer system files & Win98 notifications',
+    summary:
+      'This patch makes the portfolio easier to read at a glance: certificates now live in their own app, System32 files have clearer icons, audio driver deletion degrades gently, dialogs are easier to understand, and notifications now feel closer to Windows tray balloons.',
+    sections: [
+      {
+        title: 'Certificates',
+        items: [
+          'Added the Certificates app under Start > Portfolio.',
+          'Stored TestDome HTML/CSS, React, and JavaScript certificates with rankings, passed dates, credential IDs, and verification links.',
+          'The certificate app remains lazy-loaded so the desktop startup bundle stays lean.',
+        ],
+      },
+      {
+        title: 'System file clarity',
+        items: [
+          'Audio driver files now use speaker-style icons and video driver files now use display-style icons.',
+          'Boot-critical core system files now use a Windows-logo system icon to separate them from ordinary DLLs.',
+          'Network and input driver files also use device-oriented icons so Explorer is easier to scan.',
+          'Existing persisted virtual disks refresh these icon changes without restoring files the user intentionally deleted.',
+        ],
+      },
+      {
+        title: 'Audio driver behavior',
+        items: [
+          'Audio drivers now use a softer counter instead of failing on the first missing file.',
+          'One missing audio driver shows a warning only; two missing files quiet system event sounds while media apps can still open.',
+          'Three or more missing audio driver files disable Media Player audio, Video Player audio, Sound Recorder, and sound settings until Recovery restores the protected cache.',
+          'Audio driver loss never crashes normal boot by itself, so Explorer, BIOS, and Recovery stay usable.',
+        ],
+      },
+      {
+        title: 'Dialog polish',
+        items: [
+          'Message boxes now include a Win98 title-bar close button.',
+          'Error, warning, info, and question dialogs use distinct icons and cleaner detail formatting.',
+          'Driver errors show consistent error codes without making the simulation feel hostile.',
+        ],
+      },
+      {
+        title: 'Notifications',
+        items: [
+          'Tray balloons now use notification types, classic icons, duplicate counters, and action buttons.',
+          'Only a couple of balloons stay visible at once so repeated driver or file events do not spam the desktop.',
+          'Added a compact, clearable System Log under Programs > Accessories > System Tools for recent driver, file, import, cleanup, restore, and system events.',
+          'Restoring files now records success events so old missing/deleted entries read as history instead of live status.',
+          'Common notices can open useful places directly, such as Device Manager, My Pictures, Recycle Bin, Network Neighborhood, or Help.',
+        ],
+      },
+      {
+        title: 'Help and Inbox',
+        items: [
+          'Help > What\'s New now mentions the Certificates app and the clearer System32 icon categories.',
+          'Help > What\'s New now documents audio driver tiers, cleaner error dialogs, and the System Log notification overhaul.',
+          'Help > Files and Drivers now shows the same icon language used by Explorer and explains audio/video driver counters.',
+          'Inbox release history now has a new current release mail for this patch.',
+        ],
+      },
+    ],
+    commits: [
+      'Add new system apps and certificates',
+      'Update TestDome certificates',
+      'Add system file icon clarity and release notes',
+      'Add audio driver tiers and dialog polish',
+      'Overhaul tray notifications and add System Log',
+    ],
+  },
+  {
+    version: '1.11.0',
+    label: 'v1.11',
+    codename: 'Safety & Phishing Audit',
+    date: 'August 13, 2026',
+    shortDate: '8/13/2026',
+    status: 'current',
+    headline: 'Enhanced Setup Safety simulation, phishing email test & realistic deletion modal',
+    summary:
+      'This release overhauls the educational testdontouch.exe setup simulation: error popups now spread across the desktop, popups double after a 2-second relief delay, simulated OS lag indicators trigger on resource spikes, a realistic flying-file deletion progress modal appears before BSOD, and a simulated phishing email with executable attachment tests real-life security awareness in Inbox.',
+    sections: [
+      {
+        title: 'Setup Safety Simulation',
+        items: [
+          'Overhauled testdontouch.exe setup wizard with quadrant-based popup layout across the desktop.',
+          'Closing or confirming an error popup now delays for 2 seconds before spawning double error popups.',
+          'Added high-CPU simulated OS lag banner and screen thrum animation on resource escalation.',
+          'Added simulated RAM consumption counter (+4 MB per popup) in the status bar.',
+          'Added a realistic retro Win98 flying-file deletion progress modal before triggering BSOD.',
+          'Included a Safety Bypass button and Shift+Esc shortcut to immediately open Safety Training.',
+        ],
+      },
+      {
+        title: 'Inbox Phishing Awareness',
+        items: [
+          'Added a simulated phishing email (Claim Your Free 10,000 Robux Code) with clickable testdontouch.exe attachment in Inbox to demonstrate real-world social engineering awareness.',
+        ],
+      },
+    ],
+    commits: [
+      'Add Setup Safety simulation enhancements and phishing email attachment',
+      'Add 2-second popup delay, spread out error layout, and realistic deletion modal',
+    ],
   },
 ]

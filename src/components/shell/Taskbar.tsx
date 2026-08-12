@@ -42,6 +42,7 @@ type TaskbarProps = {
   onTaskClose: (instanceId: string) => void
   onMinimizeAll: () => void
   onOpenTaskManager: () => void
+  onOpenSystemLog: () => void
   onOpenTaskbarProperties: () => void
 }
 
@@ -68,6 +69,7 @@ export function Taskbar({
   onTaskClose,
   onMinimizeAll,
   onOpenTaskManager,
+  onOpenSystemLog,
   onOpenTaskbarProperties,
 }: TaskbarProps) {
   const soundOn = audioEnabled && !audioMuted
@@ -192,6 +194,14 @@ export function Taskbar({
         ))}
       </div>
       <div className="tray" aria-label="System tray">
+        <button
+          className="tray-button"
+          type="button"
+          title="System Log\nView recent portfolio OS notifications"
+          onClick={onOpenSystemLog}
+        >
+          <img className="tray-icon" src={win98Icons.adminTools} alt="" />
+        </button>
         <button
           className={`tray-button ${network.connected ? '' : 'offline'}`}
           type="button"
