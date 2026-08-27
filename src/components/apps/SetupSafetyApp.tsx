@@ -175,11 +175,17 @@ export function SetupSafetyApp({ windowId }: AppProps) {
 
   useEffect(() => {
     if (!dialogs.length) return
+    let modalTimer: number | undefined
     if (dialogs.length >= 10 && !showDeletionModal) {
-      setShowDeletionModal(true)
+      modalTimer = window.setTimeout(() => setShowDeletionModal(true), 0)
     }
     if (dialogs.length >= CRASH_DIALOGS) {
       scheduleCrash(1400)
+    }
+    return () => {
+      if (modalTimer !== undefined) {
+        window.clearTimeout(modalTimer)
+      }
     }
   }, [dialogs.length, scheduleCrash, showDeletionModal])
 

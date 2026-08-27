@@ -29,6 +29,11 @@ const QUICK_START = [
 
 const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
   {
+    name: 'Portfolio App',
+    icon: 'student',
+    text: 'A single-window portfolio center with internal sections. Project cards open project tabs with full details, documentation, and local uploads.',
+  },
+  {
     name: 'Tray balloons and System Log',
     icon: 'adminTools',
     text: 'Notifications now behave more like Windows tray balloons: typed messages, duplicate counters, action buttons, and a clearable session-only System Log under System Tools.',
@@ -221,6 +226,11 @@ const PROGRAMS_MORE: Program[] = [
     name: 'DOOM & Wolfenstein 3D',
     icon: 'dos',
     text: 'The free shareware episodes, running entirely in the browser via js-dos. Controls use the keyboard and mouse.',
+  },
+  {
+    name: 'Portfolio App',
+    icon: 'student',
+    text: 'Single-window portfolio center for profile, projects, certificates, resume notes, contact links, credits, project documentation, and project uploads.',
   },
   { name: 'About Me', icon: 'student', text: "John Erick Mendoza's background, story, and highlights." },
   { name: 'My Projects', icon: 'projects', text: 'Project gallery. Open a project for its details, stack, and links.' },

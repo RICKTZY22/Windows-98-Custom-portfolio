@@ -516,10 +516,20 @@ export const releaseNotes: ReleaseNote[] = [
           'Added a simulated phishing email (Claim Your Free 10,000 Robux Code) with clickable testdontouch.exe attachment in Inbox to demonstrate real-world social engineering awareness.',
         ],
       },
+      {
+        title: 'Portfolio Hub',
+        items: [
+          'Added a new Portfolio App to the desktop and Start > Portfolio.',
+          'Converted the first version from shortcut launcher behavior into one contained app with internal sections.',
+          'Project cards now open new project tabs with full details, documentation, and local browser-only uploads.',
+          'Changed the Portfolio App icon to a human/profile-style icon and removed the extra app-summary card from the body.',
+        ],
+      },
     ],
     commits: [
       'Add Setup Safety simulation enhancements and phishing email attachment',
       'Add 2-second popup delay, spread out error layout, and realistic deletion modal',
+      'Add Portfolio App desktop hub',
     ],
   },
 ]

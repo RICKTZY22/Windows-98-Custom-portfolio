@@ -24,6 +24,7 @@ const NetworkApp = lazy(() => import('../apps/NetworkApp').then((m) => ({ defaul
 const NotepadApp = lazy(() => import('../apps/NotepadApp').then((m) => ({ default: m.NotepadApp })))
 const PaintApp = lazy(() => import('../apps/PaintApp').then((m) => ({ default: m.PaintApp })))
 const PdfViewerApp = lazy(() => import('../apps/PdfViewerApp').then((m) => ({ default: m.PdfViewerApp })))
+const PortfolioApp = lazy(() => import('../apps/PortfolioApp').then((m) => ({ default: m.PortfolioApp })))
 const ProjectDetailsApp = lazy(() => import('../apps/ProjectDetailsApp').then((m) => ({ default: m.ProjectDetailsApp })))
 const ProjectsApp = lazy(() => import('../apps/ProjectsApp').then((m) => ({ default: m.ProjectsApp })))
 const RecycleBinApp = lazy(() => import('../apps/RecycleBinApp').then((m) => ({ default: m.RecycleBinApp })))
@@ -115,6 +116,8 @@ function appWindowBody(windowState: WindowState, openApp: (appId: AppId, payload
       return <AntivirusApp {...props} />
     case 'setupSafety':
       return <SetupSafetyApp {...props} />
+    case 'portfolio':
+      return <PortfolioApp />
     case 'about':
       return <AboutApp />
     case 'contact':

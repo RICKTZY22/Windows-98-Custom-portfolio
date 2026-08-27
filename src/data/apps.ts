@@ -228,6 +228,12 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     defaultRect: WIDE_APP_RECT,
     singleton: false,
   },
+  portfolio: {
+    id: 'portfolio',
+    title: 'Portfolio App',
+    icon: 'student',
+    defaultRect: WIDE_APP_RECT,
+  },
   about: {
     id: 'about',
     title: 'About Me',
@@ -293,6 +299,7 @@ export const desktopIconDefs: DesktopIconDef[] = [
   { id: 'networkNeighborhood', label: 'Network Neighborhood', icon: 'network', appId: 'network' },
   { id: 'internetExplorer', label: 'Internet Explorer', icon: 'internet', appId: 'internetExplorer' },
   { id: 'inbox', label: 'Inbox', icon: 'inbox', appId: 'inbox' },
+  { id: 'portfolioApp', label: 'Portfolio App', icon: 'student', appId: 'portfolio' },
   { id: 'paint', label: 'Paint', icon: 'paint', appId: 'paint' },
   { id: 'mediaPlayer', label: 'Media Player', icon: 'mediaPlayer', appId: 'mediaPlayer' },
   { id: 'videoPlayer', label: 'Video Player', icon: 'videoPlayer', appId: 'videoPlayer' },
@@ -493,6 +500,7 @@ export const startMenuModel: StartMenuModel = [
     label: 'Portfolio',
     icon: 'favorites',
     items: [
+      { kind: 'item', id: 'portfolioApp', label: 'Portfolio App', icon: 'student', appId: 'portfolio' },
       { kind: 'item', id: 'about', label: 'About Me', icon: 'student', appId: 'about' },
       {
         kind: 'item',

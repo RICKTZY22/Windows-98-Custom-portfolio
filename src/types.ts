@@ -103,6 +103,7 @@ export type AppId =
   | 'dosGame'
   | 'antivirus'
   | 'setupSafety'
+  | 'portfolio'
   | 'about'
   | 'contact'
   | 'certificates'

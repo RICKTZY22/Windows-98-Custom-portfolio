@@ -4,6 +4,8 @@ import type { DesktopIconDef, FsNode, FsState, Point } from '../../types'
 import { DESKTOP_FOLDER, getNode } from '../../os/filesystem'
 import { fallbackIconPosition, fsNodeToIconDef } from './desktopModel'
 
+const hiddenDesktopShortcutPaths = new Set(['c:\\windows\\desktop\\portfolio os.lnk'])
+
 export function useDesktopIconModel(
   fs: FsState,
   storedPositions: Record<string, Point>,
@@ -17,6 +19,7 @@ export function useDesktopIconModel(
     return folder.children
       .map((path) => fs.nodes[path])
       .filter((node): node is FsNode => Boolean(node))
+      .filter((node) => !hiddenDesktopShortcutPaths.has(node.path.toLowerCase()))
       .map(fsNodeToIconDef)
       .filter((def): def is DesktopIconDef => Boolean(def))
   }, [fs])
