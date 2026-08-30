@@ -56,7 +56,7 @@ const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
   {
     name: 'Certificates app',
     icon: 'html',
-    text: 'Start > Portfolio > Certificates now stores the TestDome HTML/CSS, React, and JavaScript certificates with rankings and verification links.',
+    text: 'Start > Portfolio > Certificates now stores the TestDome HTML/CSS, React, JavaScript, Node.js, and Express.js certificates with rankings and verification links.',
   },
   {
     name: 'New essay: The AI Uprising',

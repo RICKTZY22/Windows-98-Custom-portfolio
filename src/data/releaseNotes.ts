@@ -494,7 +494,7 @@ export const releaseNotes: ReleaseNote[] = [
     codename: 'Safety & Phishing Audit',
     date: 'August 13, 2026',
     shortDate: '8/13/2026',
-    status: 'current',
+    status: 'released',
     headline: 'Enhanced Setup Safety simulation, phishing email test & realistic deletion modal',
     summary:
       'This release overhauls the educational testdontouch.exe setup simulation: error popups now spread across the desktop, popups double after a 2-second relief delay, simulated OS lag indicators trigger on resource spikes, a realistic flying-file deletion progress modal appears before BSOD, and a simulated phishing email with executable attachment tests real-life security awareness in Inbox.',
@@ -516,20 +516,46 @@ export const releaseNotes: ReleaseNote[] = [
           'Added a simulated phishing email (Claim Your Free 10,000 Robux Code) with clickable testdontouch.exe attachment in Inbox to demonstrate real-world social engineering awareness.',
         ],
       },
+    ],
+    commits: [
+      'Add Setup Safety simulation enhancements and phishing email attachment',
+      'Add 2-second popup delay, spread out error layout, and realistic deletion modal',
+    ],
+  },
+  {
+    version: '1.12.0',
+    label: 'v1.12',
+    codename: 'Portfolio Center',
+    date: 'August 30, 2026',
+    shortDate: '8/30/2026',
+    status: 'current',
+    headline: 'Portfolio App tabs, local uploads & new backend certificates',
+    summary:
+      'This patch turns the Portfolio App into a cleaner single-window portfolio center with project tabs, local browser-only project uploads, and two new TestDome backend certificates.',
+    sections: [
       {
-        title: 'Portfolio Hub',
+        title: 'Portfolio App',
         items: [
           'Added a new Portfolio App to the desktop and Start > Portfolio.',
           'Converted the first version from shortcut launcher behavior into one contained app with internal sections.',
           'Project cards now open new project tabs with full details, documentation, and local browser-only uploads.',
           'Changed the Portfolio App icon to a human/profile-style icon and removed the extra app-summary card from the body.',
+          'Hidden the old Portfolio OS desktop shortcut while keeping the underlying project files available in the virtual drive.',
+        ],
+      },
+      {
+        title: 'Certificates',
+        items: [
+          'Added the TestDome Node.js certificate, ranked Top 10%, passed on August 30, 2026.',
+          'Added the TestDome Express.js certificate, ranked Top 10%, passed on August 30, 2026.',
+          'Portfolio App and Certificates now read from the same shared certificate registry.',
         ],
       },
     ],
     commits: [
-      'Add Setup Safety simulation enhancements and phishing email attachment',
-      'Add 2-second popup delay, spread out error layout, and realistic deletion modal',
       'Add Portfolio App desktop hub',
+      'Add project tabs and local portfolio uploads',
+      'Add Node.js and Express.js TestDome certificates',
     ],
   },
 ]
