@@ -336,6 +336,12 @@ describe('virtual filesystem', () => {
     expect(savedPaint.error).toBeNull()
     fs = savedPaint.fs
 
+    // A disk saved by an older build still carries the personal files that were
+    // removed with the personal content; the purge has to clear them.
+    fs = createFile(fs, 'C:\\My Documents', 'Resume.doc', { content: 'stale resume' }).fs
+    fs = createFile(fs, 'C:\\My Documents', 'About Me.txt', { content: 'stale bio' }).fs
+    fs = createFile(fs, 'C:\\My Documents', 'Contact.url', { content: 'mailto:stale' }).fs
+
     const nodes = { ...fs.nodes }
     delete nodes['C:\\My Documents\\The AI Uprising.doc']
     delete nodes['C:\\Projects']
@@ -344,6 +350,9 @@ describe('virtual filesystem', () => {
     const seeded = ensurePortfolioSeedFiles(fs)
     expect(getNode(seeded, 'C:\\My Documents\\The AI Uprising.doc')?.appId).toBe('wordpad')
     expect(getNode(seeded, 'C:\\My Documents\\Education.txt')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\My Documents\\Resume.doc')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\My Documents\\About Me.txt')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\My Documents\\Contact.url')).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects')).toBeDefined()
     expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\src\\data\\initialFilesystem.ts')?.fileType).toBe(
       'TypeScript Source',

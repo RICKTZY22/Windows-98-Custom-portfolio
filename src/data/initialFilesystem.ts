@@ -889,6 +889,11 @@ const LEGACY_ARTIFACT_PATHS = [
   'C:\\Windows\\Command\\setup.bat',
   'C:\\My Documents\\Resume.txt',
   'C:\\My Documents\\Education.txt',
+  // Personal files dropped when the personal content was removed. They are no
+  // longer seeded, but a disk saved by an older build still carries them.
+  'C:\\My Documents\\Resume.doc',
+  'C:\\My Documents\\About Me.txt',
+  'C:\\My Documents\\Contact.url',
 ]
 
 const USER_MEDIA_ROOTS = ['C:\\My Pictures\\', 'C:\\My Videos\\', 'C:\\My Documents\\Music\\']
