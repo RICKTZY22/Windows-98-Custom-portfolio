@@ -934,6 +934,11 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Documents\\Persistence and Loading Notes.doc',
   'C:\\My Documents\\Fishbook.doc',
   'C:\\My Documents\\KwartoKlaro.doc',
+  // Vintage-threat simulations. Seeded so disks saved by older builds pick them up too.
+  'C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs',
+  'C:\\My Documents\\happy99.exe',
+  'C:\\My Documents\\bonzi_setup.exe',
+  'C:\\My Documents\\netbus.exe',
   'C:\\Projects',
   ...WIN98_PORTFOLIO_SEED_PATHS,
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',

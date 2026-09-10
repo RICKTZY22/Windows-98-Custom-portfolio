@@ -28,10 +28,37 @@ type FallingLetter = {
   falling: boolean
 }
 
+// Build the initial (settled) letter grid from the sample text. Pure — no state,
+// so it can be used both as a lazy useState initializer and by the Reset button.
+function buildLetters(): FallingLetter[] {
+  const lines = SAMPLE_TEXT.split('\n')
+  const parsed: FallingLetter[] = []
+  let idCounter = 0
+
+  lines.forEach((line, lineIdx) => {
+    line.split('').forEach((char, charIdx) => {
+      const origX = 16 + charIdx * 9.5
+      const origY = 24 + lineIdx * 19
+      parsed.push({
+        id: idCounter++,
+        char,
+        origX,
+        origY,
+        x: origX,
+        y: origY,
+        vy: 0,
+        fallen: false,
+        falling: false,
+      })
+    })
+  })
+  return parsed
+}
+
 export function CascadeApp({ windowId }: AppProps) {
   const { playSound, setWindowTitle } = useOs()
   const [isCascading, setIsCascading] = useState(false)
-  const [letters, setLetters] = useState<FallingLetter[]>([])
+  const [letters, setLetters] = useState<FallingLetter[]>(buildLetters)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const animFrame = useRef<number | null>(null)
 
@@ -40,35 +67,9 @@ export function CascadeApp({ windowId }: AppProps) {
   }, [setWindowTitle, windowId])
 
   const initLetters = useCallback(() => {
-    const lines = SAMPLE_TEXT.split('\n')
-    const parsed: FallingLetter[] = []
-    let idCounter = 0
-
-    lines.forEach((line, lineIdx) => {
-      const chars = line.split('')
-      chars.forEach((char, charIdx) => {
-        const origX = 16 + charIdx * 9.5
-        const origY = 24 + lineIdx * 19
-        parsed.push({
-          id: idCounter++,
-          char,
-          origX,
-          origY,
-          x: origX,
-          y: origY,
-          vy: 0,
-          fallen: false,
-          falling: false,
-        })
-      })
-    })
-    setLetters(parsed)
+    setLetters(buildLetters())
     setIsCascading(false)
   }, [])
-
-  useEffect(() => {
-    initLetters()
-  }, [initLetters])
 
   const triggerCascade = useCallback(() => {
     if (isCascading) return

@@ -4,7 +4,7 @@ import type { AppProps } from '../../types'
 import { useOs } from '../../os/useOs'
 
 export function NetBusApp({ windowId }: AppProps) {
-  const { playSound, setWindowTitle } = useOs()
+  const { playSound, setWindowTitle, showMessageBox } = useOs()
   const [cdOpen, setCdOpen] = useState(false)
   const [inverted, setInverted] = useState(false)
   const [customMsg, setCustomMsg] = useState('Greetings from cyberspace!')
@@ -61,7 +61,15 @@ export function NetBusApp({ windowId }: AppProps) {
   function handlePopup() {
     playSound('error')
     addLog(`Command: Pop-up message dispatched: "${customMsg}"`)
-    window.alert(`NetBus 1.70 Broadcast:\n\n${customMsg}`)
+    // In-app 98.css dialog rather than a modern browser alert, so the popup
+    // reads as an authentic Windows message box from the era.
+    showMessageBox({
+      title: 'Message from System Administrator',
+      message: customMsg,
+      detail: 'This message was sent by a NetBus 1.70 remote session (simulated).',
+      icon: 'warning',
+      buttons: ['ok'],
+    })
   }
 
   return (
