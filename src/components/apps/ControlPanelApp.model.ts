@@ -147,8 +147,6 @@ export const INSTALLED_PROGRAMS: readonly InstalledProgram[] = [
   { name: 'Microsoft Paint', appId: 'paint', icon: 'paint', size: '1.1 MB' },
   { name: 'WordPad', appId: 'wordpad', icon: 'wordpad', size: '1.8 MB' },
   { name: 'Notepad', appId: 'notepad', icon: 'notepad', size: '0.3 MB' },
-  { name: 'Portfolio App', appId: 'portfolio', icon: 'student', size: '0.4 MB' },
-  { name: 'Portfolio Certificates', appId: 'certificates', icon: 'html', size: '0.2 MB' },
   { name: 'Calculator', appId: 'calculator', icon: 'calculator', size: '0.4 MB' },
   { name: 'Minesweeper', appId: 'minesweeper', icon: 'minesweeper', size: '0.6 MB' },
   {

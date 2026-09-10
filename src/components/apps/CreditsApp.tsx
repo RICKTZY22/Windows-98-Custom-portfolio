@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import './CreditsApp.css'
-import { portfolioData } from '../../data/portfolioData'
+import { creditsData } from '../../data/creditsData'
 import { win98Icons } from '../../data/icons'
 
 const BOOT_TEXT = [
@@ -125,8 +125,8 @@ export function CreditsApp() {
   }, [])
 
   const bootDone = bootIdx >= BOOT_TEXT.length
-  const stack = portfolioData.creditsStack
-  const sections = [...new Set(portfolioData.credits.map((credit) => credit.section))]
+  const stack = creditsData.creditsStack
+  const sections = [...new Set(creditsData.credits.map((credit) => credit.section))]
 
   const renderColumn = (title: string, prefix: string, items: StackItem[]) => (
     <div className="credits-stack-col">
@@ -248,7 +248,7 @@ export function CreditsApp() {
             {sections.map((section) => (
               <Fragment key={section}>
                 <h3 className="credits-section-title">{section}</h3>
-                {portfolioData.credits
+                {creditsData.credits
                   .filter((credit) => credit.section === section)
                   .map((credit) => (
                     <article key={`${credit.section}-${credit.label}`}>
@@ -265,7 +265,7 @@ export function CreditsApp() {
           {/* Special thanks */}
           <div className="credits-thanks">
             <h3 className="credits-section-title">Special Thanks</h3>
-            {portfolioData.specialThanks.map((thanks) => (
+            {creditsData.specialThanks.map((thanks) => (
               <article key={thanks.label}>
                 <a href={thanks.href} target="_blank" rel="noreferrer">
                   {thanks.label}
@@ -327,7 +327,7 @@ export function CreditsApp() {
               ))}
 
               <div className="roll-label">SPECIAL THANKS</div>
-              {portfolioData.specialThanks.map((thanks) => (
+              {creditsData.specialThanks.map((thanks) => (
                 <div className="roll-item" key={thanks.label}>
                   {thanks.label}
                 </div>

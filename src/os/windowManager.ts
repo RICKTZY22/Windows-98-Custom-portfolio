@@ -1,6 +1,5 @@
 import type { AppId, FsState, IconKey, Point, WindowPayload, WindowRect, WindowState } from '../types'
 import { appDefinitions, desktopIconDefs } from '../data/apps'
-import { portfolioData } from '../data/portfolioData'
 import { controlPanelSections } from '../data/system'
 import { baseName, getNode, normalizePath } from './filesystem'
 import { requiredDriverMissing } from './systemHealth'
@@ -80,9 +79,6 @@ export function instanceIdFor(appId: AppId, payload?: WindowPayload): string {
   if (appId === 'explorer') {
     return `explorer:${normalizePath(payload?.path ?? 'C:\\').toLowerCase()}`
   }
-  if (appId === 'projectDetails' && payload?.projectId) {
-    return `projectDetails:${payload.projectId}`
-  }
   if (appId === 'notepad' && payload?.filePath) {
     return `notepad:${normalizePath(payload.filePath).toLowerCase()}`
   }
@@ -125,8 +121,6 @@ export function titleFor(appId: AppId, fs: FsState, payload?: WindowPayload): st
       return payload?.filePath ? `${baseName(payload.filePath)} - Media Player` : def.title
     case 'videoPlayer':
       return payload?.filePath ? `${baseName(payload.filePath)} - Video Player` : def.title
-    case 'projectDetails':
-      return portfolioData.projects.find((project) => project.id === payload?.projectId)?.name ?? def.title
     case 'controlPanel': {
       if (!payload?.controlPanelSection) return def.title
       const section = controlPanelSections.find((item) => item.id === payload.controlPanelSection)

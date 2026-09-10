@@ -149,8 +149,7 @@ describe('virtual filesystem', () => {
 
   it('associates common file types with apps', () => {
     let fs = createInitialFsState()
-    expect(openTargetFor(getNode(fs, 'C:\\My Documents\\About Me.txt')!)?.appId).toBe('about')
-    expect(openTargetFor(getNode(fs, 'C:\\My Documents\\Resume.doc')!)?.appId).toBe('wordpad')
+    expect(openTargetFor(getNode(fs, 'C:\\My Documents\\The AI Uprising.doc')!)?.appId).toBe('wordpad')
     fs = writeFile(fs, 'C:\\My Pictures\\Photo.bmp', { dataUrl: 'data:image/bmp;base64,Qk0=' }).fs
     const bitmap = getNode(fs, 'C:\\My Pictures\\Photo.bmp')!
     expect(bitmap.icon).toBe('paint')
@@ -166,7 +165,7 @@ describe('virtual filesystem', () => {
     const fs = createInitialFsState()
     const deleted = deleteNode(fs, 'C:\\Windows\\System32\\riched20.dll')
 
-    expect(openTargetFor(getNode(deleted.fs, 'C:\\My Documents\\Resume.doc')!)?.appId).toBe('wordpad')
+    expect(openTargetFor(getNode(deleted.fs, 'C:\\My Documents\\The AI Uprising.doc')!)?.appId).toBe('wordpad')
     expect(missingAppDependency('wordpad', deleted.fs)).toBe('C:\\Windows\\System32\\riched20.dll')
   })
 
@@ -284,7 +283,7 @@ describe('virtual filesystem', () => {
     const nodesWithOldLauncher = { ...fs.nodes }
     nodesWithOldLauncher['C:\\Windows\\Desktop\\Portfolio OS.lnk'] = {
       ...nodesWithOldLauncher['C:\\Windows\\Desktop\\Portfolio OS.lnk'],
-      appId: 'projects',
+      appId: 'notepad',
       appPayload: undefined,
     }
     fs = { ...fs, nodes: nodesWithOldLauncher }
@@ -329,7 +328,7 @@ describe('virtual filesystem', () => {
     expect(openTargetFor(node!)?.appId).toBe('imageViewer')
   })
 
-  it('seeds portfolio resume documents into an existing persisted disk', () => {
+  it('seeds documents into an existing persisted disk', () => {
     let fs = createInitialFsState()
     const savedPaint = writeFile(fs, 'C:\\My Pictures\\KeepMe.png', {
       dataUrl: 'data:image/png;base64,abc',
@@ -338,24 +337,20 @@ describe('virtual filesystem', () => {
     fs = savedPaint.fs
 
     const nodes = { ...fs.nodes }
-    delete nodes['C:\\My Documents\\Resume.doc']
+    delete nodes['C:\\My Documents\\The AI Uprising.doc']
     delete nodes['C:\\Projects']
     fs = { ...fs, nodes }
 
     const seeded = ensurePortfolioSeedFiles(fs)
-    expect(getNode(seeded, 'C:\\My Documents\\Resume.doc')?.appId).toBe('wordpad')
-    expect(getNode(seeded, 'C:\\My Documents\\Resume.doc')?.content).toContain(
-      'data-resume-template="dark-sidebar-v1"',
-    )
+    expect(getNode(seeded, 'C:\\My Documents\\The AI Uprising.doc')?.appId).toBe('wordpad')
     expect(getNode(seeded, 'C:\\My Documents\\Education.txt')).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects')).toBeDefined()
     expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\src\\data\\initialFilesystem.ts')?.fileType).toBe(
       'TypeScript Source',
     )
-    // The per-project Documentation\*.md showcase markdown is legitimate and stays.
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\Documentation\\Features.md')?.fileType).toBe(
-      'Markdown Document',
-    )
+    // The per-project Documentation\*.md markdown came from the personal project
+    // list and is no longer seeded now that the personal content is removed.
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\Documentation\\Features.md')).toBeUndefined()
     // The confidential footprint (the docs/ source dump and the case-study PDFs
     // under Documentation\PDFs) is NOT seeded, and a purge keeps it from
     // reappearing on disks seeded by older builds.
@@ -364,19 +359,11 @@ describe('virtual filesystem', () => {
     expect(
       getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\Documentation\\PDFs\\Build Documentation Explained.pdf'),
     ).toBeUndefined()
-    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\Backend\\apps\\messaging\\consumers.py')?.appId).toBe(
-      'notepad',
-    )
-    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\frontend\\src\\pages\\Dashboard.jsx')?.fileType).toBe(
-      'React Component',
-    )
-    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\.github\\workflows\\ci.yml')?.fileType).toBe(
-      'YAML File',
-    )
-    expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web\\src\\App.tsx')).toBeDefined()
-    expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins\\between-two-ruins-web\\public\\cover-art.png')?.appId).toBe(
-      'imageViewer',
-    )
+    // The personal project folders were removed with the personal content, and a
+    // purge keeps them from reappearing on disks seeded by older builds.
+    expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\Projects\\Between Two Ruins')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\Projects\\Canlas Inventory System')).toBeUndefined()
     expect(getNode(seeded, 'C:\\My Pictures')?.kind).toBe('folder')
     expect(getNode(seeded, 'C:\\Program Files\\Accessories\\KODAKIMG.EXE')?.appId).toBe('imageViewer')
     expect(getNode(seeded, 'C:\\Program Files\\Accessories\\VIDPLAY.EXE')?.appId).toBe('videoPlayer')

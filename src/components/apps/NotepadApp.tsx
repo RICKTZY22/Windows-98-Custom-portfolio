@@ -1,16 +1,15 @@
 import './NotepadApp.css'
 import { useEffect, useMemo, useState } from 'react'
 import type { AppProps } from '../../types'
-import { portfolioData } from '../../data/portfolioData'
 import { baseName, getNode, joinPath, parentPath } from '../../os/filesystem'
 import { useOs } from '../../os/useOs'
 
 function defaultNote() {
   return [
-    `${portfolioData.profile.name} - Portfolio Notes`,
+    'Untitled - Notepad',
     '',
     'This is a simulated Windows 98 Notepad document.',
-    'Open README.txt, About Me.txt, or System32 placeholder files from Explorer to inspect them here.',
+    'Open README.txt or System32 placeholder files from Explorer to inspect them here.',
     'Use WordPad for Resume.doc and richer documents.',
   ].join('\n')
 }

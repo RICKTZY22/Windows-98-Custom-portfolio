@@ -1,12 +1,7 @@
 import { Suspense, lazy } from 'react'
 import type { AppId, WindowPayload, WindowState } from '../../types'
 
-const AboutApp = lazy(() => import('../apps/AboutApp').then((m) => ({ default: m.AboutApp })))
 const CalculatorApp = lazy(() => import('../apps/CalculatorApp').then((m) => ({ default: m.CalculatorApp })))
-const CertificatesApp = lazy(() =>
-  import('../apps/CertificatesApp').then((m) => ({ default: m.CertificatesApp })),
-)
-const ContactApp = lazy(() => import('../apps/ContactApp').then((m) => ({ default: m.ContactApp })))
 const ControlPanelApp = lazy(() => import('../apps/ControlPanelApp').then((m) => ({ default: m.ControlPanelApp })))
 const CreditsApp = lazy(() => import('../apps/CreditsApp').then((m) => ({ default: m.CreditsApp })))
 const ExplorerApp = lazy(() => import('../apps/ExplorerApp').then((m) => ({ default: m.ExplorerApp })))
@@ -24,9 +19,6 @@ const NetworkApp = lazy(() => import('../apps/NetworkApp').then((m) => ({ defaul
 const NotepadApp = lazy(() => import('../apps/NotepadApp').then((m) => ({ default: m.NotepadApp })))
 const PaintApp = lazy(() => import('../apps/PaintApp').then((m) => ({ default: m.PaintApp })))
 const PdfViewerApp = lazy(() => import('../apps/PdfViewerApp').then((m) => ({ default: m.PdfViewerApp })))
-const PortfolioApp = lazy(() => import('../apps/PortfolioApp').then((m) => ({ default: m.PortfolioApp })))
-const ProjectDetailsApp = lazy(() => import('../apps/ProjectDetailsApp').then((m) => ({ default: m.ProjectDetailsApp })))
-const ProjectsApp = lazy(() => import('../apps/ProjectsApp').then((m) => ({ default: m.ProjectsApp })))
 const RecycleBinApp = lazy(() => import('../apps/RecycleBinApp').then((m) => ({ default: m.RecycleBinApp })))
 const RegistryEditorApp = lazy(() =>
   import('../apps/RegistryEditorApp').then((m) => ({ default: m.RegistryEditorApp })),
@@ -53,7 +45,7 @@ type AppWindowContentProps = {
   openApp: (appId: AppId, payload?: WindowPayload) => void
 }
 
-function appWindowBody(windowState: WindowState, openApp: (appId: AppId, payload?: WindowPayload) => void) {
+function appWindowBody(windowState: WindowState) {
   const props = { windowId: windowState.instanceId, payload: windowState.payload }
   switch (windowState.appId) {
     case 'explorer':
@@ -116,18 +108,6 @@ function appWindowBody(windowState: WindowState, openApp: (appId: AppId, payload
       return <AntivirusApp {...props} />
     case 'setupSafety':
       return <SetupSafetyApp {...props} />
-    case 'portfolio':
-      return <PortfolioApp />
-    case 'about':
-      return <AboutApp />
-    case 'contact':
-      return <ContactApp />
-    case 'certificates':
-      return <CertificatesApp />
-    case 'projects':
-      return <ProjectsApp openApp={openApp} />
-    case 'projectDetails':
-      return <ProjectDetailsApp projectId={windowState.payload?.projectId} />
     case 'credits':
       return <CreditsApp />
     case 'help':
@@ -137,10 +117,10 @@ function appWindowBody(windowState: WindowState, openApp: (appId: AppId, payload
   }
 }
 
-export function AppWindowContent({ windowState, openApp }: AppWindowContentProps) {
+export function AppWindowContent({ windowState }: AppWindowContentProps) {
   return (
     <Suspense fallback={<div className="window-loading-placeholder">Loading...</div>}>
-      {appWindowBody(windowState, openApp)}
+      {appWindowBody(windowState)}
     </Suspense>
   )
 }

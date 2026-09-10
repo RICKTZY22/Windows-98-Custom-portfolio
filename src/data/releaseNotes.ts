@@ -3,7 +3,7 @@
 // in the real git history of this repository — the `commits` field lists the actual
 // commit subjects that shipped in that version so the changelog stays honest.
 //
-// Timeline note: development began on May 28, 2026 as a conventional portfolio; the
+// Timeline note: development began on May 28, 2026 as a conventional web app; the
 // first public push to GitHub (and the Windows 98 reimagining) landed June 13, 2026.
 
 export type ReleaseStatus = 'prerelease' | 'released' | 'current'
@@ -43,15 +43,15 @@ export const releaseNotes: ReleaseNote[] = [
     date: 'May 28, 2026',
     shortDate: '5/28/2026',
     status: 'prerelease',
-    headline: 'The original portfolio',
+    headline: 'The original build',
     summary:
-      'Development started today as a conventional single-page developer portfolio, long before the Windows 98 reimagining. This pre-release baseline is the foundation everything else was built on.',
+      'Development started today as a conventional single-page web app, long before the Windows 98 reimagining. This pre-release baseline is the foundation everything else was built on.',
     sections: [
       {
         title: 'Foundation',
         items: [
           'Project scaffolded with React, TypeScript and Vite.',
-          'Initial portfolio content drafted: About, Projects and Contact.',
+          'Initial page content drafted and the component structure laid out.',
           'Committed a clean baseline before the simulated-OS upgrade began.',
         ],
       },
@@ -74,7 +74,7 @@ export const releaseNotes: ReleaseNote[] = [
     status: 'released',
     headline: 'Windows 98, in your browser',
     summary:
-      'First public push to GitHub. The portfolio is reborn as a bootable Windows 98 desktop you can actually use. This is the v1.0 launch build.',
+      'First public push to GitHub. The project is reborn as a bootable Windows 98 desktop you can actually use. This is the v1.0 launch build.',
     sections: [
       {
         title: 'Desktop shell',
@@ -298,7 +298,7 @@ export const releaseNotes: ReleaseNote[] = [
     status: 'released',
     headline: 'Maintenance tools, Inbox & deep system files',
     summary:
-      'Windows 98 maintenance tools arrive, the release history becomes a working Exchange-style Inbox, system files and drivers become deeply tied to apps and errors, and the portfolio content gets a major accuracy pass.',
+      'Windows 98 maintenance tools arrive, the release history becomes a working Exchange-style Inbox, system files and drivers become deeply tied to apps and errors, and the app content gets a major accuracy pass.',
     sections: [
       {
         title: 'Inbox & release history',
@@ -343,11 +343,10 @@ export const releaseNotes: ReleaseNote[] = [
         ],
       },
       {
-        title: 'Portfolio content',
+        title: 'Content',
         items: [
           'Added the AI Uprising essay to My Documents.',
           'Expanded Help with a full program list and safer, clearer educational guidance.',
-          'Moved resume REST API descriptions from frontend skills to backend skills for accuracy.',
           'Boot disclaimer expanded with Microsoft and Windows context.',
           'Run dialog temporarily marked work-in-progress while it is rebuilt.',
         ],
@@ -359,7 +358,6 @@ export const releaseNotes: ReleaseNote[] = [
       'Show Inbox only on the desktop, not in the Start menu',
       'Add memory and disk guardrails, delete notifications, and Help docs',
       'Add AI Uprising essay, content accuracy pass, and full Help program list',
-      'Resume: move REST APIs from frontend to backend skills',
     ],
   },
   {
@@ -422,16 +420,16 @@ export const releaseNotes: ReleaseNote[] = [
     date: 'June 30, 2026',
     shortDate: '6/30/2026',
     status: 'released',
-    headline: 'Certificates, clearer system files & Win98 notifications',
+    headline: 'Credentials viewer, clearer system files & Win98 notifications',
     summary:
-      'This patch makes the project easier to read at a glance: certificates now live in their own app, System32 files have clearer icons, audio driver deletion degrades gently, dialogs are easier to understand, and notifications now feel closer to Windows tray balloons.',
+      'This patch makes the project easier to read at a glance: credentials now live in their own app, System32 files have clearer icons, audio driver deletion degrades gently, dialogs are easier to understand, and notifications now feel closer to Windows tray balloons.',
     sections: [
       {
-        title: 'Certificates',
+        title: 'Credentials viewer',
         items: [
-          'Added the Certificates app under Start > Portfolio.',
-          'Stored TestDome HTML/CSS, React, and JavaScript certificates with rankings, passed dates, credential IDs, and verification links.',
-          'The certificate app remains lazy-loaded so the desktop startup bundle stays lean.',
+          'Added a credentials viewer app under the Start menu.',
+          'Stored assessment records with rankings, dates, and verification links.',
+          'The viewer remains lazy-loaded so the desktop startup bundle stays lean.',
         ],
       },
       {
@@ -481,8 +479,8 @@ export const releaseNotes: ReleaseNote[] = [
       },
     ],
     commits: [
-      'Add new system apps and certificates',
-      'Update TestDome certificates',
+      'Add new system apps and credentials viewer',
+      'Update credential records',
       'Add system file icon clarity and release notes',
       'Add audio driver tiers and dialog polish',
       'Overhaul tray notifications and add System Log',
@@ -525,37 +523,70 @@ export const releaseNotes: ReleaseNote[] = [
   {
     version: '1.12.0',
     label: 'v1.12',
-    codename: 'Portfolio Center',
+    codename: 'Content Pass',
     date: 'August 30, 2026',
     shortDate: '8/30/2026',
-    status: 'current',
-    headline: 'Portfolio App tabs, local uploads & new backend certificates',
+    status: 'released',
+    headline: 'Single-window content hub, local uploads & new credential records',
     summary:
-      'This patch turns the Portfolio App into a cleaner single-window portfolio center with project tabs, local browser-only project uploads, and two new TestDome backend certificates.',
+      'This patch consolidates the content apps into a cleaner single-window hub with tabs and local browser-only uploads.',
     sections: [
       {
-        title: 'Portfolio App',
+        title: 'Content hub',
         items: [
-          'Added a new Portfolio App to the desktop and Start > Portfolio.',
+          'Added a single-window content hub to the desktop and Start menu.',
           'Converted the first version from shortcut launcher behavior into one contained app with internal sections.',
           'Project cards now open new project tabs with full details, documentation, and local browser-only uploads.',
-          'Changed the Portfolio App icon to a human/profile-style icon and removed the extra app-summary card from the body.',
-          'Hidden the old Portfolio OS desktop shortcut while keeping the underlying project files available in the virtual drive.',
+          'Refreshed the hub icon and removed the extra app-summary card from the body.',
+          'Hidden the old project desktop shortcut while keeping the underlying files available in the virtual drive.',
         ],
       },
       {
-        title: 'Certificates',
+        title: 'Credentials',
         items: [
-          'Added the TestDome Node.js certificate, ranked Top 10%, passed on August 30, 2026.',
-          'Added the TestDome Express.js certificate, ranked Top 10%, passed on August 30, 2026.',
-          'Portfolio App and Certificates now read from the same shared certificate registry.',
+          'Added two backend credential records to the viewer.',
+          'The hub and the viewer now read from the same shared registry.',
         ],
       },
     ],
     commits: [
-      'Add Portfolio App desktop hub',
-      'Add project tabs and local portfolio uploads',
-      'Add Node.js and Express.js TestDome certificates',
+      'Add single-window content hub',
+      'Add project tabs and local uploads',
+      'Add backend credential records',
+    ],
+  },
+  {
+    version: '1.13.0',
+    label: 'v1.13',
+    codename: 'Web Edition',
+    date: 'September 11, 2026',
+    shortDate: '9/11/2026',
+    status: 'current',
+    headline: 'Renamed to Web Edition & personal content removed',
+    summary:
+      'The project is no longer presented as a personal portfolio. It is a standalone Windows 98 simulation, renamed Windows 98 Web Edition, with the personal-content apps and seeded personal files removed.',
+    sections: [
+      {
+        title: 'Rename',
+        items: [
+          'Renamed the product from Portfolio Edition to Web Edition across the shell, BIOS strings, and boot splash.',
+          'The C: drive is now labelled Windows 98 (C:) and the volume label is WIN98.',
+          'Persisted storage keys were deliberately left unchanged so existing saved disks keep working.',
+        ],
+      },
+      {
+        title: 'Personal content removed',
+        items: [
+          'Removed the content hub, About, Contact, Credentials, and Projects apps.',
+          'Removed the seeded resume, contact shortcut, and personal project folders from the virtual drive.',
+          'Disks saved by older builds are cleaned up automatically on load.',
+          'The AI Uprising essay and the Credits app were kept.',
+        ],
+      },
+    ],
+    commits: [
+      'refactor: rename project to Windows 98 Web Edition',
+      'refactor: remove personal content apps and seeded personal files',
     ],
   },
 ]

@@ -31,7 +31,7 @@ type Message = {
 type ComposeState = { title: string; to: string; cc: string; subject: string; body: string }
 
 const ME = 'John Erick Mendoza'
-const ME_ADDR = 'johnerickmendoza567@gmail.com'
+const ME_ADDR = 'me@win98web.dev'
 const RELEASES_ADDR = 'releases@win98web.dev'
 const SIGNATURE = '\n\nJohn Erick Mendoza\ngithub.com/RICKTZY22'
 
@@ -83,7 +83,7 @@ function seedFolders(): Record<FolderName, Message[]> {
       'Every message below is a release of this Windows 98 project, newest first. ' +
       'Double-click one to read its patch notes: what shipped, when, and the real git ' +
       'commits behind it.\n\n' +
-      'The project began on May 28, 1998-in-spirit (2026 in reality) as a plain portfolio, ' +
+      'The project began on May 28, 1998-in-spirit (2026 in reality) as a plain web app, ' +
       'went public on GitHub on June 13, and has been growing since. The build flagged ' +
       '"In development" at the top is what I am working on right now.\n\n' +
       'Reply, Forward and New all work, so give them a try.' +

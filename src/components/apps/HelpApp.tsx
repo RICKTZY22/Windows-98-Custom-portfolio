@@ -1,7 +1,6 @@
 import './HelpApp.css'
 import { useState } from 'react'
 import { win98Icons } from '../../data/icons'
-import { portfolioData } from '../../data/portfolioData'
 import { SYSTEM_FILE_CATALOG } from '../../data/systemFileCatalog'
 import { systemFileDeletionConsequence, systemFileRole } from '../../os/systemFiles'
 import type { IconKey } from '../../types'
@@ -29,11 +28,6 @@ const QUICK_START = [
 
 const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
   {
-    name: 'Portfolio App',
-    icon: 'student',
-    text: 'A single-window portfolio center with internal sections. Project cards open project tabs with full details, documentation, and local uploads.',
-  },
-  {
     name: 'Tray balloons and System Log',
     icon: 'adminTools',
     text: 'Notifications now behave more like Windows tray balloons: typed messages, duplicate counters, action buttons, and a clearable session-only System Log under System Tools.',
@@ -52,11 +46,6 @@ const WHATS_NEW: Array<{ name: string; icon: IconKey; text: string }> = [
     name: 'Clearer System32 icons',
     icon: 'coreSystemFile',
     text: 'System files now use clearer icons: Windows logo for boot-critical core files, speaker for audio drivers, monitor for video drivers, and device icons for network/input drivers.',
-  },
-  {
-    name: 'Certificates app',
-    icon: 'html',
-    text: 'Start > Portfolio > Certificates now stores the TestDome HTML/CSS, React, JavaScript, Node.js, and Express.js certificates with rankings and verification links.',
   },
   {
     name: 'New essay: The AI Uprising',
@@ -214,7 +203,7 @@ const PROGRAMS_SYSTEM: Program[] = [
   },
 ]
 
-// Games, security, and the portfolio surfaces.
+// Games, security, and the remaining surfaces.
 const PROGRAMS_MORE: Program[] = [
   {
     name: 'Antivirus 98',
@@ -228,15 +217,6 @@ const PROGRAMS_MORE: Program[] = [
     text: 'The free shareware episodes, running entirely in the browser via js-dos. Controls use the keyboard and mouse.',
   },
   {
-    name: 'Portfolio App',
-    icon: 'student',
-    text: 'Single-window portfolio center for profile, projects, certificates, resume notes, contact links, credits, project documentation, and project uploads.',
-  },
-  { name: 'About Me', icon: 'student', text: "John Erick Mendoza's background, story, and highlights." },
-  { name: 'My Projects', icon: 'projects', text: 'Project gallery. Open a project for its details, stack, and links.' },
-  { name: 'Contact', icon: 'contact', text: 'Email, GitHub, LinkedIn, and availability.' },
-  { name: 'Certificates', icon: 'html', text: 'Certificate cabinet with verification links for online credentials.' },
-  {
     name: 'Credits',
     icon: 'help',
     text: 'Tools, libraries, AI assistants, and preservation projects behind this simulated OS.',
@@ -247,7 +227,7 @@ const PROGRAM_GROUPS: Array<{ title: string; items: Program[] }> = [
   { title: 'Desktop & Core', items: PROGRAMS_CORE },
   { title: 'Accessories', items: PROGRAMS_ACCESSORIES },
   { title: 'System Tools', items: PROGRAMS_SYSTEM },
-  { title: 'Games, Security & Portfolio', items: PROGRAMS_MORE },
+  { title: 'Games & Security', items: PROGRAMS_MORE },
 ]
 
 const DRIVER_RULES: Array<{ name: string; icon: IconKey; files: string; result: string }> = [
@@ -450,7 +430,7 @@ export function HelpApp() {
         <div className="sunken-panel help-body">
           {topic === 'start' && (
             <article className="help-article">
-              <h2>Welcome to {portfolioData.profile.name}'s Windows 98 Portfolio</h2>
+              <h2>Welcome to Windows 98 Web Edition</h2>
               <p>
                 This is a simulated Windows 98-style desktop running in the browser. It behaves like a tiny operating system
                 operating system, but it is still just a React app with a virtual filesystem.
@@ -755,7 +735,7 @@ export function HelpApp() {
         </div>
       </div>
       <div className="status-bar">
-        <p className="status-bar-field">{portfolioData.profile.name} - Windows 98 Web Edition</p>
+        <p className="status-bar-field">Windows 98 Web Edition</p>
         <p className="status-bar-field">{activeTopic.label}</p>
       </div>
     </div>
