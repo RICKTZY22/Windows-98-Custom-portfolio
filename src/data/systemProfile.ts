@@ -9,11 +9,11 @@ import type { DriverType, IconKey } from '../types'
 export const MEMORY_TOTAL_KB = 65_536 // 64 MB, matches BootScreen MEM_TOTAL_KB
 
 export const machineProfile = {
-  osName: 'Microsoft Windows 98 Portfolio Edition',
+  osName: 'Microsoft Windows 98 Web Edition',
   osVersion: '4.10.1998',
   oemId: 'JEM-W98P (browser simulation)',
   registeredOwner: 'John Erick Mendoza',
-  systemModel: 'VX Pro+ 430VX PCI/ISA Portfolio System',
+  systemModel: 'VX Pro+ 430VX PCI/ISA System',
   systemType: 'X86-based PC',
   processor: 'Pentium(R) MMX 266MHz',
   biosVersion: 'Award Modular BIOS v4.51PG',
@@ -24,7 +24,7 @@ export const machineProfile = {
   extendedMemoryKb: 64_512,
   diskModel: 'VIRTUAL_DISK_98',
   diskSize: '2.1 GB',
-  cdrom: 'PORTFOLIO CD-ROM 24X',
+  cdrom: 'GENERIC CD-ROM 24X',
   floppy: '1.44M, 3.5 in.',
 } as const
 
@@ -60,7 +60,7 @@ export const deviceCategories: DeviceCategory[] = [
     icon: 'hardDrive',
     devices: [
       {
-        name: 'ATAPI CD-ROM PORTFOLIO 24X',
+        name: 'ATAPI CD-ROM GENERIC 24X',
         icon: 'hardDrive',
         manufacturer: '(Standard CD-ROM drives)',
         location: 'Secondary IDE controller (single fifo)',
@@ -250,7 +250,7 @@ export type StartupItem = {
   enabledByDefault: boolean
 }
 
-// Authentic Win98 startup entries, plus two themed portfolio entries.
+// Authentic Win98 startup entries, plus two themed custom entries.
 export const startupItems: StartupItem[] = [
   {
     name: 'ScanRegistry',
@@ -283,7 +283,7 @@ export const startupItems: StartupItem[] = [
     enabledByDefault: true,
   },
   {
-    name: 'PortfolioTray',
+    name: 'Win98Tray',
     command: 'C:\\WINDOWS\\portfolio.exe /tray',
     location: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
     enabledByDefault: false,

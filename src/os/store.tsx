@@ -1,4 +1,4 @@
-// Windows 98 Portfolio Edition (c) 2026 John Erick Mendoza (github.com/RICKTZY22) - MIT, attribution required. origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
+// Windows 98 Web Edition (c) 2026 John Erick Mendoza (github.com/RICKTZY22) - MIT, attribution required. origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type {
@@ -151,7 +151,7 @@ function driverRemovedNotice(type: DriverType, missing: string[]): Omit<MessageB
     audio:
       'Audio is tiered: one missing file warns, two missing files quiet system sounds, and three or more disable media audio until the simulated driver is restored.',
     video: 'The desktop has switched to Standard VGA compatibility mode. Paint, Imaging Preview, video rendering, gallery preview, and display settings are unavailable until the simulated video driver is restored.',
-    input: 'Keyboard and mouse warnings are shown only. Real browser input remains usable so the portfolio OS cannot trap the visitor.',
+    input: 'Keyboard and mouse warnings are shown only. Real browser input remains usable so the simulated OS cannot trap the visitor.',
     storage: 'Disk tools may report a storage controller warning until the simulated driver is restored.',
   }
   return {
@@ -293,7 +293,7 @@ function safetyTrainingCrash(): CrashState {
     title: 'Windows protection error',
     message: 'Windows has become unstable because an untrusted program exhausted system resources.',
     detail:
-      'While initializing device USER32: testdontouch.exe opened repeated modal dialogs inside the Portfolio OS sandbox. No real files, network requests, downloads, or host system commands were executed.',
+      'While initializing device USER32: testdontouch.exe opened repeated modal dialogs inside the Windows 98 sandbox. No real files, network requests, downloads, or host system commands were executed.',
     stopCode: '0E : 0028 : C0DEF00D',
     crashedAt: nowStamp(),
   }
@@ -1351,7 +1351,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
               title: 'System File Missing',
               message: `${feature} is unavailable because a required simulated system file was deleted.`,
               detail:
-                'This affects only the portfolio OS sandbox. Run SFC /SCANNOW, SCANREG /RESTORE, or BIOS Recovery Mode to restore from the protected cache.',
+                'This affects only the simulated OS sandbox. Run SFC /SCANNOW, SCANREG /RESTORE, or BIOS Recovery Mode to restore from the protected cache.',
               icon: 'warning',
               buttons: ['ok'],
               errorCode: 'ERR_SYSTEM_FILE_MISSING',

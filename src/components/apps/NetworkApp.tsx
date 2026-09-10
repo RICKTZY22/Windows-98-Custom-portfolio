@@ -65,7 +65,7 @@ export function NetworkApp() {
       showMessageBox({
         title: 'Entire Network',
         message: 'The simulated workgroup is available.',
-        detail: 'AST, PAUL, and SONY are sample browser-only hosts for awareness and portfolio navigation.',
+        detail: 'AST, PAUL, and SONY are sample browser-only hosts for awareness and site navigation.',
         icon: 'info',
         buttons: ['ok'],
       })
@@ -84,7 +84,7 @@ export function NetworkApp() {
     showMessageBox({
       title: id.toUpperCase(),
       message: `Connected to \\\\${id.toUpperCase()} in the simulated workgroup.`,
-      detail: 'No real network connection is made. This is a safe portfolio-only Network Neighborhood mockup.',
+      detail: 'No real network connection is made. This is a safe simulation-only Network Neighborhood mockup.',
       icon: 'info',
       buttons: ['ok'],
     })

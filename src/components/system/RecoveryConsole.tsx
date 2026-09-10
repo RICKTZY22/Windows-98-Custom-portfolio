@@ -103,7 +103,7 @@ function groupedHealthLines(fs: Parameters<typeof classifyMissingFiles>[0], stat
   }
   const missingCount = groups.reduce((count, group) => count + group.paths.length, 0)
   if (missingCount) {
-    lines.push(`${missingCount} item(s) should be restored from the portfolio OS protected cache.`)
+    lines.push(`${missingCount} item(s) should be restored from the simulated OS protected cache.`)
   } else {
     lines.push('No missing protected files or simulated driver packages were found.')
     lines.push('Windows should start normally.')
@@ -316,7 +316,7 @@ export function RecoveryConsole() {
         'Current fixed disk drive: 1',
         '',
         'Partition   Status   Type      Volume Label   Mbytes   System   Usage',
-        ' C: 1          A      PRI DOS   PORTFOLIO       2047    FAT16     100%',
+        ' C: 1          A      PRI DOS   WIN98           2047    FAT16     100%',
         '',
         'Total fixed disk space is 2047 Mbytes (1 Mbyte = 1048576 bytes)',
       ])

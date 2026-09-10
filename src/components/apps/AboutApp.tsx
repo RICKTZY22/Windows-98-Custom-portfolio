@@ -41,7 +41,7 @@ const highlightRows = [
   },
   {
     label: 'Creative work',
-    detail: 'Between Two Ruins and the Windows 98 Portfolio OS.',
+    detail: 'Between Two Ruins and Windows 98 Web Edition.',
   },
   {
     label: 'Motion UI',

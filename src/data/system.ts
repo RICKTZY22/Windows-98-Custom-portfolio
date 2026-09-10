@@ -3,11 +3,11 @@ import type { ControlPanelSectionId, IconKey } from '../types'
 /** Credits shown on boot, shutdown, and the recovery program. */
 export const osCreditName = 'John Erick Mendoza'
 export const osCreditYear = '2026'
-export const osProductName = 'Windows 98 Portfolio Edition'
+export const osProductName = 'Windows 98 Web Edition'
 export const osCreditLine = `(C)Copyright ${osCreditName} ${osCreditYear}`
 
 /** Microsoft-style startup menu shown after a crash / failed boot. */
-export const bootMenuTitle = 'Microsoft Windows 98 Portfolio Edition Startup Menu'
+export const bootMenuTitle = 'Microsoft Windows 98 Web Edition Startup Menu'
 export const bootMenuOptions: Array<{
   id: 'normal' | 'safe' | 'dos' | 'recovery'
   label: string

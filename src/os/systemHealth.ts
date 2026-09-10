@@ -282,7 +282,7 @@ export function driverFailureBox(
   return {
     title,
     message: `${title} cannot use this feature because a simulated ${type} driver is missing.`,
-    detail: `${fileList} is unavailable inside the portfolio OS. ${driverRecoveryHint(type)}`,
+    detail: `${fileList} is unavailable inside the simulated OS. ${driverRecoveryHint(type)}`,
     icon: 'error',
     buttons: ['ok'],
     errorCode: driverErrorCodes[type],

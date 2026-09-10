@@ -180,7 +180,7 @@ export const INSTALLED_PROGRAMS: readonly InstalledProgram[] = [
   { name: 'Outlook Express 5', icon: 'world', size: '6.7 MB' },
   { name: 'Microsoft NetMeeting', icon: 'network', size: '4.1 MB' },
   { name: 'Windows Explorer', appId: 'explorer', payload: { path: 'C:\\' }, icon: 'explorer', size: '3.1 MB', required: true },
-  { name: 'Windows 98 Portfolio Edition', icon: 'windows', size: '198 MB', required: true },
+  { name: 'Windows 98 Web Edition', icon: 'windows', size: '198 MB', required: true },
 ]
 
 const sections = controlPanelSections as readonly ControlPanelSection[]
@@ -213,7 +213,7 @@ export function getControlPanelRows(input: ControlPanelRowsInput): readonly Cont
   switch (input.sectionId) {
     case 'system':
       return [
-        row('System', 'Microsoft Windows 98 Portfolio Edition'),
+        row('System', 'Microsoft Windows 98 Web Edition'),
         row('Computer', 'Genuine Browser PC'),
         row('Memory', '64 MB simulated RAM'),
         row(
@@ -251,7 +251,7 @@ export function getControlPanelRows(input: ControlPanelRowsInput): readonly Cont
         row('Language', 'US 101-key'),
       ]
     case 'printers':
-      return [row('Default printer', 'Portfolio Writer on LPT1:'), row('Queue status', 'Ready')]
+      return [row('Default printer', 'Windows 98 Writer on LPT1:'), row('Queue status', 'Ready')]
     case 'addremove':
       return [
         row('Installed programs', String(INSTALLED_PROGRAMS.length)),
@@ -463,7 +463,7 @@ export function useControlPanelModel(payload?: AppProps['payload']): ControlPane
       showMessageBox({
         title: 'Display Properties',
         message: `${draftTheme.name} has been applied.`,
-        detail: `Wallpaper: ${draftWallpaper.name} (${effectiveDraft.wallpaperMode}). The setting is saved inside the portfolio OS state.`,
+        detail: `Wallpaper: ${draftWallpaper.name} (${effectiveDraft.wallpaperMode}). The setting is saved inside the simulated OS state.`,
         icon: 'info',
         buttons: ['ok'],
       })

@@ -15,7 +15,7 @@ const TOPICS: Array<{ id: Topic; label: string; hint: string; icon: IconKey }> =
   { id: 'files', label: 'Files and Drivers', hint: 'Virtual C: drive, Recycle Bin, and simulated drivers.', icon: 'hardDrive' },
   { id: 'safety', label: 'Safety Guide', hint: 'Educational simulations and what is never real.', icon: 'help' },
   { id: 'recovery', label: 'BIOS and Recovery', hint: 'Boot setup, protected cache, and system repair.', icon: 'gears' },
-  { id: 'commands', label: 'MS-DOS Commands', hint: 'Prompt commands supported by the portfolio OS.', icon: 'terminal' },
+  { id: 'commands', label: 'MS-DOS Commands', hint: 'Prompt commands supported by the simulated OS.', icon: 'terminal' },
   { id: 'troubleshooting', label: 'Troubleshooting', hint: 'Common fixes when something looks broken.', icon: 'search' },
 ]
 
@@ -141,13 +141,13 @@ const PROGRAMS_CORE: Program[] = [
   {
     name: 'Inbox',
     icon: 'inbox',
-    text: 'A Microsoft Exchange style mailbox. Every message is a release of this portfolio with its patch notes; Reply, Forward, and New all work.',
+    text: 'A Microsoft Exchange style mailbox. Every message is a release of this project with its patch notes; Reply, Forward, and New all work.',
   },
 ]
 
 // Accessories.
 const PROGRAMS_ACCESSORIES: Program[] = [
-  { name: 'Notepad', icon: 'notepad', text: 'Plain-text editor for quick notes and .txt files inside the portfolio OS.' },
+  { name: 'Notepad', icon: 'notepad', text: 'Plain-text editor for quick notes and .txt files inside the simulated OS.' },
   {
     name: 'WordPad',
     icon: 'wordpad',
@@ -178,7 +178,7 @@ const PROGRAMS_SYSTEM: Program[] = [
   {
     name: 'Control Panel',
     icon: 'controlPanel',
-    text: 'Change wallpaper, colors, pointer style, sounds, display settings, and network status inside the portfolio OS.',
+    text: 'Change wallpaper, colors, pointer style, sounds, display settings, and network status inside the simulated OS.',
   },
   {
     name: 'System Information',
@@ -239,7 +239,7 @@ const PROGRAMS_MORE: Program[] = [
   {
     name: 'Credits',
     icon: 'help',
-    text: 'Tools, libraries, AI assistants, and preservation projects behind this portfolio OS.',
+    text: 'Tools, libraries, AI assistants, and preservation projects behind this simulated OS.',
   },
 ]
 
@@ -452,12 +452,12 @@ export function HelpApp() {
             <article className="help-article">
               <h2>Welcome to {portfolioData.profile.name}'s Windows 98 Portfolio</h2>
               <p>
-                This is a simulated Windows 98-style desktop running in the browser. It behaves like a tiny portfolio
+                This is a simulated Windows 98-style desktop running in the browser. It behaves like a tiny operating system
                 operating system, but it is still just a React app with a virtual filesystem.
               </p>
               <div className="help-callout">
                 Nothing here can read, change, delete, download, or repair files on the real computer. All risky-looking
-                behavior stays inside the portfolio OS simulation.
+                behavior stays inside the simulated OS simulation.
               </div>
               <h3>Quick start</h3>
               <ul className="help-list">
@@ -487,7 +487,7 @@ export function HelpApp() {
             <article className="help-article">
               <h2>What's New</h2>
               <p>
-                Recent additions to the portfolio OS. Everything below stays inside the browser-only simulation and
+                Recent additions to the simulated OS. Everything below stays inside the browser-only simulation and
                 never touches the real computer.
               </p>
               <div className="help-program-grid">
@@ -537,13 +537,13 @@ export function HelpApp() {
             <article className="help-article">
               <h2>Files, Drivers, and the Virtual C: Drive</h2>
               <p>
-                The portfolio keeps its own browser-only file tree. Files can be created, renamed, copied, moved, and
+                The simulation keeps its own browser-only file tree. Files can be created, renamed, copied, moved, and
                 deleted without touching the host machine.
               </p>
               <h3>Driver dependency model</h3>
               <p>
                 Driver files are educational switches. Deleting one disables related simulated features while the rest
-                of the portfolio keeps running.
+                of the simulation keeps running.
               </p>
               <table className="help-commands">
                 <thead>
@@ -588,7 +588,7 @@ export function HelpApp() {
               <h3>System file consequences</h3>
               <p>
                 This list covers the seeded files marked as system files inside <code>C:\Windows</code>. Consequences
-                match the portfolio OS dependency model: boot-critical files can stop startup, driver files degrade a
+                match the simulated OS dependency model: boot-critical files can stop startup, driver files degrade a
                 device category, and low-impact files are kept mostly for realism.
               </p>
               <table className="help-commands help-system-file-table">
@@ -624,7 +624,7 @@ export function HelpApp() {
             <article className="help-article">
               <h2>Safety Guide</h2>
               <p>
-                This portfolio uses words like driver, virus, malware, setup.bat, BIOS, recovery, crash, and System32
+                This simulation uses words like driver, virus, malware, setup.bat, BIOS, recovery, crash, and System32
                 for educational awareness. They describe browser-only UI states, not real host-machine actions.
               </p>
               <div className="help-card-grid">
@@ -642,7 +642,7 @@ export function HelpApp() {
                 </section>
                 <section>
                   <strong>Clear user messaging</strong>
-                  <p>Error dialogs should say "simulated driver", "portfolio OS", and "Recovery Mode" when possible.</p>
+                  <p>Error dialogs should say "simulated driver", "simulated OS", and "Recovery Mode" when possible.</p>
                 </section>
               </div>
             </article>
@@ -755,7 +755,7 @@ export function HelpApp() {
         </div>
       </div>
       <div className="status-bar">
-        <p className="status-bar-field">{portfolioData.profile.name} - Windows 98 Portfolio Edition</p>
+        <p className="status-bar-field">{portfolioData.profile.name} - Windows 98 Web Edition</p>
         <p className="status-bar-field">{activeTopic.label}</p>
       </div>
     </div>

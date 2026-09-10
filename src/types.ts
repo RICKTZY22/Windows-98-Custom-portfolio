@@ -170,7 +170,7 @@ export type DriverType = 'network' | 'audio' | 'video' | 'input' | 'storage'
 export type FsAttributes = {
   system?: boolean // shown as System file, lives under C:\Windows
   critical?: boolean // deleting it crashes Windows / blocks normal boot
-  driverType?: DriverType // simulated device driver category; missing drivers degrade related portfolio OS features only
+  driverType?: DriverType // simulated device driver category; missing drivers degrade related simulated OS features only
   readOnly?: boolean
   hidden?: boolean
   passcode?: string // folders only: opening prompts for this code before contents show

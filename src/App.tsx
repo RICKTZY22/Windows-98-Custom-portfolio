@@ -1,4 +1,4 @@
-// Windows 98 Portfolio Edition (c) 2026 John Erick Mendoza (github.com/RICKTZY22) - MIT, attribution required. origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
+// Windows 98 Web Edition (c) 2026 John Erick Mendoza (github.com/RICKTZY22) - MIT, attribution required. origin-fingerprint: JEM-W98P-ORIGIN-7f3a9c1e2b5d
 import { Suspense, lazy } from 'react'
 import { useOs } from './os/useOs'
 import { Desktop } from './components/shell/Desktop'

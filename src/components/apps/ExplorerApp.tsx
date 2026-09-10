@@ -41,7 +41,7 @@ function isThumbnailable(node: FsNode): boolean {
 }
 
 const quickPaths = [
-  ['C:\\', 'Portfolio (C:)'],
+  ['C:\\', 'Windows 98 (C:)'],
   ['C:\\My Documents', 'My Documents'],
   ['C:\\My Pictures', 'My Pictures'],
   ['C:\\My Videos', 'My Videos'],
@@ -232,7 +232,7 @@ export function ExplorerApp({ windowId, payload }: AppProps) {
   function showExplorerHelp() {
     showMessageBox({
       title: 'Windows Explorer Help',
-      message: 'Use the toolbar, menus, or right-click menu to manage simulated portfolio files.',
+      message: 'Use the toolbar, menus, or right-click menu to manage simulated files.',
       detail:
         'Tip: Ctrl+A selects all items, F2 renames the selected item, Delete moves items to the Recycle Bin, and Backspace goes up one folder.',
       icon: 'info',

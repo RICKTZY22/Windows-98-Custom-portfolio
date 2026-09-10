@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Origin / authorship verifier for "Windows 98 Portfolio Edition".
+ * Origin / authorship verifier for "Windows 98 Web Edition".
  *
  * Usage:
  *   node scripts/verify-origin.mjs            Check THIS repo's watermarks are intact (CI guard).
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 
 const FINGERPRINT = 'JEM-W98P-ORIGIN-7f3a9c1e2b5d'
 const AUTHOR = 'John Erick Mendoza'
-const PROJECT = 'Windows 98 Portfolio Edition'
+const PROJECT = 'Windows 98 Web Edition'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..')

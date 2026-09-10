@@ -84,14 +84,14 @@ export function BootDisclaimer() {
               <p>
                 {osProductName} is an original, independently built web application. It recreates
                 the look and feel of the late-1990s desktop, coded from scratch with React and the
-                98.css stylesheet. It is a personal portfolio piece and learning exercise, not a
+                98.css stylesheet. It is a personal project and learning exercise, not a
                 copy, emulator, or redistribution of any Microsoft software.
               </p>
               <p>
                 &ldquo;Microsoft&rdquo;, &ldquo;Windows&rdquo;, &ldquo;Windows&nbsp;98&rdquo;, the
                 Windows flag, the Microsoft logo, and related names and imagery are trademarks and
                 the property of Microsoft Corporation. They appear here only for nostalgic,
-                educational, commentary, and portfolio purposes (nominative fair use). This project
+                educational, and commentary purposes (nominative fair use). This project
                 is <strong>not affiliated with, endorsed by, sponsored by, certified by, or
                 connected to</strong> Microsoft Corporation in any way, and no such association is
                 implied.

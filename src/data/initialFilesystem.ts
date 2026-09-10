@@ -21,7 +21,7 @@ const RETRO_STAMP = '05/11/1998 08:01 AM'
 function systemFileContent(name: string): string {
   return [
     name,
-    'Simulated Windows 98 portfolio system component.',
+    'Simulated Windows 98 system component.',
     'This placeholder contains no Microsoft code or real operating system data.',
     'It exists only inside the browser filesystem model.',
   ].join('\n')
@@ -36,9 +36,9 @@ const AUTOEXEC_BAT = [
   'LH C:\\WINDOWS\\COMMAND\\MSCDEX.EXE /D:OEMCD001 /L:E',
   'LH C:\\MOUSE\\MOUSE.EXE /Q',
   'REM ------------------------------------------',
-  'REM  Portfolio 98 - tuned for maximum nostalgia',
+  'REM  Windows 98 - tuned for maximum nostalgia',
   'REM ------------------------------------------',
-  'ECHO Loading Portfolio 98...',
+  'ECHO Loading Windows 98...',
   'WIN',
 ].join('\n')
 
@@ -52,7 +52,7 @@ const CONFIG_SYS = [
   'FCBS=4,0',
   'DEVICEHIGH=C:\\CDROM\\OEMCD001.SYS /D:OEMCD001',
   'LASTDRIVE=Z',
-  'REM 64 MB ought to be enough for any portfolio',
+  'REM 64 MB ought to be enough for anybody',
 ].join('\n')
 
 const WIN_INI = [
@@ -181,9 +181,9 @@ function resumeToHtml(): string {
     resumeSection(
       'PROJECT EXPERIENCE',
       [
-        resumeProject('Windows 98 Portfolio Edition', 'Creative Frontend Developer • React • TypeScript • Virtual Filesystem • Browser OS', [
-          'Built a fully interactive browser-based Windows 98-style portfolio OS with a virtual filesystem, movable windows, and simulated desktop apps.',
-          'Implemented startup and recovery flows, custom themes, and sound design, reframing portfolio presentation as a navigable OS.',
+        resumeProject('Windows 98 Web Edition', 'Creative Frontend Developer • React • TypeScript • Virtual Filesystem • Browser OS', [
+          'Built a fully interactive browser-based Windows 98-style web OS with a virtual filesystem, movable windows, and simulated desktop apps.',
+          'Implemented startup and recovery flows, custom themes, and sound design, reframing the project as a navigable OS.',
           'Demonstrates depth in React architecture, creative state management, and frontend engineering.',
         ]),
         resumeProject('Between Two Ruins', 'Visual Novel / Interactive Experience Developer • React • GSAP • ScrollTrigger • TypeScript', [
@@ -237,10 +237,10 @@ function persistenceNotesDocHtml(): string {
     '<div style="font-family:Arial,Helvetica,sans-serif; color:#111; font-size:14px; line-height:1.35">',
     '<div style="border:2px solid #003399; padding:16px 18px; margin-bottom:18px; background:#f7f9ff">',
     '<div style="font-size:26px; font-weight:700; color:#003399; margin-bottom:4px">Persistence and Loading Notes</div>',
-    '<div style="font-size:13px; color:#555">Portfolio 98 technical note - browser-only storage, lazy loading, and optimization work.</div>',
+    '<div style="font-size:13px; color:#555">Windows 98 Web Edition technical note - browser-only storage, lazy loading, and optimization work.</div>',
     '</div>',
-    section('What persistence means in this portfolio OS', [
-      'The portfolio keeps a simulated Windows 98 disk in the visitor browser so actions can feel real between sessions.',
+    section('What persistence means in this simulated OS', [
+      'The simulation keeps a Windows 98 disk in the visitor browser so actions can feel real between sessions.',
       'If a visitor deletes a simulated file, changes a theme, moves icons, or imports local media, that state can be restored the next time they open the same browser profile.',
       'This is not a real operating system. It cannot repair, scan, or modify the visitor actual Windows files.',
     ]),
@@ -255,7 +255,7 @@ function persistenceNotesDocHtml(): string {
     ]),
     section('How user media imports work', [
       'When a visitor drags a picture, sound, or video into the Gallery app, the file stays on that visitor device inside the browser sandbox.',
-      'The file is not uploaded to the portfolio server, Vercel Blob, GitHub, or any backend endpoint.',
+      'The file is not uploaded to any server, Vercel Blob, GitHub, or any backend endpoint.',
       'Imported media is private to that browser profile. If the visitor clears site data, switches browsers, or uses another device, those local imports are gone.',
     ]),
     section('Lazy chunk loading', [
@@ -274,8 +274,8 @@ function persistenceNotesDocHtml(): string {
       ]),
     ]),
     section('Safety notes', [
-      'All recovery, driver, BIOS, malware-awareness, and system-file behavior is simulated for education and portfolio storytelling.',
-      'The app may display warnings or disabled features when simulated drivers are missing, but those effects stay inside the portfolio page.',
+      'All recovery, driver, BIOS, malware-awareness, and system-file behavior is simulated for education and storytelling.',
+      'The app may display warnings or disabled features when simulated drivers are missing, but those effects stay inside the simulation.',
       'Nothing here has access to the visitor real operating system, private folders, installed drivers, or hardware.',
     ]),
     '</div>',
@@ -300,7 +300,7 @@ const COVER_ART_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
 const PLMUN_NEXUS_ROOT = 'C:\\Projects\\PLMun Inventory Nexus'
 const PLMUN_NEXUS_STAMP = '06/16/2026 10:30 PM'
-const WIN98_PORTFOLIO_ROOT = 'C:\\Projects\\Windows 98 Portfolio OS'
+const WIN98_PORTFOLIO_ROOT = 'C:\\Projects\\Windows 98 Web Edition'
 const WIN98_PORTFOLIO_STAMP = '06/17/2026 09:18 PM'
 
 type ScaffoldFile = FileOpts & { path: string }
@@ -360,7 +360,7 @@ function win98PortfolioPath(relativePath: string): string {
 }
 
 // The documentation PDFs (the AI case study plus the docx-derived PDFs) are
-// confidential and must never ship inside the portfolio OS, so nothing is seeded
+// confidential and must never ship inside the simulated OS, so nothing is seeded
 // here. removePortfolioDocArtifacts() also strips them from older persisted disks.
 const WIN98_PORTFOLIO_PDF_FILES: ScaffoldFile[] = []
 
@@ -473,9 +473,9 @@ function win98PortfolioFileContent(relativePath: string): string {
 
   if (normalized === 'README.md') {
     return [
-      '# Windows 98 Portfolio OS',
+      '# Windows 98 Web Edition',
       '',
-      'Interactive React portfolio presented as a nostalgic Windows 98-style desktop.',
+      'Interactive React OS simulation presented as a nostalgic Windows 98-style desktop.',
       '',
       '## What is inside',
       '- Virtual filesystem seeded from src/data/initialFilesystem.ts.',
@@ -488,7 +488,7 @@ function win98PortfolioFileContent(relativePath: string): string {
   if (normalized === 'package.json') {
     return JSON.stringify(
       {
-        name: 'windows-portfolio',
+        name: 'windows-98-web-edition',
         type: 'module',
         scripts: { dev: 'vite', build: 'tsc -b && vite build', lint: 'eslint .', test: 'vitest run' },
         dependencies: { react: '^19.2.6', 'react-dom': '^19.2.6', '98.css': '^0.1.21', 'js-dos': '^8.3.20' },
@@ -505,7 +505,7 @@ function win98PortfolioFileContent(relativePath: string): string {
       '- Build documentation explains how the project was assembled.',
       '- Algorithms and patterns explain state, filesystem, command, and UI patterns.',
       '- Apps and features explains each app and how it connects to the OS shell.',
-      '- PDF exports are bundled for reading inside the portfolio OS.',
+      '- PDF exports are bundled for reading inside the simulated OS.',
     ].join('\n')
   }
 
@@ -534,7 +534,7 @@ function win98PortfolioFileContent(relativePath: string): string {
     name,
     '',
     `Path: ${normalized}`,
-    'Windows 98 Portfolio OS project file shown inside the virtual C: drive.',
+    'Windows 98 Web Edition project file shown inside the virtual C: drive.',
   ].join('\n')
 }
 
@@ -704,7 +704,7 @@ function plmunNexusPythonContent(relativePath: string): string {
   return [
     `"""${modulePath} module for PLMun Inventory Nexus."""`,
     '',
-    '# Representative source file for the portfolio filesystem.',
+    '# Representative source file for the simulated filesystem.',
     '# The real capstone uses Django, DRF, Channels, JWT auth, and PostgreSQL.',
     '',
     'def describe() -> str:',
@@ -885,7 +885,7 @@ function plmunNexusFileContent(relativePath: string): string {
     name,
     '',
     `Path: ${normalized}`,
-    'PLMun Inventory Nexus project file inside the Windows 98 portfolio filesystem.',
+    'PLMun Inventory Nexus project file inside the Windows 98 simulated filesystem.',
   ].join('\n')
 }
 
@@ -1559,7 +1559,7 @@ export function createInitialFsState(): FsState {
 
   // ----- drive root -----
   const root = folder('C:\\', 'hardDrive')
-  root.name = 'Portfolio (C:)'
+  root.name = 'Windows 98 (C:)'
 
   file('C:\\AUTOEXEC.BAT', { content: AUTOEXEC_BAT, modified: RETRO_STAMP })
   file('C:\\CONFIG.SYS', {
@@ -1992,7 +1992,7 @@ export function createInitialFsState(): FsState {
 
   // ----- Network -----
   folder('C:\\Network', 'network', '06/12/2026 12:12 AM')
-  file('C:\\Network\\Portfolio.local', {
+  file('C:\\Network\\Win98.local', {
     size: 0,
     icon: 'world',
     fileType: 'Network Location',
@@ -2122,7 +2122,11 @@ function removeStaleHostedMediaSeeds(fs: FsState): FsState {
 }
 
 function normalizePortfolioLaunchers(fs: FsState): FsState {
-  const launcherPaths = ['C:\\Windows\\Desktop\\Portfolio OS.lnk', 'C:\\Network\\Portfolio.local']
+  const launcherPaths = [
+    'C:\\Windows\\Desktop\\Portfolio OS.lnk',
+    'C:\\Network\\Portfolio.local',
+    'C:\\Network\\Win98.local',
+  ]
   let changed = false
   const nodes = { ...fs.nodes }
   for (const path of launcherPaths) {
@@ -2171,9 +2175,15 @@ const PURGED_PORTFOLIO_DOC_ROOTS = [
   `${WIN98_PORTFOLIO_ROOT}\\public\\docs`,
 ]
 
+// The project folder was renamed from "Windows 98 Portfolio OS" to
+// "Windows 98 Web Edition". A disk saved by an older build still carries the old
+// subtree, so Explorer would show the project twice. Strip the old root; the new
+// one is seeded by WIN98_PORTFOLIO_SEED_PATHS in the normal pass.
+const RENAMED_PROJECT_ROOTS = ['C:\\Projects\\Windows 98 Portfolio OS']
+
 function removePortfolioDocArtifacts(fs: FsState): FsState {
   let next = fs
-  for (const root of PURGED_PORTFOLIO_DOC_ROOTS) {
+  for (const root of [...PURGED_PORTFOLIO_DOC_ROOTS, ...RENAMED_PROJECT_ROOTS]) {
     const prefix = `${root}\\`
     for (const path of Object.keys(next.nodes)) {
       if (path === root || path.startsWith(prefix)) {

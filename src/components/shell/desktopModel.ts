@@ -66,7 +66,7 @@ export function desktopIconTooltip(iconDef: DesktopIconDef, fsNodes: Record<stri
   if (!node) {
     return `${iconDef.label}\nDouble-click to open.`
   }
-  const targetLabel = node.appPayload?.filePath ?? node.appPayload?.path ?? node.appId ?? 'portfolio item'
+  const targetLabel = node.appPayload?.filePath ?? node.appPayload?.path ?? node.appId ?? 'desktop item'
   return `${iconDef.label}\nShortcut\nTarget: ${targetLabel}\nModified: ${node.modified}`
 }
 

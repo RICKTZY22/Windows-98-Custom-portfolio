@@ -23,7 +23,7 @@ export function ShutdownScreen() {
         <div className="shutdown-wait-copy">
           <p>{osProductName}</p>
           <h1 className="shutdown-dots">Windows is shutting down</h1>
-          <p>Please wait while your portfolio computer powers down.</p>
+          <p>Please wait while your simulated computer powers down.</p>
         </div>
       </main>
     )

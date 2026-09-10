@@ -211,7 +211,7 @@ export function PortfolioApp() {
       showMessageBox({
         title: 'Project Folder Missing',
         message: 'The project folder could not be found.',
-        detail: `${root}\n\nRestore the simulated portfolio files or recreate this project folder before uploading files.`,
+        detail: `${root}\n\nRestore the simulated files or recreate this project folder before uploading files.`,
         icon: 'warning',
         buttons: ['ok'],
       })

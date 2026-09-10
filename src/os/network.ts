@@ -3,7 +3,7 @@ import { nowStamp } from './filesystem'
 
 /** Hostname -> IPv4 map for the simulated LAN/WAN. */
 export const KNOWN_HOSTS: Record<string, string> = {
-  'portfolio.local': '192.168.98.10',
+  'win98.local': '192.168.98.10',
   localhost: '127.0.0.1',
   'google.com': '142.250.80.46',
   'youtube.com': '142.250.80.78',

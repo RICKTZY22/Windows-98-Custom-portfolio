@@ -1,7 +1,7 @@
 /**
  * Origin watermark — proof of authorship.
  *
- * "Windows 98 Portfolio Edition" is the original work of John Erick Mendoza
+ * "Windows 98 Web Edition" is the original work of John Erick Mendoza
  * (GitHub: RICKTZY22). It is published under the MIT License, which REQUIRES this
  * copyright / authorship notice to be retained in all copies and substantial
  * portions of the work. Removing or altering these notices to misrepresent the
@@ -26,7 +26,7 @@
 export const ORIGIN = Object.freeze({
   author: 'John Erick Mendoza',
   github: 'RICKTZY22',
-  project: 'Windows 98 Portfolio Edition',
+  project: 'Windows 98 Web Edition',
   url: 'https://windows-98-custom-portfolio.vercel.app',
   year: 2026,
   license: 'MIT',

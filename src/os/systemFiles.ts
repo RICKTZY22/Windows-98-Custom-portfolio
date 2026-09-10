@@ -97,7 +97,7 @@ export function describeSystemFile(path: string): string {
       return `Required by: ${apps.map(appLabel).join(', ')}.`
     }
     case 'minimal':
-      return 'Minimal — no portfolio OS feature depends on this file.'
+      return 'Minimal — no simulated OS feature depends on this file.'
   }
 }
 
@@ -128,7 +128,7 @@ export function systemFileDeletionConsequence(path: string): string {
       return `${apps.join(', ')} ${apps.length === 1 ? 'fails' : 'fail'} to open or shows a missing-file error.`
     }
     case 'minimal':
-      return 'No current portfolio OS feature depends on this file. Deleting it is logged/restorable but has no functional loss.'
+      return 'No current simulated OS feature depends on this file. Deleting it is logged/restorable but has no functional loss.'
   }
 }
 
@@ -191,7 +191,7 @@ export function printOutcomeBox(fs: FsState, appTitle: string): Omit<MessageBoxR
   }
   return {
     title: `${appTitle} - Print`,
-    message: 'Printing to file (PRN) in the portfolio OS.',
+    message: 'Printing to file (PRN) in the simulated OS.',
     detail:
       'No physical printer is installed, so the spooler wrote the job to a simulated PRN file. Nothing left this browser tab.',
     icon: 'info',

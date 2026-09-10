@@ -109,7 +109,7 @@ export function BiosSetupScreen() {
         { label: 'Primary Slave', value: 'None' },
         {
           label: 'Secondary Master',
-          value: draft.cdromEnabled ? 'PORTFOLIO CD-ROM 24X' : 'None',
+          value: draft.cdromEnabled ? 'GENERIC CD-ROM 24X' : 'None',
           hint: 'Press Enter to enable or disable the simulated CD-ROM controller.',
           onChange: () => toggle('cdromEnabled'),
         },
@@ -169,7 +169,7 @@ export function BiosSetupScreen() {
           label: 'Reset Configuration Data',
           value: yesNo(draft.resetConfigurationData),
           onChange: () => toggle('resetConfigurationData'),
-          hint: 'Clears simulated browser-only ESCD records on the next portfolio OS boot.',
+          hint: 'Clears simulated browser-only ESCD records on the next simulated OS boot.',
         },
         { label: 'Assign IRQ For VGA', value: yesNo(draft.assignIrqForVga), onChange: () => toggle('assignIrqForVga') },
         { label: 'PCI Slot 1 Ethernet', value: driverStatusLabel(state.fs, 'network') },
@@ -220,7 +220,7 @@ export function BiosSetupScreen() {
         {
           label: 'Recovery Recommendation',
           value: missingRequired.length || totalDriverMissing ? 'Run Recovery Mode' : 'No action needed',
-          hint: 'Recovery Mode restores simulated files from the portfolio OS protected cache.',
+          hint: 'Recovery Mode restores simulated files from the simulated OS protected cache.',
           onChange: openRecovery,
         },
       ]
@@ -231,7 +231,7 @@ export function BiosSetupScreen() {
         label: `${index + 1}${index === 0 ? 'st' : index === 1 ? 'nd' : index === 2 ? 'rd' : 'th'} Boot Device`,
         value: `${bootDeviceLabels[device]}${bootDeviceEnabled(draft, device) ? '' : ' (Disabled)'}`,
         hint: bootDeviceEnabled(draft, device)
-          ? 'Only the hard disk contains a bootable Portfolio Windows installation.'
+          ? 'Only the hard disk contains a bootable Windows installation.'
           : 'Enable this device under Integrated Peripherals before using it.',
         onPrevious: () => moveDevice(device, -1),
         onNext: () => moveDevice(device, 1),
@@ -287,7 +287,7 @@ export function BiosSetupScreen() {
           value: 'Press Enter',
           hint: wiped
             ? 'System32 was removed; Recovery can no longer restore it. Use Command prompt only and run SETUP.'
-            : 'Boot the recovery environment and restore missing portfolio OS files from the protected cache.',
+            : 'Boot the recovery environment and restore missing simulated OS files from the protected cache.',
           onChange: () => enterRecoveryMode(),
         },
         {

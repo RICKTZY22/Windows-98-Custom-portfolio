@@ -44,7 +44,7 @@ const LOGOS = [
     role: 'AI TEST GENERATION',
     co: 'Google / Gemini',
     href: 'https://gemini.google.com/',
-    d: 'Gemini 3.5 Pro authored the automated test scripts for portfolio OS quality assurance.',
+    d: 'Gemini 3.5 Pro authored the automated test scripts for simulated OS quality assurance.',
   },
 ]
 
@@ -165,7 +165,7 @@ export function CreditsApp() {
           <img src={win98Icons.help} alt="" />
           <div>
             <h2>Credits</h2>
-            <p>Tools, people, libraries, AI assistants &amp; preservation projects behind this portfolio OS.</p>
+            <p>Tools, people, libraries, AI assistants &amp; preservation projects behind this simulated OS.</p>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@ export function CreditsApp() {
                 <div className="crt-star-name">
                   JOHN&nbsp;ERICK&nbsp;MENDOZA<span className="crt-cursor">_</span>
                 </div>
-                <div className="crt-role">as The Developer · portfolio architect</div>
+                <div className="crt-role">as The Developer · systems architect</div>
               </div>
             )}
           </div>
@@ -233,7 +233,7 @@ export function CreditsApp() {
           <div className="credits-disclaimer sunken-panel">
             <strong>Trademark note:</strong> Microsoft, Windows, OpenAI, Anthropic, Google, Gemini, DOOM, Wolfenstein,
             and other names remain the property of their respective owners. This app is a fan-made, educational,
-            browser-only portfolio and is not affiliated with or endorsed by those companies.
+            browser-only simulation and is not affiliated with or endorsed by those companies.
           </div>
 
           {/* Three tech columns */}
@@ -334,7 +334,7 @@ export function CreditsApp() {
               ))}
 
               <div className="roll-end">THE END</div>
-              <div className="roll-sign">John Erick Mendoza · Windows 98 Portfolio Edition · 2026</div>
+              <div className="roll-sign">John Erick Mendoza · Windows 98 Web Edition · 2026</div>
             </div>
           </div>
         </div>

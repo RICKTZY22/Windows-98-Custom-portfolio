@@ -71,13 +71,13 @@ export function StartupScanScreen() {
             errors.
           </p>
           <p>
-            ScanDisk is running a browser-only check of the simulated portfolio drive before the
+            ScanDisk is running a browser-only check of the simulated simulated drive before the
             desktop starts.
           </p>
           <div className="startup-scan-drive-card">
             <div>
               <span>Drive</span>
-              <strong>C: Portfolio OS</strong>
+              <strong>C: Windows 98</strong>
             </div>
             <div>
               <span>File system</span>
@@ -108,7 +108,7 @@ export function StartupScanScreen() {
           </div>
           <p className="startup-scan-percent">{progress}% complete</p>
           <p className="startup-scan-report">
-            Report: this educational portfolio OS did not touch the host file system.
+            Report: this educational simulated OS did not touch the host file system.
           </p>
           <p className="startup-scan-hint">Press any key or click to skip disk checking ...</p>
         </div>

@@ -302,7 +302,7 @@ describe('virtual filesystem', () => {
     expect(getNode(cleaned, 'C:\\My Documents\\Education.txt')).toBeUndefined()
     expect(getNode(cleaned, 'C:\\Windows\\Desktop\\Portfolio OS.lnk')?.appId).toBe('explorer')
     expect(getNode(cleaned, 'C:\\Windows\\Desktop\\Portfolio OS.lnk')?.appPayload?.path).toBe(
-      'C:\\Projects\\Windows 98 Portfolio OS',
+      'C:\\Projects\\Windows 98 Web Edition',
     )
     expect(getNode(cleaned, 'C:\\My Videos')?.kind).toBe('folder') // folder restored
   })
@@ -349,20 +349,20 @@ describe('virtual filesystem', () => {
     )
     expect(getNode(seeded, 'C:\\My Documents\\Education.txt')).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects')).toBeDefined()
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\src\\data\\initialFilesystem.ts')?.fileType).toBe(
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\src\\data\\initialFilesystem.ts')?.fileType).toBe(
       'TypeScript Source',
     )
     // The per-project Documentation\*.md showcase markdown is legitimate and stays.
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\Features.md')?.fileType).toBe(
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\Documentation\\Features.md')?.fileType).toBe(
       'Markdown Document',
     )
     // The confidential footprint (the docs/ source dump and the case-study PDFs
     // under Documentation\PDFs) is NOT seeded, and a purge keeps it from
     // reappearing on disks seeded by older builds.
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\docs')).toBeUndefined()
-    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\docs\\apps\\explorer.md')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\docs')).toBeUndefined()
+    expect(getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\docs\\apps\\explorer.md')).toBeUndefined()
     expect(
-      getNode(seeded, 'C:\\Projects\\Windows 98 Portfolio OS\\Documentation\\PDFs\\Build Documentation Explained.pdf'),
+      getNode(seeded, 'C:\\Projects\\Windows 98 Web Edition\\Documentation\\PDFs\\Build Documentation Explained.pdf'),
     ).toBeUndefined()
     expect(getNode(seeded, 'C:\\Projects\\PLMun Inventory Nexus\\Backend\\apps\\messaging\\consumers.py')?.appId).toBe(
       'notepad',
@@ -578,7 +578,7 @@ describe('command processor', () => {
     expect(executeCommand('attrib kernel32.dll', ctx).lines.join('\n')).toContain('kernel32.dll')
     expect(executeCommand('chkdsk', ctx).lines.join('\n')).toContain('FAT16')
     expect(executeCommand('format c:', ctx).lines.join('\n')).toContain('Command prompt only')
-    expect(executeCommand('winver', ctx).lines.join('\n')).toContain('Portfolio Shell')
+    expect(executeCommand('winver', ctx).lines.join('\n')).toContain('Web Edition Shell')
   })
 
   it('opens the local setup safety lesson from the command prompt only', () => {

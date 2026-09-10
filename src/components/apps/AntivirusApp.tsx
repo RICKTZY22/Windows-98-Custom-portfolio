@@ -17,7 +17,7 @@ const scanSteps = [
   'Inspecting document macros',
   'Checking browser cache',
   'Scanning shortcuts and program groups',
-  'Verifying portfolio project files',
+  'Verifying simulated project files',
   'Checking boot configuration',
 ]
 

@@ -197,7 +197,7 @@ export function Taskbar({
         <button
           className="tray-button"
           type="button"
-          title="System Log\nView recent portfolio OS notifications"
+          title="System Log\nView recent simulated OS notifications"
           onClick={onOpenSystemLog}
         >
           <img className="tray-icon" src={win98Icons.adminTools} alt="" />

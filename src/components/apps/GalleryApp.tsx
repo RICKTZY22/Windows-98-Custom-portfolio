@@ -160,7 +160,7 @@ export function GalleryApp() {
     void importFiles(files)
       .then((result) => {
         if (result.added > 0) {
-          notify('Files imported', `${result.added} file(s) were saved to the local portfolio disk.`, {
+          notify('Files imported', `${result.added} file(s) were saved to the local simulated disk.`, {
             kind: 'success',
             icon: 'gallery',
             dedupeKey: 'gallery-files-imported',
@@ -239,7 +239,7 @@ export function GalleryApp() {
             ? 'Importing files to this browser...'
             : dragging
               ? 'Drop media here to save it locally.'
-              : 'Drag images, videos, or audio here to add them to the local portfolio disk.'}
+              : 'Drag images, videos, or audio here to add them to the local simulated disk.'}
         </div>
         {!videoDriverReady ? (
           <div className="gallery-empty">

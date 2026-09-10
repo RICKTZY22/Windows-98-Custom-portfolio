@@ -1,4 +1,4 @@
-// Release history for the Windows 98 Portfolio Edition, surfaced inside the Inbox
+// Release history for the Windows 98 Web Edition, surfaced inside the Inbox
 // app as Microsoft Exchange mail (one message per version). Each entry is grounded
 // in the real git history of this repository — the `commits` field lists the actual
 // commit subjects that shipped in that version so the changelog stays honest.
@@ -102,7 +102,7 @@ export const releaseNotes: ReleaseNote[] = [
         ],
       },
     ],
-    commits: ['Initial commit', 'Build Windows 98 portfolio OS', 'Merge remote license'],
+    commits: ['Initial commit', 'Build Windows 98 web OS', 'Merge remote license'],
   },
   {
     version: '1.1.0',
@@ -118,13 +118,13 @@ export const releaseNotes: ReleaseNote[] = [
       {
         title: "What's new",
         items: [
-          'Expanded the Windows 98 portfolio OS simulation across the board.',
+          'Expanded the Windows 98 web OS simulation across the board.',
           'Additional applications and more faithful window interactions.',
           'A deeper, more realistic seeded filesystem.',
         ],
       },
     ],
-    commits: ['Expand Windows 98 portfolio OS simulation'],
+    commits: ['Expand Windows 98 web OS simulation'],
   },
   {
     version: '1.2.0',
@@ -424,7 +424,7 @@ export const releaseNotes: ReleaseNote[] = [
     status: 'released',
     headline: 'Certificates, clearer system files & Win98 notifications',
     summary:
-      'This patch makes the portfolio easier to read at a glance: certificates now live in their own app, System32 files have clearer icons, audio driver deletion degrades gently, dialogs are easier to understand, and notifications now feel closer to Windows tray balloons.',
+      'This patch makes the project easier to read at a glance: certificates now live in their own app, System32 files have clearer icons, audio driver deletion degrades gently, dialogs are easier to understand, and notifications now feel closer to Windows tray balloons.',
     sections: [
       {
         title: 'Certificates',

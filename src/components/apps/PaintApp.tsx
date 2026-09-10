@@ -269,7 +269,7 @@ export function PaintApp({ windowId, payload }: AppProps) {
       return
     }
     if (tool === 'text') {
-      const text = window.prompt('Text:', 'Portfolio 98')
+      const text = window.prompt('Text:', 'Windows 98')
       if (text) {
         pushUndo()
         context.fillStyle = color

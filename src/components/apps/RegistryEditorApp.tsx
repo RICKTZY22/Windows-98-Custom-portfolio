@@ -117,7 +117,7 @@ export function RegistryEditorApp() {
   function showReadOnlyNotice() {
     showMessageBox({
       title: 'Registry Editor',
-      message: 'Registry editing is read-only in this portfolio OS.',
+      message: 'Registry editing is read-only in this simulated OS.',
       detail:
         'This is a browser-only educational snapshot. It does not read, write, export, or modify any real Windows registry.',
       icon: 'info',
@@ -151,7 +151,7 @@ export function RegistryEditorApp() {
         </button>
       </div>
       <div className="registry-readonly-banner">
-        Safe mode: read-only simulated registry for portfolio education.
+        Safe mode: read-only simulated registry for safe exploration.
       </div>
       <div className="registry-body">
         <div className="sunken-panel registry-tree" role="tree" aria-label="Registry keys">

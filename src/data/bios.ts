@@ -24,7 +24,7 @@ export const defaultBiosSettings: BiosSettings = {
 
 export const bootDeviceLabels: Record<BootDeviceId, string> = {
   hardDisk: 'IDE-0  VIRTUAL_DISK_98',
-  cdrom: 'ATAPI CD-ROM  PORTFOLIO_24X',
+  cdrom: 'ATAPI CD-ROM  GENERIC_24X',
   floppy: 'Floppy Drive A: 1.44M',
   network: 'PCI Ethernet Boot ROM',
 }
@@ -100,7 +100,7 @@ export const biosSetupSections: Array<{
   {
     id: 'systemHealth',
     title: 'SYSTEM HEALTH STATUS',
-    help: 'Review protected core files and simulated portfolio OS driver status.',
+    help: 'Review protected core files and simulated simulated OS driver status.',
   },
   {
     id: 'boot',
@@ -110,7 +110,7 @@ export const biosSetupSections: Array<{
   {
     id: 'power',
     title: 'POWER MANAGEMENT SETUP',
-    help: 'Legacy APM-style power status for the simulated portfolio computer.',
+    help: 'Legacy APM-style power status for the simulated simulated computer.',
   },
   {
     id: 'recovery',
@@ -120,7 +120,7 @@ export const biosSetupSections: Array<{
   {
     id: 'defaults',
     title: 'LOAD SETUP DEFAULTS',
-    help: 'Restore stable Award-style defaults for the portfolio machine.',
+    help: 'Restore stable Award-style defaults for the simulated machine.',
   },
   {
     id: 'save',

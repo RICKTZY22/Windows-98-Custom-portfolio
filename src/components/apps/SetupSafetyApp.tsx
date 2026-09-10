@@ -6,10 +6,10 @@ import { useOs } from '../../os/useOs'
 
 type Dialog = { id: number; x: number; y: number; title: string; message: string }
 
-const DIALOG_TITLES = ['Runtime Error', 'Application Error', 'Portfolio OS Warning', 'System Notice', 'Windows']
+const DIALOG_TITLES = ['Runtime Error', 'Application Error', 'Windows 98 Warning', 'System Notice', 'Windows']
 const DIALOG_MESSAGES = [
   'A simulated runtime error occurred inside TESTDONTOUCH.EXE.',
-  'The portfolio OS blocked an unsafe dialog loop.',
+  'The simulated OS blocked an unsafe dialog loop.',
   'No real files, downloads, or host system settings were changed.',
   'The close request failed because the sandbox is demonstrating repeated popups.',
   'System resources are low inside the simulation.',
@@ -18,7 +18,7 @@ const DIALOG_MESSAGES = [
 
 const SETUP_LINES = [
   'C:\\MY DOCUMENTS\\PRIVATE> testdontouch.exe',
-  'Portfolio Setup Utility 4.10.1998',
+  'Windows 98 Setup Utility 4.10.1998',
   '[SIMULATING OS LAG] Allocating 4 MB buffer per popup thread...',
   'Checking package manifest...',
   'Extracting desktop component...',
@@ -240,7 +240,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
             !
           </span>
           <div className="setup-safety-header-text">
-            <h2>Portfolio Setup Wizard</h2>
+            <h2>Windows 98 Setup Wizard</h2>
             <p>Installing optional desktop component. Please wait...</p>
           </div>
           <button

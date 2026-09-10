@@ -54,7 +54,7 @@ export const themes: ThemeDefinition[] = [
   {
     id: 'windowsStandard',
     name: 'Windows Standard',
-    description: 'Classic blue title bars, silver controls, and the familiar portfolio sky desktop.',
+    description: 'Classic blue title bars, silver controls, and the familiar cloud sky desktop.',
     wallpaperId: 'portfolioSky',
     vars: makeVars({
       desktop: '#008080',
@@ -197,8 +197,8 @@ export const wallpapers: WallpaperDefinition[] = [
   { id: 'teal', name: 'Teal', description: 'Solid Windows 98 teal.', css: '#008080' },
   {
     id: 'portfolioSky',
-    name: 'Portfolio Sky',
-    description: 'The soft cloud-style wallpaper used by the portfolio desktop.',
+    name: 'Windows 98 Sky',
+    description: 'The soft cloud-style wallpaper used by the Windows 98 desktop.',
     css: 'radial-gradient(ellipse at 18% 16%, rgba(255,255,255,0.9) 0 7%, rgba(255,255,255,0.55) 12%, transparent 24%), radial-gradient(ellipse at 62% 20%, rgba(255,255,255,0.72) 0 9%, transparent 23%), radial-gradient(ellipse at 34% 58%, rgba(255,255,255,0.62) 0 6%, transparent 20%), linear-gradient(180deg, #9fd3ee 0%, #6fb0d2 58%, #318aa9 100%)',
   },
   {

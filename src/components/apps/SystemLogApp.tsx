@@ -108,7 +108,7 @@ export function SystemLogApp() {
       <div className="status-bar">
         <p className="status-bar-field">{entries.length} event(s)</p>
         <p className="status-bar-field">Newest first</p>
-        <p className="status-bar-field">Portfolio OS only</p>
+        <p className="status-bar-field">Simulated OS only</p>
       </div>
     </div>
   )

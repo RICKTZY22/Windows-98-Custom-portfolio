@@ -6,7 +6,7 @@ const DO_LIST = [
   'Check who sent the file and why you need it before opening it.',
   'Verify the file name and extension, especially scripts and installers.',
   'Scan downloads before running installers, archives, or macro documents.',
-  'Keep backups of important school, project, and portfolio files.',
+  'Keep backups of important school, project, and personal files.',
   'Ask a trusted person when a file feels suspicious or unexpected.',
 ]
 
@@ -81,7 +81,7 @@ export function SafetyTrainingScreen() {
               <h1>Gotcha - that was a simulation.</h1>
               <p>
                 No real files were changed, no network request was sent, and no host command was executed. The scare
-                happened only inside this portfolio OS, but the lesson is real: pause before running unknown files.
+                happened only inside this simulated OS, but the lesson is real: pause before running unknown files.
               </p>
             </div>
           </header>
@@ -123,7 +123,7 @@ export function SafetyTrainingScreen() {
 
         <div className="safety-training-actions">
           <button type="button" className="default" onClick={completeSafetyTraining}>
-            Return to Portfolio OS
+            Return to Windows 98
           </button>
         </div>
 

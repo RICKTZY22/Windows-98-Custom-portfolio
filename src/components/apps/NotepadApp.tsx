@@ -11,7 +11,7 @@ function defaultNote() {
     '',
     'This is a simulated Windows 98 Notepad document.',
     'Open README.txt, About Me.txt, or System32 placeholder files from Explorer to inspect them here.',
-    'Use WordPad for Resume.doc and richer portfolio documents.',
+    'Use WordPad for Resume.doc and richer documents.',
   ].join('\n')
 }
 

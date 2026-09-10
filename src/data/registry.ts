@@ -90,18 +90,18 @@ export function createRegistrySnapshot(input: RegistrySnapshotInput): readonly R
         key('Microsoft', 'HKEY_LOCAL_MACHINE\\Software\\Microsoft', [defaultValue], [
           key('Windows', 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows', [defaultValue], [
             key('CurrentVersion', 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion', [
-              text('ProductName', 'Windows 98 Portfolio Edition'),
+              text('ProductName', 'Windows 98 Web Edition'),
               text('VersionNumber', '4.10.1998'),
-              text('RegisteredOwner', 'Portfolio Visitor'),
+              text('RegisteredOwner', 'Windows 98 User'),
             ], [
               key('Run', 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', [
-                text('PortfolioSafetyGuide', 'C:\\Windows\\System\\SafetyTraining.exe'),
+                text('SafetyGuide', 'C:\\Windows\\System\\SafetyTraining.exe'),
                 text('SystemTray', 'SysTray.Exe'),
               ]),
             ]),
           ]),
         ]),
-        key('Windows98Portfolio', 'HKEY_LOCAL_MACHINE\\Software\\Windows98Portfolio', [
+        key('Windows98WebEdition', 'HKEY_LOCAL_MACHINE\\Software\\Windows98WebEdition', [
           text('Mode', 'Educational browser-only simulation'),
           dword('NetworkConnected', input.networkConnected),
           text('IPAddress', input.ipAddress),
@@ -133,7 +133,7 @@ export function createRegistrySnapshot(input: RegistrySnapshotInput): readonly R
       ]),
     ]),
     key('HKEY_USERS', 'HKEY_USERS', [defaultValue], [
-      key('.DEFAULT', 'HKEY_USERS\\.DEFAULT', [text('UserName', 'Portfolio Guest')]),
+      key('.DEFAULT', 'HKEY_USERS\\.DEFAULT', [text('UserName', 'Guest')]),
     ]),
   ]
 }

@@ -32,7 +32,7 @@ type ComposeState = { title: string; to: string; cc: string; subject: string; bo
 
 const ME = 'John Erick Mendoza'
 const ME_ADDR = 'johnerickmendoza567@gmail.com'
-const RELEASES_ADDR = 'releases@portfolio98.dev'
+const RELEASES_ADDR = 'releases@win98web.dev'
 const SIGNATURE = '\n\nJohn Erick Mendoza\ngithub.com/RICKTZY22'
 
 const STATUS_LABEL: Record<ReleaseStatus, string> = {
@@ -56,7 +56,7 @@ function releaseMessage(r: ReleaseNote): Message {
   const launch = r.status !== 'prerelease' ? 'Deployed' : 'Logged'
   return {
     id: 100 + Number(r.version.replace(/\D/g, '')),
-    from: 'Windows 98 Portfolio Releases',
+    from: 'Windows 98 Web Edition Releases',
     addr: RELEASES_ADDR,
     to: ME,
     subject: `${r.label} ${launch}: ${r.headline}`,
@@ -80,7 +80,7 @@ function seedFolders(): Record<FolderName, Message[]> {
     priority: false,
     body:
       'Welcome to the Inbox.\n\n' +
-      'Every message below is a release of this Windows 98 portfolio, newest first. ' +
+      'Every message below is a release of this Windows 98 project, newest first. ' +
       'Double-click one to read its patch notes: what shipped, when, and the real git ' +
       'commits behind it.\n\n' +
       'The project began on May 28, 1998-in-spirit (2026 in reality) as a plain portfolio, ' +

@@ -72,7 +72,7 @@ export type CommandOutput = {
 // Model note: command effects must remain declarative so UI and state mutation
 // stay outside this parser.
 const BAD_COMMAND = 'Bad command or file name'
-const VOLUME_LABEL = 'PORTFOLIO'
+const VOLUME_LABEL = 'WIN98'
 const VOLUME_SERIAL = '1998-0612'
 const FREE_BYTES = 261_562_368
 
@@ -418,7 +418,7 @@ function formatCommand(args: string[], ctx: CommandContext): CommandOutput {
     return { lines: ['Required parameter missing', 'Usage: FORMAT drive:'] }
   }
   if (drive !== 'C') {
-    return { lines: [`Cannot format drive ${drive}: - no such drive in the portfolio OS.`] }
+    return { lines: [`Cannot format drive ${drive}: - no such drive in the simulated OS.`] }
   }
   const guard = bootMediaRequired(ctx)
   if (guard) return guard
@@ -429,7 +429,7 @@ function formatCommand(args: string[], ctx: CommandContext): CommandOutput {
       { delayMs: 900, lines: ['Format complete.', ''] },
       {
         delayMs: 600,
-        lines: ['Volume label is PORTFOLIO', '', 'C: is now empty. Type SYS C: then SETUP to reinstall Windows 98.'],
+        lines: ['Volume label is WIN98', '', 'C: is now empty. Type SYS C: then SETUP to reinstall Windows 98.'],
         effects: [{ type: 'setFs', fs: blankDiskFs() }],
       },
     ],
@@ -492,7 +492,7 @@ function winverCommand(): CommandOutput {
     lines: [
       '',
       osProductName,
-      'Version 4.10.1998 Portfolio Shell',
+      'Version 4.10.1998 Web Edition Shell',
       'Copyright (C) John Erick Mendoza 2026',
       '',
     ],
@@ -506,7 +506,7 @@ function pingCommand(args: string[], ctx: CommandContext): CommandOutput {
       lines: [
         'Usage: ping <host>',
         '',
-        'Known hosts on this network include portfolio.local, localhost,',
+        'Known hosts on this network include win98.local, localhost,',
         'google.com, youtube.com and github.com.',
       ],
     }
@@ -538,7 +538,7 @@ function ipconfigLines(network: NetworkState, all: boolean, networkDriverMissing
   const lines = ['', 'Windows 98 IP Configuration', '']
   if (all) {
     lines.push(
-      `        Host Name . . . . . . . . . : portfolio98`,
+      `        Host Name . . . . . . . . . : win98web`,
       `        DNS Servers . . . . . . . . : ${network.dns || 'none'}`,
       '        Node Type . . . . . . . . . : Broadcast',
       '        IP Routing Enabled. . . . . : No',

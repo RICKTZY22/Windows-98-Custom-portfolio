@@ -107,7 +107,7 @@ export function BootScreen() {
       'Floppy Drive A    : 1.44M, 3.5 in.',
       'Primary Master    : VIRTUAL_DISK_98 2.1 GB',
       'Primary Slave     : None',
-      'Secondary Master  : PORTFOLIO CD-ROM 24X',
+      'Secondary Master  : GENERIC CD-ROM 24X',
       'Secondary Slave   : None',
       `Boot Sequence     : ${bootSequenceLabel(state.bios)}`,
       state.bios.quickPost ? 'Quick POST        : Enabled' : 'Quick POST        : Disabled',
@@ -150,7 +150,7 @@ export function BootScreen() {
             <b>ENERGY STAR</b>
           </header>
 
-          <p className="boot-post-model">VX Pro+ 430VX PCI/ISA Portfolio System BIOS</p>
+          <p className="boot-post-model">VX Pro+ 430VX PCI/ISA System BIOS</p>
           <pre className="boot-post-log">{postBody}<span className="boot-sequence-caret" /></pre>
           <footer className="boot-post-footer">
             <span>F12: BIOS Setup  F8: Startup Menu</span>
@@ -177,7 +177,7 @@ export function BootScreen() {
         <section>
           <p>Updating ESCD ... Success</p>
           <p>Updating system settings ...</p>
-          <small>Simulated Plug and Play records are being refreshed inside the portfolio OS.</small>
+          <small>Simulated Plug and Play records are being refreshed inside the simulated OS.</small>
         </section>
         <BootSignature />
       </main>
@@ -193,7 +193,7 @@ export function BootScreen() {
           <strong>
             Windows <em>98</em>
           </strong>
-          <small>Portfolio Edition</small>
+          <small>Web Edition</small>
         </div>
       </section>
       <div className="boot-splash-progress" aria-label={`${Math.round(splashProgress * 100)}% loaded`}>

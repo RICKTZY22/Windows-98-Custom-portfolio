@@ -309,7 +309,7 @@ export function Desktop() {
         className={`desktop ${refreshingDesktop ? 'is-refreshing' : ''} ${
           displayDriverDegraded ? 'is-display-degraded' : ''
         } ${displayDriverUnstable ? 'is-display-unstable' : ''}`}
-        aria-label="Windows 98 portfolio desktop"
+        aria-label="Windows 98 desktop"
         onPointerDown={(event) => {
           const target = event.target as HTMLElement
           setStartMenuOpen(false)

@@ -550,7 +550,7 @@ export function WordPadApp({ windowId, payload }: AppProps) {
           action: () =>
             showMessageBox({
               title: 'About WordPad',
-              message: 'WordPad for Portfolio 98',
+              message: 'WordPad for Windows 98',
               detail: 'A rich-text editor. Fonts, sizes, colours, and page breaks are saved with each document.',
               icon: 'info',
               buttons: ['ok'],
