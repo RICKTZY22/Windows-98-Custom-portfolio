@@ -9,6 +9,7 @@ import {
   parentPath,
 } from '../os/filesystem'
 import { aiUprisingDocHtml } from './aiUprisingDoc'
+import { fishbookDocHtml, kwartoKlaroDocHtml } from './projectDocs'
 import { galleryMusic, galleryPhotos, galleryVideos } from './media'
 import { SYSTEM_FILE_CATALOG } from './systemFileCatalog'
 
@@ -497,6 +498,22 @@ export function createInitialFsState(): FsState {
     fileType: 'WordPad Document',
     modified: '06/29/2026 11:15 AM',
   })
+  file('C:\\My Documents\\Fishbook.doc', {
+    content: fishbookDocHtml,
+    icon: 'wordpad',
+    appId: 'wordpad',
+    appPayload: { filePath: 'C:\\My Documents\\Fishbook.doc' },
+    fileType: 'WordPad Document',
+    modified: '09/11/2026 09:20 PM',
+  })
+  file('C:\\My Documents\\KwartoKlaro.doc', {
+    content: kwartoKlaroDocHtml,
+    icon: 'wordpad',
+    appId: 'wordpad',
+    appPayload: { filePath: 'C:\\My Documents\\KwartoKlaro.doc' },
+    fileType: 'WordPad Document',
+    modified: '09/11/2026 09:24 PM',
+  })
   folder('C:\\My Documents\\Music', 'folder', '06/12/2026 12:07 AM')
   for (const { path, ...opts } of GALLERY_MUSIC_FILES) {
     file(path, opts)
@@ -866,6 +883,8 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Documents\\Private\\testdontouch.exe',
   'C:\\My Documents\\The AI Uprising.doc',
   'C:\\My Documents\\Persistence and Loading Notes.doc',
+  'C:\\My Documents\\Fishbook.doc',
+  'C:\\My Documents\\KwartoKlaro.doc',
   'C:\\Projects',
   ...WIN98_PORTFOLIO_SEED_PATHS,
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',

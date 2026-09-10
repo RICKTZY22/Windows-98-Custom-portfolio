@@ -111,8 +111,35 @@ function seedFolders(): Record<FolderName, Message[]> {
       'Click the attachment icon below to test simulated safety handling.',
   }
 
-  // Newest first: welcome, security audit, then releases in reverse-chronological order.
-  const inbox = [welcome, securityAudit, ...releaseNotes.map(releaseMessage).reverse()]
+  const fishbookBuild: Message = {
+    id: 3,
+    from: ME,
+    addr: ME_ADDR,
+    to: ME,
+    subject: 'Now building: Fishbook',
+    received: '9/11/2026',
+    read: false,
+    priority: true,
+    body:
+      'Fishbook is the project currently in development.\n\n' +
+      'Your own social network, running entirely on your own machine. A real feed with posts, ' +
+      'reactions, comments and shares. Stories that expire after 24 hours. Reels. A messenger with ' +
+      'floating chat windows. Friends, profiles, dark mode, the lot.\n\n' +
+      'Nothing is uploaded anywhere. Your posts and media never leave your drive, there is no cloud ' +
+      'account, and no algorithm deciding what you get to see.\n\n' +
+      'Then it gets stranger. Most of the accounts on it are not people. They are AI characters with ' +
+      'their own personalities who remember you, and whose feelings toward you move depending on how ' +
+      'you actually treat them. The social network is the shell. The game is the relationships.\n\n' +
+      'The platform works end to end today and the back end carries 857 tests. The character layer is ' +
+      'the current push.\n\n' +
+      'Full overview: C:\\My Documents\\Fishbook.doc\n' +
+      'The other project in progress, KwartoKlaro, is written up in C:\\My Documents\\KwartoKlaro.doc.' +
+      SIGNATURE,
+  }
+
+  // Newest first: welcome, the Fishbook build note, security audit, then releases
+  // in reverse-chronological order.
+  const inbox = [welcome, fishbookBuild, securityAudit, ...releaseNotes.map(releaseMessage).reverse()]
 
   const sent: Message[] = [
     {
