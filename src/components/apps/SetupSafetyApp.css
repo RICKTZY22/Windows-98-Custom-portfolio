@@ -19,23 +19,6 @@
   flex: 1;
 }
 
-.setup-safety-bypass-btn {
-  flex: none;
-  align-self: flex-start;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #800000;
-  background: #c0c0c0;
-  border: 0;
-  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
-  cursor: pointer;
-}
-
-.setup-safety-bypass-btn:active {
-  box-shadow: inset -1px -1px #fff, inset 1px 1px #404040, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
-}
-
 .setup-safety-icon {
   display: inline-flex;
   align-items: center;
@@ -268,29 +251,64 @@
   }
 }
 
-.setup-lag-banner {
-  padding: 4px 8px;
-  background: #ff0000;
-  color: #fff;
-  font-weight: 700;
+.setup-dialog-layer.is-lagging,
+.setup-dialog-layer.is-lagging * {
+  cursor: wait !important;
+}
+
+/* ---------- Windows 98 Details >> pane ---------- */
+.setup-spam-dialog.has-details {
+  width: 420px;
+}
+
+.setup-spam-details-pane {
+  margin: 6px 4px 4px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #808080;
+  box-shadow: inset 1px 1px #000, inset -1px -1px #dfdfdf;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.setup-spam-details-pane pre {
+  margin: 0;
+  font-family: "Courier New", monospace;
   font-size: 11px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  animation: setup-lag-blink 400ms infinite alternate ease-in-out;
+  line-height: 1.35;
+  color: #000;
+  white-space: pre-wrap;
 }
 
-@keyframes setup-lag-blink {
-  from { background: #b30000; }
-  to { background: #ff0000; }
+/* ---------- Win98 Window Smearing / Trail Glitch Effect ---------- */
+.setup-ghost-trails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-/* ---------- realistic simulated deletion modal ---------- */
+.setup-ghost-frame {
+  position: absolute;
+  width: 340px;
+  height: 130px;
+  background: #c0c0c0;
+  border: 2px solid #808080;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
+  opacity: 0.65;
+}
+
+.setup-ghost-titlebar {
+  height: 18px;
+  background: #000080;
+}
+
+/* ---------- Authentic Windows 98 File Deletion Window ---------- */
 .simulated-deletion-modal {
   position: absolute;
-  top: 50%;
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 420px;
+  width: 410px;
   padding: 3px;
   pointer-events: auto;
   background: #c0c0c0;
@@ -301,41 +319,80 @@
     inset -2px -2px #808080,
     4px 4px 12px rgba(0, 0, 0, 0.5);
   z-index: 12500;
-  animation: setup-dialog-pop 140ms ease-out;
+  animation: setup-dialog-pop 120ms ease-out;
 }
 
 .deletion-titlebar {
-  background: linear-gradient(90deg, #800000, #d01010) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  color: #fff;
+  background: #000080 !important;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .simulated-deletion-body {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 14px 10px;
+  padding: 16px 14px 12px;
 }
 
-.simulated-flying-icon {
-  font-size: 28px;
-  animation: flying-file-anim 600ms infinite alternate linear;
+.simulated-flying-animation {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 90px;
+  height: 48px;
+  padding: 0 4px;
+  background: #dfdfdf;
+  border: 1px inset #808080;
+  font-size: 24px;
 }
 
-@keyframes flying-file-anim {
-  from { transform: translateX(-4px) scale(0.95); }
-  to { transform: translateX(6px) scale(1.05); }
+.flying-folder-src,
+.flying-folder-dest {
+  flex: none;
+}
+
+.flying-paper-sheet {
+  position: absolute;
+  left: 20px;
+  font-size: 18px;
+  animation: flying-paper-loop 850ms infinite linear;
+}
+
+@keyframes flying-paper-loop {
+  0% {
+    transform: translate(0, -6px) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(22px, -14px) rotate(18deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(44px, 2px) rotate(35deg);
+    opacity: 0.2;
+  }
 }
 
 .simulated-deletion-info {
   flex: 1;
   font-size: 12px;
+  line-height: 1.4;
 }
 
 .simulated-deletion-info p {
-  margin: 0 0 4px;
+  margin: 0 0 3px;
 }
 
-.simulated-deletion-info code {
+.deletion-file-name code {
   display: block;
+  margin-top: 2px;
   padding: 2px 4px;
   background: #fff;
   border: 1px solid #808080;
@@ -346,15 +403,15 @@
   white-space: nowrap;
 }
 
-.simulated-deletion-count {
-  margin-top: 6px !important;
-  color: #666;
+.deletion-time-est {
+  margin-top: 5px !important;
+  color: #444;
   font-size: 11px;
 }
 
 .simulated-deletion-meter {
   height: 18px;
-  margin: 4px 14px 8px;
+  margin: 4px 14px 10px;
   padding: 2px;
   background: #fff;
   box-shadow: inset 1px 1px #808080, inset -1px -1px #fff, inset 2px 2px #404040;
@@ -364,18 +421,27 @@
   height: 100%;
   background: repeating-linear-gradient(
     90deg,
-    #800000 0,
-    #800000 9px,
-    #d01010 9px,
-    #d01010 18px
+    #000080 0,
+    #000080 9px,
+    #1084d0 9px,
+    #1084d0 18px
   );
-  transition: width 200ms linear;
+  transition: width 240ms linear;
 }
 
-.simulated-deletion-note {
-  padding: 4px 14px 10px;
-  font-size: 11px;
-  color: #444;
-  font-style: italic;
-  text-align: center;
+.simulated-deletion-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 14px 12px;
+}
+
+.deletion-cancel-btn {
+  min-width: 74px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #808080;
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+  cursor: not-allowed;
 }

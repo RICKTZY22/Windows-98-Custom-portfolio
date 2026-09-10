@@ -4,26 +4,52 @@ import { createPortal } from 'react-dom'
 import type { AppProps } from '../../types'
 import { useOs } from '../../os/useOs'
 
-type Dialog = { id: number; x: number; y: number; title: string; message: string }
+type Dialog = { id: number; x: number; y: number; title: string; message: string; showDetails?: boolean }
 
-const DIALOG_TITLES = ['Runtime Error', 'Application Error', 'Windows 98 Warning', 'System Notice', 'Windows']
+const DIALOG_TITLES = [
+  'Illegal Operation',
+  'testdontouch',
+  'Explorer',
+  'KERNEL32',
+  'Rundll32',
+  'Spool32',
+  'System Error',
+]
+
 const DIALOG_MESSAGES = [
-  'A simulated runtime error occurred inside TESTDONTOUCH.EXE.',
-  'The simulated OS blocked an unsafe dialog loop.',
-  'No real files, downloads, or host system settings were changed.',
-  'The close request failed because the sandbox is demonstrating repeated popups.',
-  'System resources are low inside the simulation.',
-  'Restart or Recovery returns the desktop to a clean state.',
+  'TESTDONTOUCH has caused an error in KERNEL32.DLL. TESTDONTOUCH will now be closed.',
+  'EXPLORER has caused an invalid page fault in module EXPLORER.EXE at 015f:00401f31.',
+  'An exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36.',
+  'The system is dangerously low on resources. Windows cannot allocate memory for new tasks.',
+  'General Protection Fault in module GDI.EXE at 0001:240F.',
+  'A required .DLL file, USER32.DLL, was not found or is corrupted.',
+  'Sharing violation reading drive C:. Abort, Retry, Fail?',
+  'This program has performed an illegal operation and will be shut down.',
 ]
 
 const SETUP_LINES = [
   'C:\\MY DOCUMENTS\\PRIVATE> testdontouch.exe',
-  'Windows 98 Setup Utility 4.10.1998',
-  '[SIMULATING OS LAG] Allocating 4 MB buffer per popup thread...',
-  'Checking package manifest...',
-  'Extracting desktop component...',
-  'Registering USER32 dialog hooks...',
-  'Updating setup state...',
+  'Microsoft(R) Windows 98 Setup Utility 4.10.1998',
+  'Scanning system registry and verifying FAT32 structure...',
+  'Decompressing CAB archive: WIN98_24.CAB...',
+  'Extracting system component: USER32.DLL...',
+  'Registering OLE server components in SYSTEM.DAT...',
+  'WARNING: Stack segment exhaustion in KERNEL32.DLL',
+  'ERROR: General Protection Fault at 015F:BFF7A388',
+  'CRITICAL: Unrecoverable page fault in module USER.EXE',
+  'FATAL: Sector allocation table write failure on drive C:',
+]
+
+const DELETING_FILES = [
+  'C:\\WINDOWS\\SYSTEM\\KERNEL32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\USER32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\GDI32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\SHELL32.DLL',
+  'C:\\WINDOWS\\SYSTEM\\VMM32.VXD',
+  'C:\\WINDOWS\\SYSTEM.DAT',
+  'C:\\WINDOWS\\USER.DAT',
+  'C:\\WINDOWS\\COMMAND.COM',
+  'C:\\IO.SYS',
 ]
 
 const CRASH_DIALOGS = 32
@@ -32,6 +58,20 @@ const DIALOG_H = 150
 
 function rand<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)]
+}
+
+function getRegisterDump(title: string) {
+  return `${title.toUpperCase()} caused an invalid page fault in
+module KERNEL32.DLL at 015f:bff7a388.
+Registers:
+EAX=00000000 CS=015f EIP=bff7a388 EFLGS=00000246
+EBX=00550000 SS=0167 ESP=0063fbf0 EBP=0063fc28
+ECX=c144e540 DS=0167 ESI=81615f2c FS=10af
+EDX=0001859c ES=0167 EDI=00000000 GS=0000
+Bytes at CS:EIP:
+55 8b ec 83 ec 0c 53 56 57 8b 7d 08 85 ff 74 38
+Stack dump:
+0063fc28 bff7a412 00000000 81615f2c 00000000`
 }
 
 function spreadDialogPoint(index: number): { x: number; y: number } {
@@ -69,17 +109,24 @@ export function SetupSafetyApp({ windowId }: AppProps) {
   const [isLagging, setIsLagging] = useState(true)
   const [showDeletionModal, setShowDeletionModal] = useState(false)
   const [deletionProgress, setDeletionProgress] = useState(0)
-  const [deletedFileCount, setDeletedFileCount] = useState(120)
+  const [deletingFileIndex, setDeletingFileIndex] = useState(0)
 
-  const simulatedRamMb = 64 + dialogs.length * 4
+  const systemResourcesFree = Math.max(2, 78 - dialogs.length * 6)
+  const gdiFree = Math.max(1, 52 - dialogs.length * 4)
   const displayedProgress = dialogs.length ? Math.min(96, 58 + Math.round((dialogs.length / CRASH_DIALOGS) * 38)) : progress
   const seq = useRef(0)
   const crashed = useRef(false)
   const crashTimer = useRef<number | null>(null)
 
+  const isNotResponding = dialogs.length >= 6
+
   useEffect(() => {
-    setWindowTitle(windowId, 'testdontouch.exe - Running')
-  }, [setWindowTitle, windowId])
+    if (isNotResponding) {
+      setWindowTitle(windowId, 'Windows 98 Setup Wizard (Not Responding)')
+    } else {
+      setWindowTitle(windowId, 'Windows 98 Setup Wizard')
+    }
+  }, [setWindowTitle, windowId, isNotResponding])
 
   const scheduleCrash = useCallback(
     (delayMs = 900) => {
@@ -109,6 +156,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
             y: position.y,
             title: rand(DIALOG_TITLES),
             message: rand(DIALOG_MESSAGES),
+            showDetails: false,
           })
         }
         return next
@@ -117,6 +165,12 @@ export function SetupSafetyApp({ windowId }: AppProps) {
     [],
   )
 
+  const toggleDetails = useCallback((id: number) => {
+    setDialogs((current) =>
+      current.map((d) => (d.id === id ? { ...d, showDetails: !d.showDetails } : d)),
+    )
+  }, [])
+
   const handleDismissAndRespawn = useCallback(
     (id: number) => {
       // 1. Remove clicked dialog immediately
@@ -124,7 +178,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
       playSound('error')
       setIsLagging(true)
 
-      // 2. Wait 2 seconds, then spawn 2 new dialogs back!
+      // 2. Wait 2 seconds (relief pause), then spawn 2 new dialogs back!
       window.setTimeout(() => {
         if (crashed.current) return
         setIsLagging(true)
@@ -142,6 +196,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
               y: position.y,
               title: rand(DIALOG_TITLES),
               message: rand(DIALOG_MESSAGES),
+              showDetails: false,
             })
           }
           return next
@@ -200,7 +255,7 @@ export function SetupSafetyApp({ windowId }: AppProps) {
         }
         return next
       })
-      setDeletedFileCount((prev) => prev + Math.floor(Math.random() * 320 + 150))
+      setDeletingFileIndex((prev) => (prev + 1) % DELETING_FILES.length)
     }, 280)
     return () => window.clearInterval(interval)
   }, [scheduleCrash, showDeletionModal])
@@ -215,52 +270,47 @@ export function SetupSafetyApp({ windowId }: AppProps) {
   )
 
   useEffect(() => {
+    function handleCloseAttempt() {
+      setIsLagging(true)
+      playSound('error')
+      growDialogsTo(dialogs.length + 2)
+      window.setTimeout(() => setIsLagging(false), 800)
+    }
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && event.shiftKey) {
         event.preventDefault()
         scheduleCrash(0)
       }
     }
+    window.addEventListener('setup-safety-close-attempt', handleCloseAttempt)
     window.addEventListener('keydown', handleKeyDown)
     return () => {
+      window.removeEventListener('setup-safety-close-attempt', handleCloseAttempt)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [scheduleCrash])
+  }, [dialogs.length, growDialogsTo, playSound, scheduleCrash])
 
   return (
     <>
       <div className={`setup-safety-app ${isLagging ? 'is-lagging' : ''}`}>
-        {isLagging && (
-          <div className="setup-lag-banner" aria-live="polite">
-            ⚠️ [SIMULATED OS LAG] High CPU Load: USER32.DLL thread delayed...
-          </div>
-        )}
         <div className="setup-safety-header">
           <span className="setup-safety-icon" aria-hidden="true">
             !
           </span>
           <div className="setup-safety-header-text">
-            <h2>Windows 98 Setup Wizard</h2>
-            <p>Installing optional desktop component. Please wait...</p>
+            <h2>Windows 98 Setup Wizard {isNotResponding ? '(Not Responding)' : ''}</h2>
+            <p>Installing Windows components. Please wait...</p>
           </div>
-          <button
-            type="button"
-            className="setup-safety-bypass-btn"
-            onClick={() => scheduleCrash(0)}
-            title="Bypass simulation test and view safety lesson (Shift+Esc)"
-          >
-            Safety Bypass
-          </button>
         </div>
 
         <div className="setup-safety-console" aria-live="polite">
           {SETUP_LINES.slice(0, lineCount).map((line) => (
             <div key={line}>{line}</div>
           ))}
-          {dialogs.length > 0 && <div className="setup-safety-warn">Warning: unexpected dialog recursion (+4 MB per popup).</div>}
+          {dialogs.length > 0 && <div className="setup-safety-warn">Warning: System resources critically low ({systemResourcesFree}% free).</div>}
           {showDeletionModal && (
             <div className="setup-safety-critical">
-              CRITICAL: [SIMULATION] Purging virtual path C:\WINDOWS\SYSTEM32...
+              FATAL: File system structure unrecoverable on drive C:
             </div>
           )}
         </div>
@@ -270,65 +320,99 @@ export function SetupSafetyApp({ windowId }: AppProps) {
         </div>
 
         <div className="setup-safety-status">
-          <span>Running testdontouch.exe</span>
-          <span>{dialogs.length ? `${dialogs.length} dialog(s)` : 'Preparing'}</span>
-          <span>Simulated RAM: {simulatedRamMb} MB</span>
+          <span>{isNotResponding ? 'Status: Not Responding' : 'Copying files...'}</span>
+          <span>System Resources: {systemResourcesFree}% free</span>
+          <span>GDI: {gdiFree}% free</span>
         </div>
       </div>
 
       {createPortal(
-        <div className="setup-dialog-layer" aria-live="assertive">
+        <div className={`setup-dialog-layer ${isLagging ? 'is-lagging' : ''}`} aria-live="assertive">
+          {dialogs.length >= 8 && (
+            <div className="setup-ghost-trails" aria-hidden="true">
+              {dialogs.slice(0, 10).map((dialog, idx) => (
+                <div
+                  key={`ghost-${dialog.id}`}
+                  className="setup-ghost-frame"
+                  style={{
+                    left: `${Math.round(dialog.x - 12)}px`,
+                    top: `${Math.round(dialog.y - 12)}px`,
+                    zIndex: 10 + idx,
+                  }}
+                >
+                  <div className="setup-ghost-titlebar" />
+                </div>
+              ))}
+            </div>
+          )}
+
           {showDeletionModal && (
-            <div className="simulated-deletion-modal" role="dialog" aria-label="Deleting C:\ Files">
+            <div className="simulated-deletion-modal" role="dialog" aria-label="Deleting...">
               <div className="setup-spam-titlebar deletion-titlebar">
-                <span>Deleting C:\WINDOWS\SYSTEM32\...</span>
+                <span>Deleting...</span>
               </div>
               <div className="simulated-deletion-body">
-                <div className="simulated-flying-icon" aria-hidden="true">
-                  📄 ➔ 📁
+                <div className="simulated-flying-animation" aria-hidden="true">
+                  <span className="flying-folder-src">📁</span>
+                  <span className="flying-paper-sheet">📄</span>
+                  <span className="flying-folder-dest">🗑️</span>
                 </div>
                 <div className="simulated-deletion-info">
-                  <p>
-                    <strong>Deleting file:</strong>
+                  <p className="deletion-file-name">
+                    <strong>Deleting:</strong> <code>{DELETING_FILES[deletingFileIndex]}</code>
                   </p>
-                  <code>C:\WINDOWS\SYSTEM32\kernel32.dll</code>
-                  <p className="simulated-deletion-count">
-                    Deleted {deletedFileCount} of 4,820 files (Simulation Sandbox Test)
+                  <p className="deletion-file-dest">
+                    From 'SYSTEM' to 'Recycle Bin'
+                  </p>
+                  <p className="deletion-time-est">
+                    Estimated time remaining: Calculating...
                   </p>
                 </div>
               </div>
               <div className="simulated-deletion-meter">
                 <div style={{ width: `${deletionProgress}%` }} />
               </div>
-              <div className="simulated-deletion-note">
-                Educational simulation only - No host files affected.
+              <div className="simulated-deletion-actions">
+                <button type="button" disabled className="deletion-cancel-btn">
+                  Cancel
+                </button>
               </div>
             </div>
           )}
 
           {dialogs.map((dialog) => (
             <div
-              className="setup-spam-dialog"
+              className={`setup-spam-dialog ${dialog.showDetails ? 'has-details' : ''}`}
               key={dialog.id}
               style={{ left: `${Math.round(dialog.x)}px`, top: `${Math.round(dialog.y)}px`, zIndex: 20 + dialog.id }}
             >
               <div className="setup-spam-titlebar">
                 <span>{dialog.title}</span>
                 <button type="button" aria-label="Close" onClick={() => handleDismissAndRespawn(dialog.id)}>
-                  x
+                  ✕
                 </button>
               </div>
               <div className="setup-spam-body">
                 <span className="setup-spam-icon" aria-hidden="true">
-                  x
+                  ✕
                 </span>
-                <p>{dialog.message}</p>
+                <div className="setup-spam-text">
+                  <p>{dialog.message}</p>
+                </div>
               </div>
               <div className="setup-spam-actions">
                 <button type="button" onClick={() => handleDismissAndRespawn(dialog.id)}>
-                  OK
+                  Close
+                </button>
+                <button type="button" onClick={() => toggleDetails(dialog.id)}>
+                  {dialog.showDetails ? '<< Details' : 'Details >>'}
                 </button>
               </div>
+              {dialog.showDetails && (
+                <div className="setup-spam-details-pane">
+                  <pre>{getRegisterDump(dialog.title)}</pre>
+                </div>
+              )}
             </div>
           ))}
         </div>,
