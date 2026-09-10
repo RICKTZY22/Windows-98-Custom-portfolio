@@ -106,6 +106,10 @@ export type AppId =
   | 'credits'
   | 'help'
   | 'inbox'
+  | 'happy99'
+  | 'bonzi'
+  | 'cascade'
+  | 'netbus'
 
 export type WindowRect = { x: number; y: number; width: number; height: number }
 export type Point = { x: number; y: number }

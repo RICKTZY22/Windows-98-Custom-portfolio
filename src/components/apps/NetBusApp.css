@@ -1,0 +1,109 @@
+.netbus-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #c0c0c0;
+  padding: 8px;
+  box-sizing: border-box;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.netbus-header {
+  padding: 4px;
+}
+
+.netbus-ip-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.netbus-ip-bar label {
+  font-weight: 700;
+}
+
+.netbus-input {
+  flex: 1;
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+  padding: 2px 4px;
+}
+
+.netbus-badge {
+  background: #008000;
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.netbus-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.netbus-panel fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px;
+}
+
+.netbus-panel button {
+  padding: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.netbus-msg-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+
+.netbus-console-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.netbus-console-title {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.netbus-console {
+  flex: 1;
+  background: #000;
+  color: #00ff66;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  padding: 6px;
+  overflow-y: auto;
+  border: 2px inset #808080;
+  line-height: 1.4;
+}
+
+.netbus-cd-alert {
+  margin-top: 6px;
+  padding: 4px 6px;
+  background: #ffff00;
+  color: #000;
+  font-weight: 700;
+  font-size: 11px;
+  border: 1px solid #000;
+  text-align: center;
+}
+
+.netbus-footer {
+  font-size: 10px;
+  color: #555;
+  font-style: italic;
+  text-align: center;
+}

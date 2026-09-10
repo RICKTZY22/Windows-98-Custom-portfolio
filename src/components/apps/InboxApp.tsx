@@ -137,9 +137,48 @@ function seedFolders(): Record<FolderName, Message[]> {
       SIGNATURE,
   }
 
-  // Newest first: welcome, the Fishbook build note, security audit, then releases
+  const iloveyouMail: Message = {
+    id: 4,
+    from: 'Kind Friend',
+    addr: 'kind-friend@isp.net',
+    to: ME,
+    subject: 'ILOVEYOU',
+    received: '5/4/2000',
+    read: false,
+    priority: true,
+    attachmentName: 'LOVE-LETTER-FOR-YOU.TXT.vbs',
+    attachmentAppId: 'notepad',
+    body:
+      'kindly check the attached LOVELETTER coming from me.\n\n' +
+      '--------------------------------------------------\n' +
+      '⚠️ HISTORICAL WORM SIMULATION (May 2000):\n' +
+      'The ILOVEYOU virus infected over ten million Windows PCs by tricking users into opening an email attachment with a double extension (.TXT.vbs).\n\n' +
+      'Click the attachment below to view the simulated VBS script in Notepad.',
+  }
+
+  const happy99Mail: Message = {
+    id: 5,
+    from: 'Happy99 Greeting',
+    addr: 'happy99@newyear-greeting.net',
+    to: ME,
+    subject: 'Happy New Year 1999 !!',
+    received: '1/1/1999',
+    read: false,
+    priority: true,
+    attachmentName: 'happy99.exe',
+    attachmentAppId: 'happy99',
+    body:
+      'Happy New Year 1999 !!\n\n' +
+      'Wishing you a very wonderful new year! Run the attached greeting program to enjoy our celebratory fireworks display!\n\n' +
+      '--------------------------------------------------\n' +
+      '⚠️ HISTORICAL WORM SIMULATION (Jan 1999):\n' +
+      'Ska / Happy99 was the first modern worm spread via email. When run, it displayed a window with colorful fireworks saying "Happy New Year 1999 !!".\n\n' +
+      'Click the attachment to launch the fireworks simulation.',
+  }
+
+  // Newest first: welcome, the Fishbook build note, security audit, historical threats, then releases
   // in reverse-chronological order.
-  const inbox = [welcome, fishbookBuild, securityAudit, ...releaseNotes.map(releaseMessage).reverse()]
+  const inbox = [welcome, fishbookBuild, securityAudit, iloveyouMail, happy99Mail, ...releaseNotes.map(releaseMessage).reverse()]
 
   const sent: Message[] = [
     {
@@ -203,7 +242,7 @@ function ReleaseView({ release }: Readonly<{ release: ReleaseNote }>) {
 }
 
 export function InboxApp() {
-  const { openApp } = useOs()
+  const { openApp, showMessageBox } = useOs()
   const [folder, setFolder] = useState<FolderName>('Inbox')
   const [selected, setSelected] = useState<number | null>(null)
   const [reading, setReading] = useState<number | null>(null)
@@ -507,11 +546,24 @@ export function InboxApp() {
                     <button
                       type="button"
                       className="inbox-attachment-btn"
-                      onClick={() => openApp(reader.attachmentAppId ?? 'setupSafety')}
-                      title="Launch simulated security test"
+                      onClick={() => {
+                        if (reader.attachmentName?.endsWith('.vbs')) {
+                          showMessageBox({
+                            title: 'Windows Script Host',
+                            message:
+                              'Script: C:\\WINDOWS\\Desktop\\LOVE-LETTER-FOR-YOU.TXT.vbs\nLine: 1\nChar: 1\nError: Permission denied\nCode: 800A0046\nSource: Microsoft VBScript runtime error',
+                            icon: 'error',
+                            buttons: ['ok'],
+                          })
+                          openApp('notepad', { filePath: 'C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs' })
+                        } else {
+                          openApp(reader.attachmentAppId ?? 'setupSafety')
+                        }
+                      }}
+                      title="Launch attachment"
                     >
                       <img src={win98Icons.windowsFile} alt="" width="20" height="20" />
-                      <span>{reader.attachmentName} (128 KB - Click to test simulation)</span>
+                      <span>{reader.attachmentName} ({reader.attachmentName?.endsWith('.vbs') ? '10 KB' : '128 KB'} - Click to run)</span>
                     </button>
                   </div>
                 )}

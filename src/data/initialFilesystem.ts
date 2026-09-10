@@ -549,6 +549,55 @@ export function createInitialFsState(): FsState {
     modified: '06/22/2026 12:45 PM',
   })
 
+  file('C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs', {
+    content: `rem barok -loveletter(vbe) <i hate go to school>
+rem by: spyder / is-101 / Manila, Philippines
+On Error Resume Next
+dim fso,dirsystem,dirwin,dirtemp,eq,ctr,file,vbscopy,dow
+eq=""
+ctr=0
+set fso = CreateObject("Scripting.FileSystemObject")
+set file = fso.OpenTextFile(WScript.ScriptFullname,1)
+vbscopy=file.ReadAll
+
+rem ================================================================
+rem HISTORICAL NOTE (May 4, 2000):
+rem The ILOVEYOU worm infected over 10 million Windows PCs in hours.
+rem It exploited a design vulnerability in Windows 98:
+rem By default, Windows hid the trailing .vbs file extension, so
+rem users saw "LOVE-LETTER-FOR-YOU.TXT" with a text document icon!
+rem Double-clicking executed the visual basic script.
+rem ================================================================`,
+    icon: 'textFile',
+    fileType: 'VBScript Script File',
+    appId: 'notepad',
+    modified: '05/04/2000 08:30 AM',
+  })
+
+  file('C:\\My Documents\\happy99.exe', {
+    content: 'Happy99 Fireworks Worm (1999)',
+    icon: 'execFile',
+    fileType: 'Application',
+    appId: 'happy99',
+    modified: '01/01/1999 12:00 AM',
+  })
+
+  file('C:\\My Documents\\bonzi_setup.exe', {
+    content: 'BonziBuddy Desktop Assistant Installer (1999)',
+    icon: 'execFile',
+    fileType: 'Application',
+    appId: 'bonzi',
+    modified: '09/01/1999 04:15 PM',
+  })
+
+  file('C:\\My Documents\\netbus.exe', {
+    content: 'NetBus 1.70 Remote Administration Tool (1998)',
+    icon: 'network',
+    fileType: 'Application',
+    appId: 'netbus',
+    modified: '03/15/1998 02:20 PM',
+  })
+
   // ----- Projects -----
   folder('C:\\Projects', 'projects', '06/13/2026 12:35 AM')
 

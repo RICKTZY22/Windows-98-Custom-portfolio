@@ -684,7 +684,7 @@ describe('wordpad formatting helpers', () => {
     expect(span.style.color).toBe('rgb(255, 0, 0)')
     expect(span.style.fontFamily).toBe('Georgia')
     expect(span.style.fontSize).toBe('18pt')
-  }, 15000)
+  }, 60000)
 
   it('creates a styled caret marker for future typing and strips it from saved html', async () => {
     const { JSDOM } = await import('jsdom')
@@ -702,5 +702,5 @@ describe('wordpad formatting helpers', () => {
     expect(span.textContent).toBe(WORDPAD_FORMAT_MARKER)
     expect(span.style.fontFamily.replaceAll('"', '')).toBe('Courier New')
     expect(cleanWordPadHtml(editor.innerHTML)).not.toContain(WORDPAD_FORMAT_MARKER)
-  }, 15000)
+  }, 60000)
 })

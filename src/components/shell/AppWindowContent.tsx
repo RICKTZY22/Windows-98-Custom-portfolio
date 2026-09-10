@@ -39,6 +39,10 @@ const TerminalApp = lazy(() => import('../apps/TerminalApp').then((m) => ({ defa
 const VideoPlayerApp = lazy(() => import('../apps/VideoPlayerApp').then((m) => ({ default: m.VideoPlayerApp })))
 const AntivirusApp = lazy(() => import('../apps/AntivirusApp').then((m) => ({ default: m.AntivirusApp })))
 const WordPadApp = lazy(() => import('../apps/WordPadApp').then((m) => ({ default: m.WordPadApp })))
+const Happy99App = lazy(() => import('../apps/Happy99App').then((m) => ({ default: m.Happy99App })))
+const BonziBuddyApp = lazy(() => import('../apps/BonziBuddyApp').then((m) => ({ default: m.BonziBuddyApp })))
+const CascadeApp = lazy(() => import('../apps/CascadeApp').then((m) => ({ default: m.CascadeApp })))
+const NetBusApp = lazy(() => import('../apps/NetBusApp').then((m) => ({ default: m.NetBusApp })))
 
 type AppWindowContentProps = {
   windowState: WindowState
@@ -112,6 +116,14 @@ function appWindowBody(windowState: WindowState) {
       return <CreditsApp />
     case 'help':
       return <HelpApp />
+    case 'happy99':
+      return <Happy99App {...props} />
+    case 'bonzi':
+      return <BonziBuddyApp {...props} />
+    case 'cascade':
+      return <CascadeApp {...props} />
+    case 'netbus':
+      return <NetBusApp {...props} />
     default:
       return null
   }
