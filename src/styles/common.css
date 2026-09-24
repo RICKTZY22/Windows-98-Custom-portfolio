@@ -185,3 +185,26 @@
 [data-menu-shadows="on"] .wp-menu-dropdown {
   filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.35));
 }
+
+/* WIP marker for the unfinished vintage-threat easter-egg apps. A classic
+   yellow/black hazard bar, text only (no emoji), shown at the top of each. */
+.wip-banner {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  text-align: center;
+  color: #000;
+  background: repeating-linear-gradient(
+    45deg,
+    #ffd400,
+    #ffd400 12px,
+    #1a1a1a 12px,
+    #1a1a1a 24px
+  );
+  /* keep the text legible over the stripes */
+  text-shadow: 0 0 3px #ffd400, 0 0 3px #ffd400, 0 0 3px #ffd400;
+  border-bottom: 1px solid #808080;
+}

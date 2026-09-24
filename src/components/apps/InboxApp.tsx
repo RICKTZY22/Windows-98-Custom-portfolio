@@ -68,6 +68,24 @@ function releaseMessage(r: ReleaseNote): Message {
   }
 }
 
+// Overwrite a message with a copy of the ILOVEYOU love letter. Keeps id / date /
+// folder position so the list stays stable; strips the structured release view and
+// any attachment so it renders as plain worm mail.
+function wormifyMessage(m: Message): Message {
+  return {
+    ...m,
+    from: 'Kind Friend',
+    addr: 'kind-friend@isp.net',
+    subject: 'ILOVEYOU',
+    read: false,
+    priority: true,
+    body: 'kindly check the attached LOVELETTER coming from me.',
+    release: undefined,
+    attachmentName: undefined,
+    attachmentAppId: undefined,
+  }
+}
+
 function seedFolders(): Record<FolderName, Message[]> {
   const welcome: Message = {
     id: 1,
@@ -147,13 +165,13 @@ function seedFolders(): Record<FolderName, Message[]> {
     read: false,
     priority: true,
     attachmentName: 'LOVE-LETTER-FOR-YOU.TXT.vbs',
-    attachmentAppId: 'notepad',
+    attachmentAppId: 'iloveyou',
     body:
       'kindly check the attached LOVELETTER coming from me.\n\n' +
       '--------------------------------------------------\n' +
-      '⚠️ HISTORICAL WORM SIMULATION (May 2000):\n' +
-      'The ILOVEYOU virus infected over ten million Windows PCs by tricking users into opening an email attachment with a double extension (.TXT.vbs).\n\n' +
-      'Click the attachment below to view the simulated VBS script in Notepad.',
+      'HISTORICAL WORM SIMULATION (May 2000):\n' +
+      'This is where ILOVEYOU began, an email exactly like this one. It infected over ten million Windows PCs because the attachment looked like a harmless text file: Windows hid the real .vbs extension, so LOVE-LETTER-FOR-YOU.TXT.vbs appeared as LOVE-LETTER-FOR-YOU.TXT.\n\n' +
+      'Open the attachment below to see the trap and, if you choose, run the simulated worm. Everything stays inside this browser sandbox, and the simulated PC can be restored from BIOS Setup.',
   }
 
   const happy99Mail: Message = {
@@ -242,7 +260,7 @@ function ReleaseView({ release }: Readonly<{ release: ReleaseNote }>) {
 }
 
 export function InboxApp() {
-  const { openApp, showMessageBox } = useOs()
+  const { openApp, state } = useOs()
   const [folder, setFolder] = useState<FolderName>('Inbox')
   const [selected, setSelected] = useState<number | null>(null)
   const [reading, setReading] = useState<number | null>(null)
@@ -250,7 +268,11 @@ export function InboxApp() {
   const [toast, setToast] = useState<string | null>(null)
   const [msgs, setMsgs] = useState<Record<FolderName, Message[]>>(seedFolders)
 
-  const list = msgs[folder]
+  // Once the ILOVEYOU worm simulation has run, it has mailed itself to everyone:
+  // every message (release notes / patch mail included) is overwritten with a copy
+  // of the love letter. Reversible with the rest of the disk via a BIOS factory
+  // reset. This only rewrites what is displayed, not the stored messages.
+  const list = state.infected ? msgs[folder].map(wormifyMessage) : msgs[folder]
   const unread = useMemo(() => msgs.Inbox.filter((m) => !m.read).length, [msgs])
 
   function flash(text: string) {
@@ -541,24 +563,16 @@ export function InboxApp() {
                 {reader.attachmentName && (
                   <div className="inbox-attachment-box">
                     <div className="inbox-attachment-header">
-                      <span>📎 Attachment (1): <strong>{reader.attachmentName}</strong></span>
+                      <span>Attachment (1): <strong>{reader.attachmentName}</strong></span>
                     </div>
                     <button
                       type="button"
                       className="inbox-attachment-btn"
                       onClick={() => {
-                        if (reader.attachmentName?.endsWith('.vbs')) {
-                          showMessageBox({
-                            title: 'Windows Script Host',
-                            message:
-                              'Script: C:\\WINDOWS\\Desktop\\LOVE-LETTER-FOR-YOU.TXT.vbs\nLine: 1\nChar: 1\nError: Permission denied\nCode: 800A0046\nSource: Microsoft VBScript runtime error',
-                            icon: 'error',
-                            buttons: ['ok'],
-                          })
-                          openApp('notepad', { filePath: 'C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs' })
-                        } else {
-                          openApp(reader.attachmentAppId ?? 'setupSafety')
-                        }
+                        // Opening the attachment launches its handler app. For the
+                        // ILOVEYOU letter this is the worm run-flow (attachmentAppId
+                        // 'iloveyou'); the phishing demo routes to Setup Safety.
+                        openApp(reader.attachmentAppId ?? 'setupSafety')
                       }}
                       title="Launch attachment"
                     >

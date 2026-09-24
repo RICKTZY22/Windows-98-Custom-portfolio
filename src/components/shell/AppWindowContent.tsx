@@ -43,6 +43,7 @@ const Happy99App = lazy(() => import('../apps/Happy99App').then((m) => ({ defaul
 const BonziBuddyApp = lazy(() => import('../apps/BonziBuddyApp').then((m) => ({ default: m.BonziBuddyApp })))
 const CascadeApp = lazy(() => import('../apps/CascadeApp').then((m) => ({ default: m.CascadeApp })))
 const NetBusApp = lazy(() => import('../apps/NetBusApp').then((m) => ({ default: m.NetBusApp })))
+const ILoveYouApp = lazy(() => import('../apps/ILoveYouApp').then((m) => ({ default: m.ILoveYouApp })))
 
 type AppWindowContentProps = {
   windowState: WindowState
@@ -124,6 +125,8 @@ function appWindowBody(windowState: WindowState) {
       return <CascadeApp {...props} />
     case 'netbus':
       return <NetBusApp {...props} />
+    case 'iloveyou':
+      return <ILoveYouApp {...props} />
     default:
       return null
   }

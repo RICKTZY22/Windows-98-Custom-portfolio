@@ -90,6 +90,7 @@ export type OsContextValue = {
   shutDown(): void
   finishBoot(): void
   resetEverything(): void
+  runWorm(): void
 }
 
 export const OsContext = createContext<OsContextValue | null>(null)

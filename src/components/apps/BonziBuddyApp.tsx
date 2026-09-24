@@ -55,6 +55,7 @@ export function BonziBuddyApp({ windowId }: AppProps) {
 
   return (
     <div className="bonzi-app">
+      <div className="wip-banner">Work in Progress: simulation incomplete</div>
       <div className="bonzi-stage">
         <div className="bonzi-bubble" aria-live="polite">
           <p>{speech}</p>

@@ -441,6 +441,29 @@ describe('window reducer', () => {
     expect(reopened.activeWindowId).toBe('internetExplorer')
   })
 
+  it('INFECT_WORM overwrites every file and flips the infected flag without changing phase', () => {
+    let fs = createInitialFsState()
+    fs = createFile(fs, 'C:\\My Documents', 'Diary.txt', { content: 'my secret plans' }).fs
+    const before: OsState = {
+      phase: 'desktop',
+      infected: false,
+      fs,
+    } as unknown as OsState
+
+    const after = reducer(before, { type: 'INFECT_WORM' })
+
+    expect(after.infected).toBe(true)
+    // No crash: the phase is untouched so the desktop stays usable for the cure.
+    expect(after.phase).toBe('desktop')
+    // Every file's content is overwritten with the worm body; folders are untouched.
+    const diary = getNode(after.fs, 'C:\\My Documents\\Diary.txt')
+    expect(diary?.content).not.toBe('my secret plans')
+    expect(diary?.content).toContain('loveletter')
+    expect(getNode(after.fs, 'C:\\My Documents')?.kind).toBe('folder')
+    // The original disk is not mutated in place.
+    expect(getNode(before.fs, 'C:\\My Documents\\Diary.txt')?.content).toBe('my secret plans')
+  })
+
   it('dedupes tray notifications and keeps a bounded system log history', () => {
     const note = {
       id: 'note-1',

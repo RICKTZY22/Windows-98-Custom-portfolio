@@ -23,6 +23,7 @@ export type PersistedState = {
   network: NetworkState
   desktopIcons: Record<string, Point>
   bios: BiosSettings
+  infected?: boolean
 }
 
 const STORAGE_KEY = 'win98-portfolio.v5'
@@ -184,6 +185,7 @@ export function persistState(state: OsState): void {
       network: state.network,
       desktopIcons: state.desktopIcons,
       bios: state.bios,
+      infected: state.infected,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch {

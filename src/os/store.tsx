@@ -12,6 +12,7 @@ import type {
   CursorSchemeId,
   DriverType,
   FsState,
+  FsNode,
   MessageBoxButton,
   MessageBoxRequest,
   NetworkState,
@@ -28,6 +29,7 @@ import type {
 import { appDefinitions } from '../data/apps'
 import { defaultBiosSettings } from '../data/bios'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../data/initialFilesystem'
+import { WORM_VBS_BODY } from '../data/worm'
 import { defaultThemeId, defaultWallpaperId, getTheme, getWallpaper } from '../data/themes'
 import {
   baseName,
@@ -343,6 +345,7 @@ function createDefaultState(): OsState {
     cursorScheme: persisted?.cursorScheme ?? 'win98',
     audio: { enabled: true, muted: false, volume: persisted?.audio.volume ?? 0.7 },
     crash: null,
+    infected: persisted?.infected ?? false,
     pendingSafetyTraining: false,
     // A 'running' session flag left by the previous tab means it was never shut
     // down properly, so the next normal boot runs the startup ScanDisk screen.
@@ -408,6 +411,7 @@ type Action =
     }
   | { type: 'SHUTDOWN' }
   | { type: 'FINISH_BOOT' }
+  | { type: 'INFECT_WORM' }
   | { type: 'RESET'; state: OsState }
 
 // Exported for unit testing (e.g. OPEN_WINDOW idempotency). Colocated with the
@@ -526,8 +530,24 @@ export function reducer(state: OsState, action: Action): OsState {
       }
     case 'SET_DESKTOP_ICONS':
       return { ...state, desktopIcons: action.icons }
-    case 'PUSH_MESSAGE_BOX':
+    case 'PUSH_MESSAGE_BOX': {
+      // A keyed box that is already open is not stacked again: bump its shakeNonce
+      // so the UI nudges the existing dialog instead (e.g. spam-clicking a blocked
+      // app during the worm simulation shakes the one error, never a pile of them).
+      const key = action.box.dedupeKey
+      if (key) {
+        const existing = state.messageBoxes.find((box) => box.dedupeKey === key)
+        if (existing) {
+          return {
+            ...state,
+            messageBoxes: state.messageBoxes.map((box) =>
+              box.dedupeKey === key ? { ...box, shakeNonce: (box.shakeNonce ?? 0) + 1 } : box,
+            ),
+          }
+        }
+      }
       return { ...state, messageBoxes: [...state.messageBoxes, action.box] }
+    }
     case 'REMOVE_MESSAGE_BOX':
       return { ...state, messageBoxes: state.messageBoxes.filter((box) => box.id !== action.id) }
     case 'PUSH_NOTIFICATION': {
@@ -764,6 +784,31 @@ export function reducer(state: OsState, action: Action): OsState {
       }
       return state
     }
+    case 'INFECT_WORM': {
+      // The worm "overwrites" every file's contents with its own body and flips
+      // the display flag. It deliberately does NOT change phase — the desktop
+      // stays usable so the visitor can always restart into BIOS to cure it.
+      // Folders and structure are untouched, so nothing crashes; the disk is
+      // just corrupted-looking until a factory reset rebuilds it from seed.
+      const nodes: Record<string, FsNode> = {}
+      for (const [path, node] of Object.entries(state.fs.nodes)) {
+        nodes[path] =
+          node.kind === 'file'
+            ? { ...node, content: WORM_VBS_BODY, dataUrl: undefined }
+            : node
+      }
+      // Close every open program (they are now "damaged" and refuse to relaunch),
+      // but keep phase 'desktop' so there is no crash and the cure stays reachable.
+      return {
+        ...state,
+        infected: true,
+        fs: { ...state.fs, nodes },
+        windows: [],
+        activeWindowId: undefined,
+        messageBoxes: [],
+        startMenuOpen: false,
+      }
+    }
     case 'RESET':
       return action.state
   }
@@ -966,6 +1011,26 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     (appId: AppId, payload?: WindowPayload) => {
       const current = stateRef.current
       const def = appDefinitions[appId]
+      // While the ILOVEYOU worm simulation is active, every program is "damaged":
+      // launching anything fails with an era-appropriate crash dialog instead of
+      // opening. A few shells stay available so the visitor can see the damage: the
+      // file manager (My Computer / My Documents / folders / Recycle Bin) and the
+      // Inbox, whose messages are themselves overwritten by the worm. The cure
+      // (Restart, then BIOS > Restore System) is not an app, so no one is trapped.
+      const openableWhenInfected: AppId[] = ['explorer', 'recycleBin', 'inbox']
+      if (current.infected && !openableWhenInfected.includes(appId)) {
+        playSound('error')
+        showMessageBox({
+          title: `${def.title}`,
+          message: `${def.title} has performed an illegal operation and will be shut down.`,
+          detail:
+            'The program files were overwritten by LOVE-LETTER-FOR-YOU.TXT.vbs and can no longer run. To restore the simulated PC, restart and open BIOS Setup, then choose Restore System (Factory Reset).',
+          icon: 'error',
+          buttons: ['ok'],
+          dedupeKey: 'worm-crash',
+        })
+        return
+      }
       const missingDependency = missingAppDependency(appId, current.fs)
       if (missingDependency) {
         showMessageBox(systemFileFailureBox(current.fs, def.title, missingDependency))
@@ -1188,6 +1253,19 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
   const finishBoot = useCallback(() => {
     dispatch({ type: 'FINISH_BOOT' })
   }, [])
+
+  // Run the ILOVEYOU worm simulation: overwrite the virtual disk and flip the
+  // infected flag. No crash — the desktop stays usable. The cure is a factory
+  // reset from BIOS Setup (resetEverything), which rebuilds the disk from seed.
+  const runWorm = useCallback(() => {
+    playSound('error')
+    dispatch({ type: 'INFECT_WORM' })
+    notify(
+      'System infected (simulated)',
+      'LOVE-LETTER-FOR-YOU.TXT.vbs has overwritten your files. To restore the PC, restart and open BIOS Setup, then choose Restore System (Factory Reset).',
+      { kind: 'error' },
+    )
+  }, [notify, playSound])
 
   const resetEverything = useCallback(() => {
     clearPersistedState()
@@ -1736,6 +1814,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       shutDown,
       finishBoot,
       resetEverything,
+      runWorm,
     }),
     [
       state,
@@ -1780,6 +1859,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       shutDown,
       finishBoot,
       resetEverything,
+      runWorm,
     ],
   )
 

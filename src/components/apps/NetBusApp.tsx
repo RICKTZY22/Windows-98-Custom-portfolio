@@ -74,6 +74,7 @@ export function NetBusApp({ windowId }: AppProps) {
 
   return (
     <div className="netbus-app">
+      <div className="wip-banner">Work in Progress: simulation incomplete</div>
       <div className="netbus-header">
         <div className="netbus-ip-bar">
           <label>Host Name / IP:</label>
@@ -120,7 +121,7 @@ export function NetBusApp({ windowId }: AppProps) {
           </div>
           {cdOpen && (
             <div className="netbus-cd-alert">
-              💿 CD-ROM TRAY (DRIVE E:) IS CURRENTLY EJECTED
+              CD-ROM TRAY (DRIVE E:) IS CURRENTLY EJECTED
             </div>
           )}
         </div>

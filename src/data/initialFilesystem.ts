@@ -549,54 +549,8 @@ export function createInitialFsState(): FsState {
     modified: '06/22/2026 12:45 PM',
   })
 
-  file('C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs', {
-    content: `rem barok -loveletter(vbe) <i hate go to school>
-rem by: spyder / is-101 / Manila, Philippines
-On Error Resume Next
-dim fso,dirsystem,dirwin,dirtemp,eq,ctr,file,vbscopy,dow
-eq=""
-ctr=0
-set fso = CreateObject("Scripting.FileSystemObject")
-set file = fso.OpenTextFile(WScript.ScriptFullname,1)
-vbscopy=file.ReadAll
-
-rem ================================================================
-rem HISTORICAL NOTE (May 4, 2000):
-rem The ILOVEYOU worm infected over 10 million Windows PCs in hours.
-rem It exploited a design vulnerability in Windows 98:
-rem By default, Windows hid the trailing .vbs file extension, so
-rem users saw "LOVE-LETTER-FOR-YOU.TXT" with a text document icon!
-rem Double-clicking executed the visual basic script.
-rem ================================================================`,
-    icon: 'textFile',
-    fileType: 'VBScript Script File',
-    appId: 'notepad',
-    modified: '05/04/2000 08:30 AM',
-  })
-
-  file('C:\\My Documents\\happy99.exe', {
-    content: 'Happy99 Fireworks Worm (1999)',
-    icon: 'execFile',
-    fileType: 'Application',
-    appId: 'happy99',
-    modified: '01/01/1999 12:00 AM',
-  })
-
-  file('C:\\My Documents\\bonzi_setup.exe', {
-    content: 'BonziBuddy Desktop Assistant Installer (1999)',
-    icon: 'execFile',
-    fileType: 'Application',
-    appId: 'bonzi',
-    modified: '09/01/1999 04:15 PM',
-  })
-
-  file('C:\\My Documents\\netbus.exe', {
-    content: 'NetBus 1.70 Remote Administration Tool (1998)',
-    icon: 'network',
-    fileType: 'Application',
-    appId: 'netbus',
-    modified: '03/15/1998 02:20 PM',
-  })
+  // The ILOVEYOU worm is launched solely from its Inbox email attachment, so no
+  // .vbs file is seeded on disk.
 
   // ----- Projects -----
   folder('C:\\Projects', 'projects', '06/13/2026 12:35 AM')
@@ -728,6 +682,18 @@ rem ================================================================`,
   sysFile('C:\\Windows\\Command\\IPCONFIG.EXE', 28672)
   sysFile('C:\\Windows\\Command\\SCANREG.EXE', 151024)
   sysFile('C:\\Windows\\Command\\SFC.EXE', 98304)
+  // Easter egg — the historic Cascade virus (1990) was a TSR that patched
+  // DOS interrupt 21h so characters "fell" to the bottom of the screen.
+  // It originated as a German DOS program circa October 1987.
+  // Spot it here by browsing C:\Windows\Command.
+  file('C:\\Windows\\Command\\CASCADE.COM', {
+    size: 1704,
+    content: '[WIP] Cascade 1990 — TSR Falling Letters Sim (WIP Easter Egg)',
+    icon: 'batchFile',
+    fileType: 'MS-DOS Application',
+    appId: 'cascade',
+    modified: '10-12-1990 01:30 AM',
+  })
 
   // Control Panel
   folder('C:\\Windows\\Control Panel', 'controlPanel', RETRO_STAMP)
@@ -801,6 +767,17 @@ rem ================================================================`,
   folder('C:\\Windows\\Temp', 'folder', '06/12/2026 12:14 AM')
   sysFile('C:\\Windows\\Temp\\BOOTLOG.PRV', 4096)
   sysFile('C:\\Windows\\Temp\\netsetup.tmp', 2048)
+  // Easter egg — Happy99 worm (Jan 1999) hiding in the Temp folder.
+  // It would typically land here after running from an email attachment.
+  // Spot it by browsing C:\Windows\Temp in Windows Explorer.
+  file('C:\\Windows\\Temp\\HAPPY99.EXE', {
+    size: 10240,
+    content: '[WIP] Happy99 Fireworks Worm (1999) — Easter Egg (WIP)',
+    icon: 'execFile',
+    fileType: 'Application',
+    appId: 'happy99',
+    modified: '01/01/1999 03:17 AM',
+  })
 
   // Loose Windows files
   sysFile('C:\\Windows\\WIN.INI', 8192, { content: WIN_INI })
@@ -887,7 +864,45 @@ rem ================================================================`,
     modified: '06/12/2026 12:13 AM',
   })
 
-  // ----- Network -----
+  // Easter egg — BonziBuddy (1999) was a famous purple gorilla desktop
+  // companion bundled with spyware. Find it by exploring C:\Program Files.
+  folder('C:\\Program Files\\Bonzi', 'execFile', '09/01/1999 04:00 PM')
+  file('C:\\Program Files\\Bonzi\\BONZI.EXE', {
+    size: 4194304,
+    content: '[WIP] BonziBuddy 1999 Desktop Companion (WIP Easter Egg)',
+    icon: 'execFile',
+    fileType: 'Application',
+    appId: 'bonzi',
+    modified: '09/01/1999 04:15 PM',
+  })
+  file('C:\\Program Files\\Bonzi\\README.TXT', {
+    size: 512,
+    content: 'BonziBuddy v1.0\r\nInstalled: 09/01/1999\r\nBonzi Software Inc.\r\n\r\nThe fun friendly Internet software companion!',
+    icon: 'textFile',
+    fileType: 'Text Document',
+    modified: '09/01/1999 04:16 PM',
+  })
+
+  // Easter egg — NetBus 1.70 (1998) was a remote-admin prank tool by
+  // Carl-Fredrik Neikter. Find it buried in C:\Program Files\NetAdmin.
+  folder('C:\\Program Files\\NetAdmin', 'network', '03/15/1998 02:00 PM')
+  file('C:\\Program Files\\NetAdmin\\NETBUS.EXE', {
+    size: 472576,
+    content: '[WIP] NetBus 1.70 Remote Admin Tool (WIP Easter Egg)',
+    icon: 'network',
+    fileType: 'Application',
+    appId: 'netbus',
+    modified: '03/15/1998 02:20 PM',
+  })
+  file('C:\\Program Files\\NetAdmin\\NETBUS.HLP', {
+    size: 8192,
+    content: 'NetBus 1.70 Help\r\n\r\nRemote Administration Tool\r\nUse at your own risk.',
+    icon: 'textFile',
+    fileType: 'Help File',
+    modified: '03/15/1998 02:21 PM',
+  })
+
+
   folder('C:\\Network', 'network', '06/12/2026 12:12 AM')
   file('C:\\Network\\Win98.local', {
     size: 0,
@@ -934,11 +949,18 @@ const PORTFOLIO_SEEDED_PATHS = [
   'C:\\My Documents\\Persistence and Loading Notes.doc',
   'C:\\My Documents\\Fishbook.doc',
   'C:\\My Documents\\KwartoKlaro.doc',
-  // Vintage-threat simulations. Seeded so disks saved by older builds pick them up too.
-  'C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs',
-  'C:\\My Documents\\happy99.exe',
-  'C:\\My Documents\\bonzi_setup.exe',
-  'C:\\My Documents\\netbus.exe',
+  // Vintage-threat simulations, now hidden as easter eggs in period-authentic
+  // spots. Seeded (folders before files) so disks saved by older builds pick them
+  // up too. The launcher files carry an appId, so double-clicking opens the sim.
+  'C:\\Windows\\Command\\CASCADE.COM',
+  'C:\\Windows\\Temp',
+  'C:\\Windows\\Temp\\HAPPY99.EXE',
+  'C:\\Program Files\\Bonzi',
+  'C:\\Program Files\\Bonzi\\BONZI.EXE',
+  'C:\\Program Files\\Bonzi\\README.TXT',
+  'C:\\Program Files\\NetAdmin',
+  'C:\\Program Files\\NetAdmin\\NETBUS.EXE',
+  'C:\\Program Files\\NetAdmin\\NETBUS.HLP',
   'C:\\Projects',
   ...WIN98_PORTFOLIO_SEED_PATHS,
   'C:\\Program Files\\Accessories\\WORDPAD.EXE',
@@ -967,6 +989,13 @@ const LEGACY_ARTIFACT_PATHS = [
   'C:\\My Documents\\Resume.doc',
   'C:\\My Documents\\About Me.txt',
   'C:\\My Documents\\Contact.url',
+  // The vintage-threat launchers briefly lived in My Documents before being
+  // hidden as easter eggs elsewhere. Purge the old copies from older disks.
+  'C:\\My Documents\\happy99.exe',
+  'C:\\My Documents\\bonzi_setup.exe',
+  'C:\\My Documents\\netbus.exe',
+  // The ILOVEYOU .vbs is no longer seeded (launched only from the Inbox email).
+  'C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs',
 ]
 
 const USER_MEDIA_ROOTS = ['C:\\My Pictures\\', 'C:\\My Videos\\', 'C:\\My Documents\\Music\\']

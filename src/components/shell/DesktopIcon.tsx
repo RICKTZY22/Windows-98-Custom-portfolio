@@ -52,6 +52,8 @@ export function DesktopIcon({
   onRecycleHoverChange,
   onDropOnRecycle,
 }: DesktopIconProps) {
+  const label = iconDef.label
+
   const dragRef = useRef<DragState | null>(null)
   const frameRef = useRef<number | null>(null)
   const pendingPositionRef = useRef<Point | null>(null)
@@ -176,8 +178,8 @@ export function DesktopIcon({
       type="button"
       data-desktop-icon-id={iconDef.id}
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
-      aria-label={`${iconDef.label}. Press Enter or double-click to open.`}
-      title={tooltip ?? `${iconDef.label}\nDouble-click to open.`}
+      aria-label={`${label}. Press Enter or double-click to open.`}
+      title={tooltip ?? `${label}\nDouble-click to open.`}
       onPointerDown={startDrag}
       onClick={(event) => {
         if (suppressClickRef.current) {
@@ -202,7 +204,7 @@ export function DesktopIcon({
       }}
     >
       <img src={win98Icons[iconDef.icon]} alt="" />
-      <span>{iconDef.label}</span>
+      <span>{label}</span>
     </button>
   )
 }

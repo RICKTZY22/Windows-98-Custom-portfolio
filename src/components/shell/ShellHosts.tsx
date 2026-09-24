@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { MessageBoxButton, MessageBoxRequest, OsNotification } from '../../types'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
@@ -81,49 +81,114 @@ export function MouseTrails() {
 
 export function MessageBoxHost() {
   const { state, dismissMessageBox } = useOs()
-  if (!state.messageBoxes.length) return null
+  // Per-box drag offset, so a dialog can be dragged by its title bar like a real
+  // Win98 message box (they are centered until moved).
+  const [offsets, setOffsets] = useState<Record<string, { x: number; y: number }>>({})
+  const dragRef = useRef<{ id: string; startX: number; startY: number; baseX: number; baseY: number } | null>(null)
+
+  useEffect(() => {
+    function onMove(event: PointerEvent) {
+      const drag = dragRef.current
+      if (!drag) return
+      setOffsets((current) => ({
+        ...current,
+        [drag.id]: { x: drag.baseX + (event.clientX - drag.startX), y: drag.baseY + (event.clientY - drag.startY) },
+      }))
+    }
+    function onUp() {
+      dragRef.current = null
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+    }
+  }, [])
+
+  // Only one dialog is ever on screen: the queue shows its first box, and
+  // dismissing it reveals the next (e.g. deleting several driver files pops the
+  // errors one by one). A suppressed duplicate shakes the visible one instead.
+  const box = state.messageBoxes[0]
+  if (!box) return null
   return (
     <div className="message-box-layer" role="presentation">
-      {state.messageBoxes.map((box) => (
-        <section
-          key={box.id}
-          className="window message-box"
-          role="alertdialog"
-          aria-label={box.title}
-          aria-modal="true"
-        >
-          <div className="title-bar">
-            <div className="title-bar-text">{box.title}</div>
-            <div className="title-bar-controls">
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => dismissMessageBox(box.id, closeButtonFor(box.buttons))}
-              />
-            </div>
-          </div>
-          <div className="window-body message-box-body">
-            <div className="message-box-copy">
-              <span className={`message-icon message-icon-${box.icon}`} aria-hidden="true">
-                {MESSAGE_ICON_GLYPHS[box.icon]}
-              </span>
-              <div>
-                <p>{box.message}</p>
-                {box.detail && <p className="message-detail">{box.detail}</p>}
-                {box.errorCode && <p className="message-code">Code: {box.errorCode}</p>}
-              </div>
-            </div>
-            <div className="button-row run-buttons">
-              {box.buttons.map((button) => (
-                <button key={button} type="button" onClick={() => dismissMessageBox(box.id, button)}>
-                  {MESSAGE_BUTTON_LABELS[button]}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      ))}
+      <MessageBoxCard
+        key={box.id}
+        box={box}
+        offset={offsets[box.id] ?? { x: 0, y: 0 }}
+        onTitlePointerDown={(event) => {
+          if (event.button !== 0) return
+          const base = offsets[box.id] ?? { x: 0, y: 0 }
+          dragRef.current = { id: box.id, startX: event.clientX, startY: event.clientY, baseX: base.x, baseY: base.y }
+        }}
+        onButton={(button) => dismissMessageBox(box.id, button)}
+      />
     </div>
+  )
+}
+
+function MessageBoxCard({
+  box,
+  offset,
+  onTitlePointerDown,
+  onButton,
+}: Readonly<{
+  box: MessageBoxRequest
+  offset: { x: number; y: number }
+  onTitlePointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onButton: (button: MessageBoxButton) => void
+}>) {
+  const sectionRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    // shakeNonce is undefined on a fresh box and only bumps when a duplicate is
+    // suppressed, so the dialog nudges instead of stacking. Restart the CSS
+    // animation imperatively (remove class, force reflow, re-add) each bump.
+    if (!box.shakeNonce) return
+    const el = sectionRef.current
+    if (!el) return
+    el.classList.remove('is-shaking')
+    void el.offsetWidth
+    el.classList.add('is-shaking')
+  }, [box.shakeNonce])
+
+  return (
+    <section
+      ref={sectionRef}
+      className="window message-box"
+      role="alertdialog"
+      aria-label={box.title}
+      aria-modal="true"
+      style={{ marginLeft: offset.x, marginTop: offset.y }}
+    >
+      <div className="title-bar" onPointerDown={onTitlePointerDown}>
+        <div className="title-bar-text">{box.title}</div>
+        <div className="title-bar-controls">
+          <button type="button" aria-label="Close" onClick={() => onButton(closeButtonFor(box.buttons))} />
+        </div>
+      </div>
+      <div className="window-body message-box-body">
+        <div className="message-box-copy">
+          <span className={`message-icon message-icon-${box.icon}`} aria-hidden="true">
+            {MESSAGE_ICON_GLYPHS[box.icon]}
+          </span>
+          <div>
+            <p>{box.message}</p>
+            {box.detail && <p className="message-detail">{box.detail}</p>}
+            {box.errorCode && <p className="message-code">Code: {box.errorCode}</p>}
+          </div>
+        </div>
+        <div className="button-row run-buttons">
+          {box.buttons.map((button) => (
+            <button key={button} type="button" onClick={() => onButton(button)}>
+              {MESSAGE_BUTTON_LABELS[button]}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 

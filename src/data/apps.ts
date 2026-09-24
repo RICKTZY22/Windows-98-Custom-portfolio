@@ -274,6 +274,13 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     defaultRect: { x: 180, y: 80, width: 520, height: 460 },
     singleton: true,
   },
+  iloveyou: {
+    id: 'iloveyou',
+    title: 'LOVE-LETTER-FOR-YOU.TXT',
+    icon: 'textFile',
+    defaultRect: { x: 200, y: 110, width: 440, height: 420 },
+    singleton: true,
+  },
 }
 
 export const desktopIconDefs: DesktopIconDef[] = [
@@ -413,18 +420,6 @@ export const startMenuModel: StartMenuModel = [
             appId: 'dosGame',
             payload: { url: '/games/doom.jsdos?v=2', windowTitle: 'DOOM' },
           },
-        ],
-      },
-      {
-        kind: 'submenu',
-        id: 'retroThreats',
-        label: 'Vintage Threats (Simulations)',
-        icon: 'folder',
-        items: [
-          { kind: 'item', id: 'happy99', label: 'Happy99 (1999 Fireworks Worm)', icon: 'execFile', appId: 'happy99' },
-          { kind: 'item', id: 'bonzi', label: 'BonziBuddy (1999 Assistant)', icon: 'execFile', appId: 'bonzi' },
-          { kind: 'item', id: 'cascade', label: 'Cascade (1990 Falling Letters)', icon: 'textFile', appId: 'cascade' },
-          { kind: 'item', id: 'netbus', label: 'NetBus 1.70 (Remote Prank Tool)', icon: 'network', appId: 'netbus' },
         ],
       },
       { kind: 'item', id: 'antivirus', label: 'Antivirus 98', icon: 'sysFile', appId: 'antivirus' },

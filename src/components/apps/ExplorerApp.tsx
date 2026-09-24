@@ -1,8 +1,9 @@
 import './ExplorerApp.css'
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { win98Icons } from '../../data/icons'
-import type { AppProps, FsNode } from '../../types'
+import type { AppProps, FsNode, IconKey } from '../../types'
 import { useOs } from '../../os/useOs'
+import { WORM_DISPLAY_NAME } from '../../data/worm'
 import {
   baseName,
   extensionOf,
@@ -114,6 +115,14 @@ function quickPathTooltip(path: string, label: string, nodes: Record<string, FsN
 
 export function ExplorerApp({ windowId, payload }: AppProps) {
   const { state, openNode, setWindowTitle, fsOps, setClipboard, showMessageBox } = useOs()
+  // Once the ILOVEYOU worm simulation has run, it has overwritten every file with a
+  // copy of itself: the file manager shows the worm name and a script icon for all
+  // files (folders keep their structure). Display-only; the real nodes are unchanged
+  // and a BIOS factory reset restores everything.
+  const displayFileName = (node: FsNode): string =>
+    state.infected && node.kind === 'file' ? WORM_DISPLAY_NAME : node.name
+  const displayFileIcon = (node: FsNode): IconKey =>
+    state.infected && node.kind === 'file' ? 'textFile' : node.icon
   const [currentPath, setCurrentPath] = useState(() => normalizePath(payload?.path ?? 'C:\\'))
   const [address, setAddress] = useState(currentPath)
   const [backStack, setBackStack] = useState<string[]>([])
@@ -844,12 +853,12 @@ Size: ${
               </>
             ) : selectedNode ? (
               <>
-                {isThumbnailable(selectedNode) ? (
+                {isThumbnailable(selectedNode) && !state.infected ? (
                   <img className="file-webinfo-thumb" src={selectedNode.dataUrl} alt="" />
                 ) : (
-                  <img className="file-webinfo-icon" src={win98Icons[selectedNode.icon]} alt="" />
+                  <img className="file-webinfo-icon" src={win98Icons[displayFileIcon(selectedNode)]} alt="" />
                 )}
-                <p className="file-webinfo-name">{selectedNode.name}</p>
+                <p className="file-webinfo-name">{displayFileName(selectedNode)}</p>
                 <p className="file-webinfo-detail">{selectedNode.fileType}</p>
                 {selectedNode.kind === 'file' && (
                   <p className="file-webinfo-detail">{formatSize(selectedNode.size) || `${selectedNode.size} bytes`}</p>
@@ -995,10 +1004,10 @@ Size: ${
               }}
             >
               <span className="file-name-cell">
-                {viewMode === 'thumbnails' && isThumbnailable(node) ? (
+                {viewMode === 'thumbnails' && isThumbnailable(node) && !state.infected ? (
                   <img className="file-thumb-img" src={node.dataUrl} alt="" />
                 ) : (
-                  <img src={win98Icons[node.icon]} alt="" />
+                  <img src={win98Icons[displayFileIcon(node)]} alt="" />
                 )}
                 {renamingPath === node.path ? (
                   <input
@@ -1024,7 +1033,7 @@ Size: ${
                   />
                 ) : (
                   <>
-                    <span className="file-display-name">{node.name}</span>
+                    <span className="file-display-name">{displayFileName(node)}</span>
                     {nodeAttributes(node).length > 0 && (
                       <span className="file-attribute-badges" aria-label={`Attributes: ${nodeAttributes(node).join(', ')}`}>
                         {node.attributes?.system && <span>S</span>}

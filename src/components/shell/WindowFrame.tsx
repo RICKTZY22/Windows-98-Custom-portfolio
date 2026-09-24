@@ -87,6 +87,8 @@ export function WindowFrame({
   onToggleMaximize,
   onMove,
 }: WindowFrameProps) {
+  const title = windowState.title
+
   const dragRef = useRef<DragState | null>(null)
   const resizeRef = useRef<ResizeState | null>(null)
   const frameRef = useRef<number | null>(null)
@@ -214,7 +216,7 @@ export function WindowFrame({
     <section
       className={className}
       style={style}
-      aria-label={windowState.title}
+      aria-label={title}
       onPointerDown={() => onFocus(windowState.instanceId)}
     >
       <div
@@ -224,7 +226,7 @@ export function WindowFrame({
       >
         <div className="title-bar-text">
           <img src={win98Icons[windowState.icon]} alt="" />
-          <span>{windowState.title}</span>
+          <span>{title}</span>
         </div>
         <div className="title-bar-controls" onPointerDown={(event) => event.stopPropagation()}>
           <button aria-label="Minimize" type="button" onClick={() => onMinimize(windowState.instanceId)} />

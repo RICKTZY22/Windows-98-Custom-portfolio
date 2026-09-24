@@ -135,6 +135,7 @@ export function CascadeApp({ windowId }: AppProps) {
 
   return (
     <div className="cascade-app" ref={containerRef}>
+      <div className="wip-banner">Work in Progress: simulation incomplete</div>
       <div className="cascade-toolbar">
         <button type="button" onClick={triggerCascade} disabled={isCascading}>
           Trigger Cascade (Drop Letters)

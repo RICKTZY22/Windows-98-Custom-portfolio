@@ -108,6 +108,7 @@ export function Happy99App({ windowId }: AppProps) {
 
   return (
     <div className="happy99-app">
+      <div className="wip-banner">Work in Progress: simulation incomplete</div>
       <div className="happy99-display">
         <canvas ref={canvasRef} width={380} height={240} className="happy99-canvas" />
       </div>

@@ -110,6 +110,7 @@ export type AppId =
   | 'bonzi'
   | 'cascade'
   | 'netbus'
+  | 'iloveyou'
 
 export type WindowRect = { x: number; y: number; width: number; height: number }
 export type Point = { x: number; y: number }
@@ -279,6 +280,10 @@ export type MessageBoxRequest = {
   errorCode?: string
   recoveryHint?: string
   onResult?: (button: MessageBoxButton) => void
+  // When set, only one open box may carry this key. A repeat request bumps the
+  // existing box's shakeNonce (a nudge) instead of stacking another dialog.
+  dedupeKey?: string
+  shakeNonce?: number
 }
 
 export type OsNotificationKind = 'info' | 'warning' | 'error' | 'success' | 'system'
@@ -374,6 +379,11 @@ export type OsState = {
   cursorScheme: CursorSchemeId
   audio: AudioState
   crash: CrashState | null
+  // The ILOVEYOU worm simulation has "overwritten" the disk: file contents are
+  // replaced and the shell displays the worm name in place of real labels. Fully
+  // reversible via BIOS Setup > Restore System (Factory Reset). No crash — the
+  // desktop stays usable so the visitor can always reach the cure.
+  infected: boolean
   pendingSafetyTraining: boolean
   pendingStartupScan: boolean // true after an improper exit -> shows the startup ScanDisk screen
   pendingSystemRestore: boolean // SFC/SCANREG scheduled a protected-file restore; applied on next restart

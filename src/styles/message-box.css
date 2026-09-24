@@ -108,3 +108,22 @@
 .message-box .run-buttons button {
   min-width: 76px;
 }
+
+/* When a duplicate error is suppressed, the existing dialog shakes instead of a
+   new one stacking on top (e.g. spam-clicking a blocked app while "infected"). */
+.message-box .title-bar {
+  cursor: move;
+}
+
+.message-box.is-shaking {
+  animation: message-box-shake 0.36s ease;
+}
+
+@keyframes message-box-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(6px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}

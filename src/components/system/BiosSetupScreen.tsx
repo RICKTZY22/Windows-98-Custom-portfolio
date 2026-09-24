@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BiosSettings, BootDeviceId } from '../../types'
 import {
   biosSetupSections,
@@ -47,9 +47,21 @@ function bootDeviceEnabled(settings: BiosSettings, device: BootDeviceId): boolea
 }
 
 export function BiosSetupScreen() {
-  const { state, setBiosSettings, restart, enterRecoveryMode } = useOs()
+  const { state, setBiosSettings, restart, enterRecoveryMode, resetEverything } = useOs()
   const [draft, setDraft] = useState<BiosSettings>(state.bios)
   const [sectionIndex, setSectionIndex] = useState(0)
+  // Two-press guard for the factory reset, since it wipes the whole simulated
+  // disk (this is the cure for the ILOVEYOU worm simulation). Message boxes do
+  // not render during the BIOS phase, so the confirm is inline.
+  const [confirmReset, setConfirmReset] = useState(false)
+  const runFactoryReset = useCallback(() => {
+    if (!confirmReset) {
+      setConfirmReset(true)
+      return
+    }
+    setConfirmReset(false)
+    resetEverything()
+  }, [confirmReset, resetEverything])
   const [rowIndex, setRowIndex] = useState(0)
   const section = biosSetupSections[sectionIndex]
   const missingRequired = missingRequiredSystemFiles(state.fs)
@@ -223,6 +235,20 @@ export function BiosSetupScreen() {
           hint: 'Recovery Mode restores simulated files from the simulated OS protected cache.',
           onChange: openRecovery,
         },
+        {
+          label: 'Restore System (Factory Reset)',
+          value: state.infected
+            ? confirmReset
+              ? 'Press Enter to confirm'
+              : 'Recommended: disk infected'
+            : confirmReset
+              ? 'Press Enter to confirm'
+              : 'Rebuild simulated disk',
+          hint: state.infected
+            ? 'Rebuilds the simulated disk from a clean image and reboots. This clears the ILOVEYOU worm simulation. Press Enter twice to confirm.'
+            : 'Rebuilds the simulated disk from a clean image and reboots. Erases changes made inside the simulation. Press Enter twice to confirm.',
+          onChange: runFactoryReset,
+        },
       ]
     }
 
@@ -313,7 +339,7 @@ export function BiosSetupScreen() {
 
     return [{ label: 'Exit setup', value: 'Press Enter or Esc', onChange: () => restart('normal', { bootProfile: 'warm' }) }]
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, enterRecoveryMode, missingRequired.length, restart, section.id, state.fs])
+  }, [draft, enterRecoveryMode, missingRequired.length, restart, section.id, state.fs, state.infected, confirmReset, runFactoryReset])
 
   const safeRowIndex = Math.min(rowIndex, Math.max(0, rows.length - 1))
 
