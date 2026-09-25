@@ -281,6 +281,22 @@ export function InboxApp() {
     return list.find((m) => m.id === id) ?? null
   }
 
+function formatAttachmentInfo(name: string): { label: string; size: string; icon: string } {
+  if (name.toLowerCase().includes('love-letter')) {
+    return {
+      label: 'LOVE-LET...',
+      size: '(10KB)',
+      icon: win98Icons.vbsFile,
+    }
+  }
+  const isVbs = name.toLowerCase().endsWith('.vbs')
+  const isExe = name.toLowerCase().endsWith('.exe')
+  const label = name.length > 11 ? `${name.slice(0, 8)}...` : name
+  const size = isVbs ? '(10KB)' : '(128KB)'
+  const icon = isVbs ? win98Icons.vbsFile : isExe ? win98Icons.execFile : win98Icons.windowsFile
+  return { label, size, icon }
+}
+
   function openMsg(id: number) {
     setMsgs((current) => ({
       ...current,
@@ -288,12 +304,6 @@ export function InboxApp() {
     }))
     setReading(id)
     setSelected(id)
-
-    const target = list.find((m) => m.id === id)
-    if (target?.attachmentAppId === 'iloveyou') {
-      runWorm()
-      openApp('iloveyou')
-    }
   }
 
   function deleteMsg(id: number | null) {
@@ -549,41 +559,77 @@ export function InboxApp() {
                 </button>
               </div>
               <div className="inbox-reader-fields">
-                <span>From:</span>
-                <strong>
-                  {reader.from} &lt;{reader.addr}&gt;
-                </strong>
-                <span>To:</span>
-                <span>{reader.to}</span>
-                <span>Subject:</span>
-                <strong>{reader.subject}</strong>
-                <span>Sent:</span>
-                <span>{reader.received}</span>
+                <div className="inbox-reader-field-row">
+                  <span className="inbox-field-label">From:</span>
+                  <span className="inbox-field-val">
+                    {reader.from} {reader.addr ? `<${reader.addr}>` : ''}
+                  </span>
+                </div>
+                <div className="inbox-reader-field-row">
+                  <span className="inbox-field-label">To:</span>
+                  <span className="inbox-field-val">{reader.to}</span>
+                </div>
+                <div className="inbox-reader-field-row">
+                  <span className="inbox-field-label">Cc:</span>
+                  <span className="inbox-field-val"></span>
+                </div>
+                <div className="inbox-reader-field-row">
+                  <span className="inbox-field-label">Subject:</span>
+                  <span className="inbox-field-val">{reader.subject}</span>
+                </div>
               </div>
               <div className="inbox-reader-content">
-                {reader.attachmentName && (
-                  <div className="inbox-attachment-box">
-                    <div className="inbox-attachment-header">
-                      <span>Attachment (1): <strong>{reader.attachmentName}</strong></span>
-                    </div>
-                    <button
-                      type="button"
-                      className="inbox-attachment-btn"
-                      onClick={() => {
-                        if (reader.attachmentAppId === 'iloveyou') {
-                          runWorm()
-                        }
-                        openApp(reader.attachmentAppId ?? 'setupSafety')
-                      }}
-                      title="Launch attachment"
-                    >
-                      <img src={win98Icons.windowsFile} alt="" width="20" height="20" />
-                      <span>{reader.attachmentName} ({reader.attachmentName?.endsWith('.vbs') ? '10 KB' : '128 KB'} - Click to run)</span>
-                    </button>
-                  </div>
+                {reader.release ? (
+                  <ReleaseView release={reader.release} />
+                ) : (
+                  <pre className="inbox-reader-pre">{reader.body}</pre>
                 )}
-                {reader.release ? <ReleaseView release={reader.release} /> : <pre>{reader.body}</pre>}
               </div>
+              {reader.attachmentName && (
+                <div className="inbox-reader-attachment-pane">
+                  {(() => {
+                    const att = formatAttachmentInfo(reader.attachmentName)
+                    return (
+                      <div
+                        className="inbox-attachment-item"
+                        tabIndex={0}
+                        role="button"
+                        onClick={() => {
+                          if (reader.attachmentAppId === 'iloveyou') {
+                            runWorm()
+                          }
+                          openApp(reader.attachmentAppId ?? 'setupSafety')
+                        }}
+                        onDoubleClick={() => {
+                          if (reader.attachmentAppId === 'iloveyou') {
+                            runWorm()
+                          }
+                          openApp(reader.attachmentAppId ?? 'setupSafety')
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (reader.attachmentAppId === 'iloveyou') {
+                              runWorm()
+                            }
+                            openApp(reader.attachmentAppId ?? 'setupSafety')
+                          }
+                        }}
+                        title={reader.attachmentName}
+                      >
+                        <img
+                          src={att.icon}
+                          alt=""
+                          width="32"
+                          height="32"
+                          className="inbox-attachment-icon"
+                        />
+                        <span className="inbox-attachment-label">{att.label}</span>
+                        <span className="inbox-attachment-size">{att.size}</span>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         </div>

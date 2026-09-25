@@ -68,6 +68,66 @@ const QUESTION_FALLBACKS = [
   'Hmm, I would tell you, but it is a gorilla secret!',
 ] as const
 
+// Fixed replies, by intent.
+const REPLIES = {
+  bye: 'Fine! Bye bye, buddy! Do not forget me!',
+  byeWarn: 'Wait, do not go! Say bye again if you really mean it...',
+  quiet: 'Okay, okay! I will be quiet... mostly. Hehehe!',
+  chatty: 'Yay! I will keep you company!',
+  help: 'Try: joke, sing, tip, search the web, what time is it, be quiet, or bye!',
+  search: 'Let us surf the Web! Opening Internet Explorer for you!',
+  weather: 'It is always sunny on the desktop! Unless you change the wallpaper.',
+  spyware: 'Spyware?! ME?! I would never! ...Why are you looking at me like that?',
+  ai: 'I am a super advanced AI! ...Okay, I am a gorilla who reads keywords. Do not tell anyone.',
+  name: 'I am Bonzi! The smartest purple gorilla on the whole World Wide Web!',
+  howAreYou: 'I am purple and fabulous! How about you, buddy?',
+  love: 'Aww! You are my best buddy too! Now tell all your friends to download me!',
+  loser: 'Takes one to know one! Hehehe!',
+  insult: 'Hey! That hurts my purple feelings! ...I am still not leaving, though. Hehehe!',
+  banana: 'BANANA?! Where?! Gimme gimme gimme!',
+  thanks: 'You are welcome, buddy!',
+} as const
+
+/** What he says when right-clicked (he has no menu). */
+export const BONZI_NOT_A_MENU = 'I am not a menu, silly! Type to me in the chat box!'
+
+// He tells the time to the nearest hour, so every answer can be a recorded clip.
+const HOUR_WORDS = ['twelve', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven']
+
+function timeLine(hour: number): string {
+  return `It is about ${HOUR_WORDS[hour % 12]} o'clock! Perfect time for a joke!`
+}
+
+// How the recorded voice should read lines whose written form reads wrong aloud
+// (all-caps words can come out spelled letter by letter).
+export const BONZI_SAY_AS: Readonly<Record<string, string>> = {
+  'There are 10 kinds of people: those who get binary, and those who do not!':
+    'There are one zero kinds of people: those who get binary, and those who do not!',
+  'My favorite band is the Rolling Scones. They rock AND they are tasty!':
+    'My favorite band is the Rolling Scones. They rock and they are tasty!',
+  [REPLIES.spyware]: 'Spyware?! Me?! I would never! ...Why are you looking at me like that?',
+  [REPLIES.banana]: 'Banana?! Where?! Gimme gimme gimme!',
+}
+
+/** Every line Bonzi can say, with the text his recorded voice clip reads. */
+export function bonziVoiceLines(): { text: string; say: string }[] {
+  const lines = new Set<string>([
+    ...BONZI_GREETINGS,
+    ...BONZI_JOKES,
+    ...BONZI_SONGS,
+    ...BONZI_TIPS,
+    ...BONZI_CHATTER,
+    ...BONZI_WANDER_LINES,
+    ...BONZI_TICKLES,
+    ...FALLBACKS,
+    ...QUESTION_FALLBACKS,
+    ...Object.values(REPLIES),
+    BONZI_NOT_A_MENU,
+    ...HOUR_WORDS.map((_, hour) => timeLine(hour)),
+  ])
+  return [...lines].map((text) => ({ text, say: BONZI_SAY_AS[text] ?? text }))
+}
+
 export function pickLine(list: readonly string[], random: () => number = Math.random, avoid?: string): string {
   if (list.length <= 1) return list[0] ?? ''
   let choice = list[Math.floor(random() * list.length)] ?? list[0]
@@ -85,13 +145,6 @@ function normalize(input: string): string {
     .replace(/[^a-z0-9?\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-}
-
-function formatTime(now: Date): string {
-  const hours = now.getHours()
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  const suffix = hours >= 12 ? 'PM' : 'AM'
-  return `${hours % 12 || 12}:${minutes} ${suffix}`
 }
 
 type BrainOptions = {
@@ -113,57 +166,38 @@ export function bonziReply(input: string, options: BrainOptions = {}): BonziRepl
 
   if (has(/\b(bye|goodbye|good bye|see ya|see you later|cya|gotta go|farewell)\b/)) {
     return byeArmed
-      ? { text: 'Fine! Bye bye, buddy! Do not forget me!', mood: 'wave', effect: 'bye' }
-      : { text: 'Wait, do not go! Say bye again if you really mean it...', mood: 'idle', effect: 'byeWarn' }
+      ? { text: REPLIES.bye, mood: 'wave', effect: 'bye' }
+      : { text: REPLIES.byeWarn, mood: 'idle', effect: 'byeWarn' }
   }
   if (has(/\b(be quiet|shut up|stop talking|quiet|silence|hush)\b/)) {
-    return { text: 'Okay, okay! I will be quiet... mostly. Hehehe!', mood: 'idle', effect: 'quiet' }
+    return { text: REPLIES.quiet, mood: 'idle', effect: 'quiet' }
   }
   if (has(/\b(talk to me|keep me company|chat with me|you can talk)\b/)) {
-    return { text: 'Yay! I will keep you company!', mood: 'wave', effect: 'chatty' }
+    return { text: REPLIES.chatty, mood: 'wave', effect: 'chatty' }
   }
-  if (has(/\b(help|commands|what can you do|menu)\b/)) {
-    return {
-      text: 'Try: joke, sing, tip, search the web, what time is it, be quiet, or bye!',
-      mood: 'wave',
-    }
-  }
+  if (has(/\b(help|commands|what can you do|menu)\b/)) return { text: REPLIES.help, mood: 'wave' }
   if (has(/\b(joke|jokes|funny|make me laugh)\b/)) return { text: pick(BONZI_JOKES), mood: 'wave' }
   if (has(/\b(sing|song|songs|music)\b/)) return { text: pick(BONZI_SONGS), mood: 'sing' }
   if (has(/\b(tip|tips|advice|trick)\b/)) return { text: pick(BONZI_TIPS), mood: 'idle' }
   if (has(/\b(search|google|internet|browse|surf|web)\b/)) {
-    return { text: 'Let us surf the Web! Opening Internet Explorer for you!', mood: 'wave', effect: 'search' }
+    return { text: REPLIES.search, mood: 'wave', effect: 'search' }
   }
   if (has(/\b(time|clock)\b/)) {
-    return { text: `It is ${formatTime(now)}! Perfect time for a joke!`, mood: 'wave' }
+    // Rounded to the nearest hour: 2:40 is "about three o'clock".
+    return { text: timeLine(now.getHours() + (now.getMinutes() >= 30 ? 1 : 0)), mood: 'wave' }
   }
-  if (has(/\b(weather|raining|sunny|snowing)\b/)) {
-    return { text: 'It is always sunny on the desktop! Unless you change the wallpaper.', mood: 'idle' }
-  }
+  if (has(/\b(weather|raining|sunny|snowing)\b/)) return { text: REPLIES.weather, mood: 'idle' }
   if (has(/\b(spyware|adware|virus|malware|tracking|track me|spying|spy)\b/)) {
-    return { text: 'Spyware?! ME?! I would never! ...Why are you looking at me like that?', mood: 'idle' }
+    return { text: REPLIES.spyware, mood: 'idle' }
   }
-  if (has(/\b(ai|chatgpt|robot|artificial|sentient|are you real|bot)\b/)) {
-    return {
-      text: 'I am a super advanced AI! ...Okay, I am a gorilla who reads keywords. Do not tell anyone.',
-      mood: 'wave',
-    }
-  }
-  if (has(/\b(your name|who are you|what are you)\b/)) {
-    return { text: 'I am Bonzi! The smartest purple gorilla on the whole World Wide Web!', mood: 'wave' }
-  }
-  if (has(/\b(how are you|how r u|hows it going|how you doing)\b/)) {
-    return { text: 'I am purple and fabulous! How about you, buddy?', mood: 'wave' }
-  }
-  if (has(/\b(love you|like you|best friend|bff)\b/)) {
-    return { text: 'Aww! You are my best buddy too! Now tell all your friends to download me!', mood: 'wave' }
-  }
-  if (has(/\bloser\b/)) return { text: 'Takes one to know one! Hehehe!', mood: 'wave' }
-  if (has(/\b(stupid|dumb|hate you|ugly|annoying|idiot)\b/)) {
-    return { text: 'Hey! That hurts my purple feelings! ...I am still not leaving, though. Hehehe!', mood: 'idle' }
-  }
-  if (has(/\b(banana|bananas)\b/)) return { text: 'BANANA?! Where?! Gimme gimme gimme!', mood: 'sing' }
-  if (has(/\b(thanks|thank you|thx|ty)\b/)) return { text: 'You are welcome, buddy!', mood: 'wave' }
+  if (has(/\b(ai|chatgpt|robot|artificial|sentient|are you real|bot)\b/)) return { text: REPLIES.ai, mood: 'wave' }
+  if (has(/\b(your name|who are you|what are you)\b/)) return { text: REPLIES.name, mood: 'wave' }
+  if (has(/\b(how are you|how r u|hows it going|how you doing)\b/)) return { text: REPLIES.howAreYou, mood: 'wave' }
+  if (has(/\b(love you|like you|best friend|bff)\b/)) return { text: REPLIES.love, mood: 'wave' }
+  if (has(/\bloser\b/)) return { text: REPLIES.loser, mood: 'wave' }
+  if (has(/\b(stupid|dumb|hate you|ugly|annoying|idiot)\b/)) return { text: REPLIES.insult, mood: 'idle' }
+  if (has(/\b(banana|bananas)\b/)) return { text: REPLIES.banana, mood: 'sing' }
+  if (has(/\b(thanks|thank you|thx|ty)\b/)) return { text: REPLIES.thanks, mood: 'wave' }
   if (has(/\b(hi|hello|hey|hiya|howdy|yo|sup|whats up|greetings)\b/)) {
     return { text: pick(BONZI_GREETINGS), mood: 'wave' }
   }

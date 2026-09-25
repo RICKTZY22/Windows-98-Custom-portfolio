@@ -78,4 +78,5 @@ export const win98Icons: Record<IconKey, string> = {
   run: `${iconBase}/file_windows-1.png`,
   // Classic Outlook Express / Exchange Inbox envelope (from the win98icons set).
   inbox: `${iconBase}/outlook_express-0.png`,
+  vbsFile: `${iconBase}/vbs_file.png`,
 }

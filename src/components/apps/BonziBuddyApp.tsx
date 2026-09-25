@@ -15,6 +15,7 @@ import { useOs } from '../../os/useOs'
 import {
   BONZI_CHATTER,
   BONZI_GREETINGS,
+  BONZI_NOT_A_MENU,
   BONZI_TICKLES,
   BONZI_WANDER_LINES,
   bonziReply,
@@ -493,7 +494,7 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     // Keep the desktop's own right-click menu from opening on top of him.
     event.preventDefault()
     event.stopPropagation()
-    say('I am not a menu, silly! Type to me in the chat box!', 'wave')
+    say(BONZI_NOT_A_MENU, 'wave')
   }
 
   function applyEffect(reply: BonziReply) {
