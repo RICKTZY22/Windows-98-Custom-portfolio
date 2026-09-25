@@ -11,6 +11,45 @@ export const WORM_DISPLAY_NAME = 'LOVE-LETTER-FOR-YOU.TXT.vbs'
 // The disk path the fake attachment is seeded at.
 export const WORM_FILE_PATH = 'C:\\My Documents\\LOVE-LETTER-FOR-YOU.TXT.vbs'
 
+// Fake "address book" the Outbox theatre uses (see wormOutboxItems below). Every
+// address is under a domain RFC 2606 reserves for examples (example.com / .net /
+// .org), so none can ever belong to a real person. These are display strings
+// only: the app has no email capability and sends nothing anywhere.
+export const WORM_OUTBOX_CONTACTS: ReadonlyArray<{ name: string; addr: string }> = [
+  { name: 'Mom', addr: 'mom@example.com' },
+  { name: 'Dad', addr: 'dad@example.com' },
+  { name: 'Boss', addr: 'boss@example.net' },
+  { name: 'Best Friend', addr: 'best.friend@example.org' },
+  { name: 'Aunt Linda', addr: 'aunt.linda@example.com' },
+  { name: 'Study Group', addr: 'study.group@example.net' },
+  { name: 'Book Club', addr: 'book.club@example.org' },
+  { name: 'Coworker', addr: 'coworker@example.net' },
+  { name: 'Old Roommate', addr: 'old.roommate@example.com' },
+  { name: 'Cousin Ray', addr: 'cousin.ray@example.org' },
+  { name: 'Team Lead', addr: 'team.lead@example.net' },
+  { name: 'Neighbor', addr: 'neighbor@example.com' },
+  { name: 'Professor', addr: 'professor@example.org' },
+  { name: 'Gym Buddy', addr: 'gym.buddy@example.net' },
+  { name: 'Landlord', addr: 'landlord@example.com' },
+  { name: 'Uncle Pete', addr: 'uncle.pete@example.org' },
+  { name: 'Church Group', addr: 'church.group@example.net' },
+  { name: 'Grandma', addr: 'grandma@example.com' },
+  { name: 'Ex Roomie', addr: 'ex.roomie@example.org' },
+  { name: 'Soccer Team', addr: 'soccer.team@example.net' },
+  { name: 'Sister', addr: 'sister@example.com' },
+  { name: 'Brother', addr: 'brother@example.com' },
+  { name: 'Dentist', addr: 'dentist@example.net' },
+  { name: 'Travel Agent', addr: 'travel.agent@example.org' },
+]
+
+/** The historical worm mailed itself to everyone in the address book. This builds
+ *  the copies the infected Outbox *appears* to be flushing, one per fake contact
+ *  above. It is pure display data derived from a flag: no message is created,
+ *  queued for real delivery, or sent. Fully reverted by the BIOS factory reset. */
+export function wormOutboxItems<T>(make: (contact: { name: string; addr: string }, index: number) => T): T[] {
+  return WORM_OUTBOX_CONTACTS.map(make)
+}
+
 // The body the worm writes over every file's contents. A faithful replica of the
 // real 2000 VBScript header and functions.
 export const WORM_VBS_BODY = [

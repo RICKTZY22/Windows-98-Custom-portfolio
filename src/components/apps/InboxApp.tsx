@@ -1,8 +1,9 @@
 import './InboxApp.css'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { releaseNotes, type ReleaseNote, type ReleaseStatus } from '../../data/releaseNotes'
 import { useOs } from '../../os/useOs'
+import { WORM_OUTBOX_CONTACTS, wormOutboxItems } from '../../data/worm'
 import type { AppId } from '../../types'
 
 // Inbox — a Microsoft Exchange client whose Inbox is the project's release history:
@@ -84,6 +85,25 @@ function wormifyMessage(m: Message): Message {
     attachmentName: undefined,
     attachmentAppId: undefined,
   }
+}
+
+// The infected Outbox: the copies the worm simulation *appears* to be flushing to
+// the address book, one per fake contact (all on RFC 2606 reserved example.* domains,
+// so no recipient can be a real person). Pure display data derived from the infected
+// flag — no message is created, queued for real delivery, or sent anywhere. Reverts
+// with the rest of the disk on the BIOS factory reset.
+function wormOutboxMessages(): Message[] {
+  return wormOutboxItems((contact, index) => ({
+    id: 900 + index,
+    from: ME,
+    addr: ME_ADDR,
+    to: `${contact.name} <${contact.addr}>`,
+    subject: 'ILOVEYOU',
+    received: 'Sending...',
+    read: true,
+    priority: true,
+    body: 'kindly check the attached LOVELETTER coming from me.',
+  }))
 }
 
 function seedFolders(): Record<FolderName, Message[]> {
@@ -255,7 +275,7 @@ function ReleaseView({ release }: Readonly<{ release: ReleaseNote }>) {
 }
 
 export function InboxApp() {
-  const { openApp, state, runWorm } = useOs()
+  const { openApp, state, runWorm, playSound } = useOs()
   const [folder, setFolder] = useState<FolderName>('Inbox')
   const [selected, setSelected] = useState<number | null>(null)
   const [reading, setReading] = useState<number | null>(null)
@@ -263,12 +283,38 @@ export function InboxApp() {
   const [toast, setToast] = useState<string | null>(null)
   const [msgs, setMsgs] = useState<Record<FolderName, Message[]>>(seedFolders)
 
-  // Once the ILOVEYOU worm simulation has run, it has mailed itself to everyone:
-  // every message (release notes / patch mail included) is overwritten with a copy
-  // of the love letter. Reversible with the rest of the disk via a BIOS factory
-  // reset. This only rewrites what is displayed, not the stored messages.
-  const list = state.infected ? msgs[folder].map(wormifyMessage) : msgs[folder]
+  // Once the ILOVEYOU worm simulation has run, it has "mailed itself to everyone":
+  // every stored message (release notes / patch mail included) shows as a copy of
+  // the love letter, and the Outbox shows the queued copies to the fake address
+  // book. All display-only, derived from the infected flag — the stored messages
+  // are untouched and nothing is sent. Reverts with the disk on a BIOS factory reset.
+  const displayFolder = (name: FolderName): Message[] => {
+    if (!state.infected) return msgs[name]
+    if (name === 'Outbox') return wormOutboxMessages()
+    return msgs[name].map(wormifyMessage)
+  }
+  const list = displayFolder(folder)
+  const folderCount = (name: FolderName): number =>
+    state.infected && name === 'Outbox' ? WORM_OUTBOX_CONTACTS.length : msgs[name].length
   const unread = useMemo(() => msgs.Inbox.filter((m) => !m.read).length, [msgs])
+
+  // The outgoing-mail chimes: while the infected Outbox is open, play a short,
+  // bounded run of "message sent" dings so the flood reads as a queue flushing.
+  // Follows the OS volume/mute like every sound; stops when you leave the folder.
+  useEffect(() => {
+    if (!state.infected || folder !== 'Outbox') return
+    let count = 0
+    playSound('ding')
+    const timer = window.setInterval(() => {
+      count += 1
+      if (count >= 6) {
+        window.clearInterval(timer)
+        return
+      }
+      playSound('ding')
+    }, 850)
+    return () => window.clearInterval(timer)
+  }, [state.infected, folder, playSound])
 
   function flash(text: string) {
     setToast(text)
@@ -471,8 +517,8 @@ function formatAttachmentInfo(name: string): { label: string; size: string; icon
           <div className="inbox-folder-children">
             {FOLDER_ORDER.map((name) => {
               const active = name === folder
-              const count = name === 'Inbox' ? unread : msgs[name].length
-              const showCount = name === 'Inbox' ? unread > 0 : msgs[name].length > 0
+              const count = name === 'Inbox' ? unread : folderCount(name)
+              const showCount = name === 'Inbox' ? unread > 0 : folderCount(name) > 0
               return (
                 <button
                   type="button"
