@@ -2,6 +2,7 @@ import type {
   AppearanceEffects,
   AudioState,
   BiosSettings,
+  BonziState,
   CursorSchemeId,
   FsState,
   NetworkState,
@@ -10,6 +11,7 @@ import type {
   WallpaperMode,
 } from '../types'
 import { defaultBiosSettings, normalizeBootOrder } from '../data/bios'
+import { coerceBonziState } from '../data/bonziAdware'
 
 export type PersistedState = {
   version: 5
@@ -24,6 +26,7 @@ export type PersistedState = {
   desktopIcons: Record<string, Point>
   bios: BiosSettings
   infected?: boolean
+  bonzi?: BonziState
 }
 
 const STORAGE_KEY = 'win98-portfolio.v5'
@@ -157,6 +160,7 @@ export function loadPersistedState(): PersistedState | null {
       bios: coerceBiosSettings(parsed.bios),
       wallpaperMode: coerceWallpaperMode(parsed.wallpaperMode),
       appearanceEffects: coerceAppearanceEffects(parsed.appearanceEffects),
+      bonzi: coerceBonziState(parsed.bonzi),
     }
   } catch {
     return null
@@ -186,6 +190,7 @@ export function persistState(state: OsState): void {
       desktopIcons: state.desktopIcons,
       bios: state.bios,
       infected: state.infected,
+      bonzi: state.bonzi,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch {

@@ -84,6 +84,11 @@
   image-rendering: pixelated;
 }
 
+/* Downscaled artwork (Bonzi's head) rather than native pixel icons. */
+.tray-icon.tray-icon-smooth {
+  image-rendering: auto;
+}
+
 .network-led {
   width: 9px;
   height: 9px;

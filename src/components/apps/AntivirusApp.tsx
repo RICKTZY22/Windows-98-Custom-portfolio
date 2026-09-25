@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import type { AppProps, FsNode } from '../../types'
 import { useOs } from '../../os/useOs'
+import { bonziThreats, type BonziThreat } from '../../data/bonziAdware'
 
 type ScanPhase = 'idle' | 'scanning' | 'complete' | 'stopped'
 
@@ -13,6 +14,7 @@ const SCAN_TICK_MS = 650
 const scanSteps = [
   'Loading signature database AV98.DAT',
   'Checking startup files',
+  'Checking for adware and browser hijacks',
   'Scanning Windows system folder',
   'Inspecting document macros',
   'Checking browser cache',
@@ -38,7 +40,7 @@ function nodeWeight(node: FsNode): number {
 }
 
 export function AntivirusApp({ windowId }: AppProps) {
-  const { state, playSound, setWindowTitle } = useOs()
+  const { state, playSound, setWindowTitle, bonziOps } = useOs()
   const [phase, setPhase] = useState<ScanPhase>('idle')
   const [progress, setProgress] = useState(0)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -51,6 +53,15 @@ export function AntivirusApp({ windowId }: AppProps) {
   ])
   const startedAtRef = useRef(0)
   const durationRef = useRef(durationMs)
+  // What the last finished scan found (BonziBUDDY's pieces, see data/bonziAdware.ts)
+  // and how many items Clean System has quarantined this session.
+  const [threats, setThreats] = useState<BonziThreat[]>([])
+  const [quarantined, setQuarantined] = useState(0)
+  // The machine as the scan sees it when it finishes.
+  const machineRef = useRef({ bonzi: state.bonzi, fs: state.fs })
+  useEffect(() => {
+    machineRef.current = { bonzi: state.bonzi, fs: state.fs }
+  }, [state.bonzi, state.fs])
 
   const targets = useMemo(
     () =>
@@ -87,16 +98,24 @@ export function AntivirusApp({ windowId }: AppProps) {
 
       if (pct >= 100) {
         window.clearInterval(timer)
+        const found = bonziThreats(machineRef.current.bonzi, machineRef.current.fs)
+        setThreats(found)
         setPhase('complete')
         setElapsedMs(durationRef.current)
         setProgress(100)
         setCurrentIndex(Math.max(0, targets.length - 1))
-        setLogLines((current) => [
-          ...current.slice(-7),
-          'Scan complete.',
-          'No active threats found. System is clean.',
-        ])
-        playSound('ding')
+        setLogLines((current) =>
+          found.length
+            ? [
+                ...current.slice(-2),
+                'Scan complete.',
+                `${found.length} threat(s) found:`,
+                ...found.map((threat) => `  ${threat.name}: ${threat.location}`),
+                'Click Clean System to remove them.',
+              ]
+            : [...current.slice(-7), 'Scan complete.', 'No active threats found. System is clean.'],
+        )
+        playSound(found.length ? 'warn' : 'ding')
       }
     }, SCAN_TICK_MS)
 
@@ -127,6 +146,24 @@ export function AntivirusApp({ windowId }: AppProps) {
   }
 
   function cleanSystem() {
+    if (threats.length) {
+      // Takes every piece at once: program, startup entries, updater, home page.
+      bonziOps.removeAll()
+      setQuarantined((count) => count + threats.length)
+      setLogLines([
+        ...threats.map((threat) => `Removed: ${threat.name}`),
+        `${threats.length} item(s) moved to quarantine.`,
+        'Internet Explorer start page restored.',
+        'Restart recommended.',
+      ])
+      setThreats([])
+      setPhase('idle')
+      setProgress(0)
+      setCurrentIndex(0)
+      setElapsedMs(0)
+      playSound('tada')
+      return
+    }
     setPhase('idle')
     setProgress(0)
     setCurrentIndex(0)
@@ -176,7 +213,7 @@ export function AntivirusApp({ windowId }: AppProps) {
             <img src={win98Icons.recycleBin} alt="" />
             <span>
               <strong>Quarantine</strong>
-              <small>0 item(s)</small>
+              <small>{quarantined} item(s)</small>
             </span>
           </button>
         </section>
@@ -186,9 +223,9 @@ export function AntivirusApp({ windowId }: AppProps) {
             <legend>Scan Status</legend>
             <div className="antivirus-status-grid">
               <span>Status: <b>{phase === 'scanning' ? 'Scanning' : phase === 'complete' ? 'Complete' : phase === 'stopped' ? 'Stopped' : 'Ready'}</b></span>
-              <span>Threats found: <b>0</b></span>
+              <span>Threats found: <b>{threats.length}</b></span>
               <span>Files scanned: <b>{scannedCount}</b> / {targets.length}</span>
-              <span>Quarantined: <b>0</b></span>
+              <span>Quarantined: <b>{quarantined}</b></span>
               <span>Elapsed: <b>{formatDuration(elapsedMs)}</b></span>
               <span>Remaining: <b>{phase === 'scanning' ? formatDuration(remainingMs) : '--:--'}</b></span>
             </div>

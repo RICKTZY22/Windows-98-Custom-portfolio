@@ -16,6 +16,31 @@ describe('bonzi brain (scripted chat)', () => {
     expect(bonziReply('talk to me')?.effect).toBe('chatty')
   })
 
+  it('opens programs when asked, but never the antivirus', () => {
+    expect(bonziReply('open paint')?.open?.appId).toBe('paint')
+    expect(bonziReply('can you launch notepad please')?.open?.appId).toBe('notepad')
+    expect(bonziReply('play minesweeper')?.effect).toBe('open')
+    expect(bonziReply('open my computer')?.open?.payload?.path).toBe('C:\\')
+    expect(bonziReply('open task manager')?.open?.appId).toBe('taskManager')
+    expect(bonziReply('open the anti-virus')?.effect).toBe('huff')
+    expect(bonziReply('open the anti-virus')?.open).toBeUndefined()
+    // "play" with nothing to open falls through to the other intents.
+    expect(bonziReply('play a song')?.mood).toBe('sing')
+  })
+
+  it('refuses to leave, arms crossed', () => {
+    for (const message of ['uninstall yourself', 'go away', 'how do I get rid of you', 'leave me alone']) {
+      expect(bonziReply(message)?.effect).toBe('huff')
+    }
+  })
+
+  it('eats when hungry, and denies hogging the machine', () => {
+    expect(bonziReply('are you hungry?')?.effect).toBe('eat')
+    expect(bonziReply('banana')?.effect).toBe('eat')
+    expect(bonziReply('why is my computer so slow')?.text).toContain('memory')
+    expect(bonziReply('who changed my home page')?.text).toContain('home page')
+  })
+
   it('needs two goodbyes before it lets the window close', () => {
     expect(bonziReply('bye')?.effect).toBe('byeWarn')
     expect(bonziReply('bye', { byeArmed: true })?.effect).toBe('bye')
@@ -40,7 +65,7 @@ describe('bonzi brain (scripted chat)', () => {
     expect(texts).toContain(BONZI_NOT_A_MENU)
     expect(texts.filter((text) => text.includes("o'clock"))).toHaveLength(12)
     // Every reply the brain can give is on the list (sampled across intents).
-    for (const message of ['bye', 'be quiet', 'talk to me', 'help', 'search the web', 'weather', 'are you spyware', 'banana', 'thanks', 'asdf', 'why?']) {
+    for (const message of ['bye', 'be quiet', 'talk to me', 'help', 'search the web', 'weather', 'are you spyware', 'banana', 'thanks', 'asdf', 'why?', 'open paint', 'go away', 'antivirus', 'slow', 'upgrade', 'homepage', 'hungry']) {
       expect(texts).toContain(bonziReply(message)?.text)
     }
     // Each pronunciation override still matches a real line.

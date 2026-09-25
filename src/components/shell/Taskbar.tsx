@@ -44,7 +44,11 @@ type TaskbarProps = {
   onOpenTaskManager: () => void
   onOpenSystemLog: () => void
   onOpenTaskbarProperties: () => void
+  bonziInTray?: boolean // BonziBUDDY's tray process is "running"
+  onOpenBonzi?: () => void
 }
+
+const BONZI_TRAY_ICON = `${import.meta.env.BASE_URL}bonzi/bonzi-tray.png`
 
 type TaskbarContextMenu =
   | { kind: 'taskbar'; x: number; y: number }
@@ -71,6 +75,8 @@ export function Taskbar({
   onOpenTaskManager,
   onOpenSystemLog,
   onOpenTaskbarProperties,
+  bonziInTray = false,
+  onOpenBonzi,
 }: TaskbarProps) {
   const soundOn = audioEnabled && !audioMuted
   const [clockDate, setClockDate] = useState(() => new Date())
@@ -194,6 +200,11 @@ export function Taskbar({
         ))}
       </div>
       <div className="tray" aria-label="System tray">
+        {bonziInTray && (
+          <button className="tray-button" type="button" title="BonziBUDDY" onClick={onOpenBonzi}>
+            <img className="tray-icon tray-icon-smooth" src={BONZI_TRAY_ICON} alt="" />
+          </button>
+        )}
         <button
           className="tray-button"
           type="button"

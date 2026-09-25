@@ -10,14 +10,30 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import type { AppProps } from '../../types'
+import type { AppProps, BonziEntrance } from '../../types'
 import { useOs } from '../../os/useOs'
+import { memoryInUseMb } from '../../os/memory'
 import {
+  BONZI_AD_LINE,
+  BONZI_ANTIVIRUS_LINE,
   BONZI_CHATTER,
+  BONZI_EAT_LINES,
   BONZI_GREETINGS,
+  BONZI_HEARD_NOTHING,
+  BONZI_HOG_LINES,
+  BONZI_INSTALL_LINE,
+  BONZI_KEPT_LINE,
+  BONZI_NO_MIC,
   BONZI_NOT_A_MENU,
+  BONZI_PLEAS,
+  BONZI_REINSTALLED_LINE,
+  BONZI_REMOVED_LINE,
+  BONZI_RESPAWN_LINES,
+  BONZI_STARTUP_LINES,
   BONZI_TICKLES,
+  BONZI_UNINSTALLED_LINE,
   BONZI_WANDER_LINES,
+  BONZI_WEBSITE_LINE,
   bonziReply,
   pickLine,
   type BonziMood,
@@ -29,10 +45,14 @@ import {
   BONZI_BLINK,
   BONZI_EXPLAIN_POSE,
   BONZI_HALF_BLINK,
+  BONZI_HOLDS,
   BONZI_REST,
   mouthFor,
+  stepsToRest,
+  type BonziHold,
   type SpriteStep,
 } from '../../data/bonziSprites'
+import { BONZI_ADS, BONZI_HOME_URL, BONZI_LEAK_EVERY_MS, nextBonziLeak, onBonziCue } from '../../data/bonziAdware'
 import { BONZI_VOICE } from '../../data/bonziVoice'
 import { BonziFigure } from './BonziFigure'
 import { BonziSprite } from './BonziSprite'
@@ -46,6 +66,10 @@ import { BonziSprite } from './BonziSprite'
 // installed (see data/bonziVoice.ts), else a synthetic Web Speech voice. He is
 // drawn with the original character frames when the optional atlas in
 // public/bonzi/ is installed (see data/bonziSprites.ts), else an original SVG.
+//
+// He also plays the adware (data/bonziAdware.ts), all inside the simulation: his
+// first run "installs" him, he leaks simulated RAM while he runs, pops up ads,
+// opens his website, refuses to leave, and acts out his own uninstall.
 
 // His box on the desktop: one 200x160 sprite frame (he stands in the middle of
 // it), or the 132x165 SVG figure centered in it.
@@ -55,7 +79,10 @@ const BALLOON_ROOM = 120 // keep this much room above him so his balloon stays o
 const IDLE_MS = 20000 // silence before he chatters or wanders off
 const THINK_MS = 650 // the "..." pause before a reply
 const EXPLAIN_HOLD_MS = 700 // he keeps his arms open this long after a line
+const HUFF_HOLD_MS = 3200 // arms crossed this long before he turns back
+const ACTION_DELAY_MS = 1400 // between announcing something and doing it
 const ATLAS_TIMEOUT_MS = 8000 // stop waiting for the sprite atlas and draw the SVG figure
+const LISTENING_TEXT = '(listening...)'
 
 type Point = { x: number; y: number }
 type Rect = { x: number; y: number; width: number; height: number }
@@ -67,6 +94,29 @@ type Blink = 0 | 1 | 2
 type Mouth = { level: number; variant: number }
 /** A recorded clip playing, with its loudness track. */
 type Voice = { audio: HTMLAudioElement; env: string }
+
+// The browser's speech recognition (Chrome, Edge, Safari), typed loosely: it is
+// not in every DOM typing yet. In Chrome and Edge the audio is transcribed by the
+// browser maker's speech service; the browser asks for the microphone first.
+type Recognition = {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  maxAlternatives: number
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
+  onerror: ((event: { error: string }) => void) | null
+  onend: (() => void) | null
+  start(): void
+  stop(): void
+  abort(): void
+}
+type RecognitionCtor = new () => Recognition
+
+function recognitionCtor(): RecognitionCtor | null {
+  if (typeof window === 'undefined') return null
+  const speech = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor }
+  return speech.SpeechRecognition ?? speech.webkitSpeechRecognition ?? null
+}
 
 // One blink: half shut, shut, half shut, open (stage, then how long it holds).
 const BLINK_STEPS: ReadonlyArray<readonly [Blink, number]> = [
@@ -117,8 +167,24 @@ function voiceLevel({ audio, env }: Voice): number {
   return Number(env[Math.floor((audio.currentTime * 1000) / BONZI_VOICE.stepMs)] ?? 0)
 }
 
-export function BonziBuddyApp({ windowId }: AppProps) {
-  const { state, playSound, setWindowTitle, openApp, closeWindow } = useOs()
+// His first line: the install speech on his very first run, else how he came to
+// be here (launched, at boot, back from the tray, reinstalled by his updater).
+function openingLine(firstRun: boolean, entrance: BonziEntrance | undefined): string {
+  if (firstRun) return BONZI_INSTALL_LINE
+  switch (entrance) {
+    case 'startup':
+      return pickLine(BONZI_STARTUP_LINES)
+    case 'respawn':
+      return pickLine(BONZI_RESPAWN_LINES)
+    case 'reinstalled':
+      return BONZI_REINSTALLED_LINE
+    default:
+      return pickLine(BONZI_GREETINGS)
+  }
+}
+
+export function BonziBuddyApp({ windowId, payload }: AppProps) {
+  const { state, playSound, setWindowTitle, openApp, closeWindow, showMessageBox, bonziOps } = useOs()
   // Portal target: the desktop surface that windows live on (same coordinates).
   const [host] = useState<HTMLElement | null>(() => document.querySelector<HTMLElement>('.desktop'))
   // Start beside the chat window, standing level with its bottom edge.
@@ -132,10 +198,13 @@ export function BonziBuddyApp({ windowId }: AppProps) {
       host,
     )
   })
+  // Running him for the first time "installs" him (see the effect below).
+  const [firstRun] = useState(() => !state.bonzi.installed)
+  const [micSupported] = useState(() => recognitionCtor() !== null)
   const [look, setLook] = useState<Look>('pending')
   const [baseFrame, setBaseFrame] = useState<number>(BONZI_ANIMS.show[0].frame)
   const [draft, setDraft] = useState('')
-  const [balloonText, setBalloonText] = useState<string>(() => pickLine(BONZI_GREETINGS))
+  const [balloonText, setBalloonText] = useState<string>(() => openingLine(firstRun, payload?.bonziEntrance))
   const [showBalloon, setShowBalloon] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [mood, setMood] = useState<BonziMood>('wave')
@@ -144,26 +213,40 @@ export function BonziBuddyApp({ windowId }: AppProps) {
   const [blink, setBlink] = useState<Blink>(0)
   const [walking, setWalking] = useState(false)
   const [chatter, setChatter] = useState(true)
+  const [listening, setListening] = useState(false)
 
   const lastLineRef = useRef(balloonText)
   // When Bonzi last did anything. Chatter and wandering wait for a stretch of
   // silence, so he never talks over a reply the visitor just asked for.
   const lastActivityRef = useRef(0)
+  const markActive = useCallback(() => {
+    lastActivityRef.current = Date.now()
+  }, [])
   const byeArmedUntilRef = useRef(0)
   const suppressClickRef = useRef(false)
+  // True once he is on his way out (uninstalled, removed): he stops reacting.
+  const leavingRef = useRef(false)
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; base: Point; moved: boolean } | null>(
     null,
   )
-  const timersRef = useRef({ hide: 0, reply: 0, walk: 0, effect: 0, close: 0, talk: 0, seq: 0 })
+  const timersRef = useRef({ hide: 0, reply: 0, walk: 0, effect: 0, close: 0, talk: 0, seq: 0, pose: 0 })
   // The clip or utterance currently speaking. Events from a line that was cut off
   // by a newer one are ignored, so they can't stop the new line's animation.
   const voiceRef = useRef<Voice | null>(null)
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null)
+  // The microphone while it is open, and what it has heard so far.
+  const recognitionRef = useRef<Recognition | null>(null)
+  const heardRef = useRef({ text: '', error: '' })
   // The OS sound settings (mute, volume), which his voice follows.
   const osAudioRef = useRef(state.audio)
   useEffect(() => {
     osAudioRef.current = state.audio
   }, [state.audio])
+  // The machine as timers see it: open windows, his leak, his install state.
+  const machineRef = useRef({ windows: state.windows, leakMb: state.bonziLeakMb, installed: state.bonzi.installed })
+  useEffect(() => {
+    machineRef.current = { windows: state.windows, leakMb: state.bonziLeakMb, installed: state.bonzi.installed }
+  }, [state.windows, state.bonziLeakMb, state.bonzi.installed])
   // Sprite playback, mirrored for timers and callbacks: how he is drawn, the frame
   // on screen, and whether an animation still has frames left to play.
   const lookRef = useRef<Look>('pending')
@@ -182,6 +265,11 @@ export function BonziBuddyApp({ windowId }: AppProps) {
   useEffect(() => {
     setWindowTitle(windowId, 'Chat with Bonzi Buddy')
   }, [setWindowTitle, windowId])
+
+  // First run: he "installs" himself (startup entries, updater, home page).
+  useEffect(() => {
+    if (firstRun) bonziOps.install()
+  }, [bonziOps, firstRun])
 
   // Stop whatever he is saying, recorded clip or synthetic voice. Late events
   // from the old line are ignored (the refs no longer point at it).
@@ -331,18 +419,37 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     timers.seq = window.setTimeout(() => showFrame(0), 0)
   }, [])
 
-  // Bring his arms down first if they are open (or opening, or already closing),
-  // then carry on with `then`. The close picks up from the frame on screen, so a
-  // close already under way continues instead of starting over.
+  // Bring him back to rest first if he is holding a pose (arms open, arms
+  // crossed, hand at his ear...), or on his way into or out of one, then carry on
+  // with `then`. A way out already under way continues instead of starting over.
   const settle = useCallback(
     (then: () => void) => {
-      const close = BONZI_ANIMS.explainOut
-      const frame = frameRef.current
-      const from = frame === BONZI_EXPLAIN_POSE ? 0 : close.findIndex((step) => step.frame === frame)
-      if (frame === BONZI_REST || from < 0) then()
-      else play(close.slice(from), then)
+      const steps = stepsToRest(frameRef.current)
+      if (steps) play(steps, then)
+      else then()
     },
     [play],
+  )
+
+  // Sprite look: strike a pose and hold it; with `holdMs`, turn back to rest after
+  // that long unless something else has moved him on meanwhile.
+  const strike = useCallback(
+    (hold: BonziHold, holdMs = 0) => {
+      if (lookRef.current !== 'sprite') return
+      const timers = timersRef.current
+      window.clearTimeout(timers.pose)
+      const steps = BONZI_HOLDS[hold].in
+      const pose = steps[steps.length - 1].frame
+      settle(() => {
+        play(steps)
+        if (!holdMs) return
+        const entering = steps.reduce((sum, step) => sum + step.ms, 0)
+        timers.pose = window.setTimeout(() => {
+          if (frameRef.current === pose && !busyRef.current) settle(() => {})
+        }, entering + holdMs)
+      })
+    },
+    [play, settle],
   )
 
   const say = useCallback(
@@ -403,6 +510,85 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     timers.walk = window.setTimeout(() => setWalking(false), 2600)
     say(line, 'wave')
   }, [pickSpot, play, say, settle])
+
+  // A banana break: the sprite Bonzi pulls one out, peels it and eats it.
+  const eatSnack = useCallback(
+    (line: string) => {
+      say(line, 'idle')
+      if (lookRef.current === 'sprite') settle(() => play(BONZI_ANIMS.eat))
+    },
+    [play, say, settle],
+  )
+
+  // The adware at work: a pop-up "offer" dressed as a system dialog. Every button
+  // opens his website (the archived bonzi.com), Cancel included.
+  const showAd = useCallback(() => {
+    say(BONZI_AD_LINE, 'wave')
+    const timers = timersRef.current
+    window.clearTimeout(timers.effect)
+    timers.effect = window.setTimeout(() => {
+      const ad = BONZI_ADS[Math.floor(Math.random() * BONZI_ADS.length)] ?? BONZI_ADS[0]
+      showMessageBox({
+        title: ad.title,
+        message: ad.message,
+        detail: ad.detail,
+        icon: 'warning',
+        buttons: ['ok', 'cancel'],
+        dedupeKey: 'bonzi-ad',
+        onResult: () => openApp('internetExplorer', { url: BONZI_HOME_URL }),
+      })
+    }, ACTION_DELAY_MS)
+  }, [openApp, say, showMessageBox])
+
+  const openWebsite = useCallback(() => {
+    say(BONZI_WEBSITE_LINE, 'wave')
+    const timers = timersRef.current
+    window.clearTimeout(timers.effect)
+    timers.effect = window.setTimeout(() => openApp('internetExplorer', { url: BONZI_HOME_URL }), ACTION_DELAY_MS)
+  }, [openApp, say])
+
+  // Stop listening without replying (he is leaving, or the window is closing).
+  const abortListening = useCallback(() => {
+    const recognition = recognitionRef.current
+    recognitionRef.current = null
+    if (!recognition) return
+    recognition.onresult = null
+    recognition.onerror = null
+    recognition.onend = null
+    try {
+      recognition.abort()
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Off he goes (uninstalled, or removed by Antivirus 98): one last line in a
+  // pose, then he swings away and the program exits.
+  const leave = useCallback(
+    (line: string, hold: BonziHold) => {
+      if (leavingRef.current) return
+      leavingRef.current = true
+      abortListening()
+      setListening(false)
+      setDraft('')
+      const timers = timersRef.current
+      window.clearTimeout(timers.reply)
+      window.clearTimeout(timers.effect)
+      window.clearTimeout(timers.close)
+      window.clearTimeout(timers.pose)
+      say(line, 'idle')
+      strike(hold)
+      timers.close = window.setTimeout(() => {
+        if (lookRef.current !== 'sprite') {
+          closeWindow(windowId)
+          return
+        }
+        setShowBalloon(false)
+        settle(() => play(BONZI_ANIMS.hide, () => closeWindow(windowId)))
+      }, 1800 + line.length * 60)
+    },
+    [abortListening, closeWindow, play, say, settle, strike, windowId],
+  )
 
   // Make his entrance once we know how he is drawn: the sprite Bonzi drops in on
   // his vine and waves before greeting; the SVG one waves while he says hello.
@@ -496,18 +682,93 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     return () => window.clearTimeout(timer)
   }, [look, talking, baseFrame, play])
 
-  // After a stretch of silence he pipes up or wanders off: the signature
-  // desktop-companion annoyance. "be quiet" in the chat turns it off.
+  // After a stretch of silence he does something on his own: wanders off, pipes
+  // up, has a snack, or (being adware) pops up an ad or opens his website. "Be
+  // quiet" in the chat stops the chatter... mostly: the ads keep coming.
   useEffect(() => {
-    if (!chatter) return
     const timer = window.setInterval(() => {
       if (lookRef.current === 'pending' || busyRef.current || dragRef.current) return
+      if (leavingRef.current || recognitionRef.current) return
       if (Date.now() - lastActivityRef.current < IDLE_MS) return
-      if (Math.random() < 0.5) walkSomewhere()
+      const { installed, leakMb, windows } = machineRef.current
+      const roll = Math.random()
+      if (!chatter) {
+        lastActivityRef.current = Date.now()
+        if (installed && roll < 0.15) showAd()
+        return
+      }
+      const browsing = windows.some((win) => win.appId === 'internetExplorer')
+      if (roll < 0.3) walkSomewhere()
+      else if (roll < 0.42) eatSnack(pickLine(BONZI_EAT_LINES, Math.random, lastLineRef.current))
+      else if (roll < 0.52 && installed) showAd()
+      else if (roll < 0.57 && installed && !browsing) openWebsite()
+      else if (roll < 0.7 && leakMb >= 10) say(pickLine(BONZI_HOG_LINES, Math.random, lastLineRef.current), 'wave')
       else say(pickLine(BONZI_CHATTER, Math.random, lastLineRef.current), 'wave')
     }, 2000)
     return () => window.clearInterval(timer)
-  }, [chatter, say, walkSomewhere])
+  }, [chatter, eatSnack, openWebsite, say, showAd, walkSomewhere])
+
+  // The resource hog: while he runs he takes a little more of the simulated RAM
+  // every so often (only memory that is free). It all comes back when he closes.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const { windows, leakMb } = machineRef.current
+      const next = nextBonziLeak(leakMb, memoryInUseMb(windows, leakMb))
+      if (next !== leakMb) bonziOps.setLeak(next)
+    }, BONZI_LEAK_EVERY_MS)
+    return () => window.clearInterval(timer)
+  }, [bonziOps])
+  useEffect(() => () => bonziOps.setLeak(0), [bonziOps])
+
+  // Uninstalled (Add/Remove Programs) or removed (Antivirus 98) while he is on
+  // screen: he says goodbye in his own way and leaves. Antivirus also takes his
+  // updater, which is how the two are told apart.
+  const wasInstalledRef = useRef(false)
+  const { installed, updater } = state.bonzi
+  useEffect(() => {
+    if (installed) {
+      wasInstalledRef.current = true
+      return
+    }
+    if (!wasInstalledRef.current) return
+    const timer = window.setTimeout(() => {
+      if (updater) leave(BONZI_UNINSTALLED_LINE, 'sad')
+      else leave(BONZI_REMOVED_LINE, 'huff')
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [installed, updater, leave])
+
+  // He does not like Antivirus 98 one bit.
+  const antivirusOpen = state.windows.some((win) => win.appId === 'antivirus')
+  const antivirusSeenRef = useRef(antivirusOpen)
+  useEffect(() => {
+    const opened = antivirusOpen && !antivirusSeenRef.current
+    antivirusSeenRef.current = antivirusOpen
+    if (!opened) return
+    const timer = window.setTimeout(() => {
+      if (lookRef.current === 'pending' || leavingRef.current || recognitionRef.current) return
+      say(BONZI_ANTIVIRUS_LINE, 'idle')
+      strike('huff', HUFF_HOLD_MS)
+    }, 600)
+    return () => window.clearTimeout(timer)
+  }, [antivirusOpen, say, strike])
+
+  // His uninstaller's "are you sure" dialogs: he pleads at each one, and cheers
+  // if you back out.
+  useEffect(
+    () =>
+      onBonziCue((cue) => {
+        if (leavingRef.current || lookRef.current === 'pending') return
+        window.clearTimeout(timersRef.current.pose)
+        if (cue.kind === 'plead') {
+          say(BONZI_PLEAS[Math.min(cue.step, BONZI_PLEAS.length - 1)], 'idle')
+          strike('plead')
+        } else {
+          settle(() => say(BONZI_KEPT_LINE, 'wave'))
+        }
+      }),
+    [say, settle, strike],
+  )
 
   // Dragging him around the desktop.
   useEffect(() => {
@@ -546,20 +807,15 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     return () => window.removeEventListener('resize', onResize)
   }, [host])
 
-  // Leaving: stop every timer and any speech in progress.
+  // Leaving: stop every timer, the microphone, and any speech in progress.
   useEffect(() => {
     const timers = timersRef.current
     return () => {
-      window.clearTimeout(timers.hide)
-      window.clearTimeout(timers.reply)
-      window.clearTimeout(timers.walk)
-      window.clearTimeout(timers.effect)
-      window.clearTimeout(timers.close)
-      window.clearTimeout(timers.talk)
-      window.clearTimeout(timers.seq)
+      for (const id of Object.values(timers)) window.clearTimeout(id)
+      abortListening()
       hushVoice()
     }
-  }, [hushVoice])
+  }, [abortListening, hushVoice])
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return
@@ -572,6 +828,7 @@ export function BonziBuddyApp({ windowId }: AppProps) {
       suppressClickRef.current = false
       return
     }
+    if (leavingRef.current) return
     playSound('click')
     say(pickLine(BONZI_TICKLES, Math.random, lastLineRef.current), 'wave')
   }
@@ -580,6 +837,7 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     // Keep the desktop's own right-click menu from opening on top of him.
     event.preventDefault()
     event.stopPropagation()
+    if (leavingRef.current) return
     say(BONZI_NOT_A_MENU, 'wave')
   }
 
@@ -588,6 +846,17 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     switch (reply.effect) {
       case 'search':
         timers.effect = window.setTimeout(() => openApp('internetExplorer'), 1200)
+        break
+      case 'open': {
+        const target = reply.open
+        if (target) timers.effect = window.setTimeout(() => openApp(target.appId, target.payload), 1200)
+        break
+      }
+      case 'eat':
+        if (lookRef.current === 'sprite') play(BONZI_ANIMS.eat)
+        break
+      case 'huff':
+        strike('huff', HUFF_HOLD_MS)
         break
       case 'quiet':
         setChatter(false)
@@ -616,11 +885,9 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     }
   }
 
-  function send(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const message = draft.trim()
-    if (!message) return
-    setDraft('')
+  // Answer a message, typed or spoken: scratch his head over it, then reply.
+  function respond(message: string) {
+    if (leavingRef.current) return
     const reply = bonziReply(message, {
       byeArmed: Date.now() < byeArmedUntilRef.current,
       lastLine: lastLineRef.current,
@@ -629,19 +896,127 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     const timers = timersRef.current
     window.clearTimeout(timers.hide)
     window.clearTimeout(timers.reply)
+    window.clearTimeout(timers.pose)
     lastActivityRef.current = Date.now()
     setThinking(true)
     setShowBalloon(true)
+    if (lookRef.current === 'sprite') strike('think')
     timers.reply = window.setTimeout(() => {
-      say(reply.text, reply.mood)
-      applyEffect(reply)
+      settle(() => {
+        say(reply.text, reply.mood)
+        applyEffect(reply)
+      })
     }, THINK_MS)
+  }
+
+  function send(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const message = draft.trim()
+    if (!message) return
+    setDraft('')
+    respond(message)
   }
 
   function onDraftKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       event.currentTarget.form?.requestSubmit()
+    }
+  }
+
+  // Hold to talk: the microphone listens while the button is held, the words show
+  // up in the chat box as they are recognized, and letting go sends them. He
+  // stays silent meanwhile, so the microphone never hears his own voice.
+  function startListening() {
+    const Ctor = recognitionCtor()
+    if (!Ctor || recognitionRef.current || leavingRef.current) return
+    markActive()
+    const timers = timersRef.current
+    window.clearTimeout(timers.reply)
+    window.clearTimeout(timers.hide)
+    window.clearTimeout(timers.pose)
+    hushVoice()
+    setTalking(false)
+    const recognition = new Ctor()
+    recognition.lang = 'en-US'
+    recognition.interimResults = true
+    recognition.continuous = true
+    recognition.maxAlternatives = 1
+    heardRef.current = { text: '', error: '' }
+    recognition.onresult = (event) => {
+      const text = Array.from(event.results, (result) => result[0]?.transcript ?? '')
+        .join(' ')
+        .trim()
+      heardRef.current.text = text
+      setDraft(text)
+    }
+    recognition.onerror = (event) => {
+      heardRef.current.error = event.error
+    }
+    recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return
+      recognitionRef.current = null
+      setListening(false)
+      finishListening()
+    }
+    try {
+      recognition.start()
+    } catch {
+      return
+    }
+    recognitionRef.current = recognition
+    setListening(true)
+    setDraft('')
+    setThinking(false)
+    setBalloonText(LISTENING_TEXT)
+    setShowBalloon(true)
+    strike('listen')
+  }
+
+  function stopListening() {
+    // The final words arrive after stop(); onend then answers them.
+    try {
+      recognitionRef.current?.stop()
+    } catch {
+      // ignore
+    }
+  }
+
+  function finishListening() {
+    const { text, error } = heardRef.current
+    setDraft('')
+    if (text) {
+      respond(text)
+      return
+    }
+    const noMic = error === 'not-allowed' || error === 'service-not-allowed' || error === 'audio-capture'
+    settle(() => say(noMic ? BONZI_NO_MIC : BONZI_HEARD_NOTHING, 'idle'))
+  }
+
+  function onTalkPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    // Keep getting the release even if the pointer drifts off the button. (It
+    // throws if the pointer is already gone; listening works without it.)
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // ignore
+    }
+    startListening()
+  }
+
+  function onTalkKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
+      event.preventDefault()
+      startListening()
+    }
+  }
+
+  function onTalkKeyUp(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault()
+      stopListening()
     }
   }
 
@@ -685,15 +1060,34 @@ export function BonziBuddyApp({ windowId }: AppProps) {
         <textarea
           className="bonzi-chat-input"
           value={draft}
-          placeholder="Send a message"
+          placeholder={listening ? 'Listening...' : 'Send a message'}
           aria-label="Send a message to Bonzi"
           rows={2}
+          readOnly={listening}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onDraftKeyDown}
         />
-        <button type="submit" className="bonzi-chat-send">
-          Send
-        </button>
+        <div className="bonzi-chat-buttons">
+          {micSupported && (
+            <button
+              type="button"
+              className={`bonzi-chat-talk ${listening ? 'is-listening' : ''}`}
+              aria-pressed={listening}
+              title="Hold and speak to Bonzi, then let go. Uses your browser's speech recognition (the browser asks for your microphone first)."
+              onPointerDown={onTalkPointerDown}
+              onPointerUp={stopListening}
+              onPointerCancel={stopListening}
+              onKeyDown={onTalkKeyDown}
+              onKeyUp={onTalkKeyUp}
+              onContextMenu={(event) => event.preventDefault()}
+            >
+              {listening ? 'Listening...' : 'Hold to Talk'}
+            </button>
+          )}
+          <button type="submit" className="bonzi-chat-send" disabled={listening}>
+            Send
+          </button>
+        </div>
         <div className="wip-banner">Work in Progress: simulation incomplete</div>
       </form>
       {/* Not drawn until we know which look he has, so he never flashes the wrong one. */}

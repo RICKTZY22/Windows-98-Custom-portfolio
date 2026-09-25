@@ -5,6 +5,7 @@ import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
 import { driverHealthy } from '../../os/systemHealth'
 import { printOutcomeBox } from '../../os/systemFiles'
+import { BONZI_HOME_SNAPSHOT, BONZI_HOME_URL } from '../../data/bonziAdware'
 
 const HOME = 'http://www.google.com/'
 // Default Wayback snapshot for typed/unlisted URLs. `if_` serves the page without
@@ -25,6 +26,8 @@ const SNAPSHOT_BY_HOST: Record<string, string> = {
   'amazon.com': '20150601000000',
   'reddit.com': '20150601000000',
   'yahoo.com': '20150601000000',
+  // BonziBUDDY's own site, for the home page he hijacks (see data/bonziAdware.ts).
+  'bonzi.com': BONZI_HOME_SNAPSHOT,
 }
 
 // Popular sites shown on the Links bar — English (.com / www) editions.
@@ -128,7 +131,9 @@ function resolvePage(url: string): Page {
 
 export function InternetExplorerApp({ windowId, payload }: AppProps) {
   const { state, openApp, networkOps, showMessageBox, setWindowTitle } = useOs()
-  const initial = normalizeUrl(payload?.url ?? HOME)
+  // BonziBUDDY sets himself as the home page while his hijack is in place.
+  const home = state.bonzi.homepage ? BONZI_HOME_URL : HOME
+  const initial = normalizeUrl(payload?.url ?? home)
   const [address, setAddress] = useState(initial)
   const [history, setHistory] = useState([initial])
   const [index, setIndex] = useState(0)
@@ -375,7 +380,7 @@ export function InternetExplorerApp({ windowId, payload }: AppProps) {
           <span className="ie-tool-glyph ie-refresh">R</span>
           <span>Refresh</span>
         </button>
-        <button type="button" className="ie-tool ie-tool-mini" onClick={() => navigate(HOME)} title="Home">
+        <button type="button" className="ie-tool ie-tool-mini" onClick={() => navigate(home)} title="Home">
           <span className="ie-tool-glyph ie-home">H</span>
           <span>Home</span>
         </button>

@@ -6,6 +6,7 @@ import type {
   AppearanceEffects,
   AudioState,
   BiosSettings,
+  BonziState,
   BootProfile,
   ClipboardState,
   CrashState,
@@ -30,6 +31,8 @@ import { appDefinitions } from '../data/apps'
 import { defaultBiosSettings } from '../data/bios'
 import { createInitialFsState, ensurePortfolioSeedFiles } from '../data/initialFilesystem'
 import { WORM_VBS_BODY } from '../data/worm'
+import { BONZI_CLEAN, BONZI_FULLY_INSTALLED, bonziLagMs, withBonziUpdater, withoutBonziUpdater } from '../data/bonziAdware'
+import { appMemoryCost, memoryInUseMb, SIMULATED_RAM_MB } from './memory'
 import { defaultThemeId, defaultWallpaperId, getTheme, getWallpaper } from '../data/themes'
 import {
   baseName,
@@ -257,17 +260,10 @@ function isInsideLocalMediaDropzone(target: EventTarget | null): boolean {
 }
 
 // ----- simulated RAM budget (out-of-memory guardrail) -----
-// The BIOS reports 64MB. Windows reserves a slice for itself and each open
-// program occupies a little. Opening too many at once overflows RAM and faults
-// out; the CRASH reducer clears every window, so the user is forced back to a
-// clean desktop (mirrors a real low-memory protection fault).
-const SIMULATED_RAM_MB = 64
-const SYSTEM_RESERVED_MB = 12
-const DEFAULT_APP_MEMORY_MB = 5
-
-function appMemoryCost(appId: AppId): number {
-  return appDefinitions[appId].memoryCost ?? DEFAULT_APP_MEMORY_MB
-}
+// The 64MB budget and each program's share live in ./memory (Task Manager reads
+// the same numbers). Opening too many at once overflows RAM and faults out; the
+// CRASH reducer clears every window, so the user is forced back to a clean
+// desktop (mirrors a real low-memory protection fault).
 
 function outOfMemoryCrash(openCount: number, usedMB: number): CrashState {
   return {
@@ -277,6 +273,31 @@ function outOfMemoryCrash(openCount: number, usedMB: number): CrashState {
     stopCode: '0D : 0000 : 0001E84F',
     crashedAt: nowStamp(),
   }
+}
+
+// While Bonzi's leak is what filled the RAM, a launch is refused with the classic
+// Win98 box instead of faulting the whole system, so quitting him is the fix.
+function notEnoughMemoryBox(title: string): Omit<MessageBoxRequest, 'id'> {
+  return {
+    title,
+    message: 'There is not enough free memory to run this program. Quit one or more programs, and then try again.',
+    icon: 'error',
+    buttons: ['ok'],
+    dedupeKey: 'not-enough-memory',
+  }
+}
+
+// The hourglass while a launch drags. Counted, so overlapping launches keep it
+// up until the last one lands.
+let busyCursorCount = 0
+function showBusyCursor(ms: number): void {
+  if (typeof document === 'undefined') return
+  busyCursorCount += 1
+  document.documentElement.classList.add('os-busy')
+  window.setTimeout(() => {
+    busyCursorCount = Math.max(0, busyCursorCount - 1)
+    if (busyCursorCount === 0) document.documentElement.classList.remove('os-busy')
+  }, ms)
 }
 
 function safeModeCrash(missing: string[]): CrashState {
@@ -346,6 +367,8 @@ function createDefaultState(): OsState {
     audio: { enabled: true, muted: false, volume: persisted?.audio.volume ?? 0.7 },
     crash: null,
     infected: persisted?.infected ?? false,
+    bonzi: persisted?.bonzi ?? BONZI_CLEAN,
+    bonziLeakMb: 0,
     pendingSafetyTraining: false,
     // A 'running' session flag left by the previous tab means it was never shut
     // down properly, so the next normal boot runs the startup ScanDisk screen.
@@ -412,6 +435,8 @@ type Action =
   | { type: 'SHUTDOWN' }
   | { type: 'FINISH_BOOT' }
   | { type: 'INFECT_WORM' }
+  | { type: 'SET_BONZI'; bonzi: BonziState; fs?: FsState }
+  | { type: 'SET_BONZI_LEAK'; mb: number }
   | { type: 'RESET'; state: OsState }
 
 // Exported for unit testing (e.g. OPEN_WINDOW idempotency). Colocated with the
@@ -809,6 +834,10 @@ export function reducer(state: OsState, action: Action): OsState {
         startMenuOpen: false,
       }
     }
+    case 'SET_BONZI':
+      return { ...state, bonzi: action.bonzi, fs: action.fs ?? state.fs }
+    case 'SET_BONZI_LEAK':
+      return state.bonziLeakMb === action.mb ? state : { ...state, bonziLeakMb: action.mb }
     case 'RESET':
       return action.state
   }
@@ -1070,32 +1099,51 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
         focusWindow(instanceId)
         return
       }
-      // RAM guardrail: if opening this window would exceed simulated memory, fault
-      // out instead of opening it. The CRASH reducer clears every window, so all
-      // apps auto-close and the user is dropped back to a clean desktop.
-      const memoryInUse =
-        SYSTEM_RESERVED_MB + current.windows.reduce((sum, win) => sum + appMemoryCost(win.appId), 0)
-      const projectedMemory = memoryInUse + appMemoryCost(appId)
-      if (projectedMemory > SIMULATED_RAM_MB) {
-        playSound('error')
-        dispatch({ type: 'CRASH', crash: outOfMemoryCrash(current.windows.length + 1, projectedMemory) })
+      const launch = () => {
+        const now = stateRef.current
+        // The machine rebooted or crashed while this launch was dragging.
+        if (now.phase !== current.phase) return
+        if (now.windows.some((win) => win.instanceId === instanceId)) {
+          focusWindow(instanceId)
+          return
+        }
+        // RAM guardrail: if opening this window would exceed simulated memory, fault
+        // out instead of opening it. The CRASH reducer clears every window, so all
+        // apps auto-close and the user is dropped back to a clean desktop.
+        const projectedMemory = memoryInUseMb(now.windows, now.bonziLeakMb) + appMemoryCost(appId)
+        if (projectedMemory > SIMULATED_RAM_MB) {
+          playSound('error')
+          if (now.bonziLeakMb > 0 && now.windows.some((win) => win.appId === 'bonzi')) {
+            showMessageBox(notEnoughMemoryBox(def.title))
+            return
+          }
+          dispatch({ type: 'CRASH', crash: outOfMemoryCrash(now.windows.length + 1, projectedMemory) })
+          return
+        }
+        const rect = clampRect(def.defaultRect, (now.windows.length % 8) * 22)
+        dispatch({
+          type: 'OPEN_WINDOW',
+          window: {
+            instanceId,
+            appId,
+            title: titleFor(appId, now.fs, payload),
+            icon: iconFor(appId, payload),
+            minimized: false,
+            maximized: false,
+            payload,
+            ...rect,
+          },
+        })
+        playSound('launch')
+      }
+      // Programs drag to a start while Bonzi hogs the machine: an hourglass first.
+      const lagMs = current.windows.some((win) => win.appId === 'bonzi') ? bonziLagMs(current.bonziLeakMb) : 0
+      if (lagMs > 0) {
+        showBusyCursor(lagMs)
+        window.setTimeout(launch, lagMs)
         return
       }
-      const rect = clampRect(def.defaultRect, (current.windows.length % 8) * 22)
-      dispatch({
-        type: 'OPEN_WINDOW',
-        window: {
-          instanceId,
-          appId,
-          title: titleFor(appId, current.fs, payload),
-          icon: iconFor(appId, payload),
-          minimized: false,
-          maximized: false,
-          payload,
-          ...rect,
-        },
-      })
-      playSound('launch')
+      launch()
     },
     [focusWindow, playSound, showMessageBox],
   )
@@ -1266,6 +1314,40 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       { kind: 'error' },
     )
   }, [notify, playSound])
+
+  // ----- BonziBUDDY (the adware simulation, see data/bonziAdware.ts) -----
+  // Every change here is virtual: flags in the store and, for his updater, one
+  // node in the virtual filesystem. His window reacts to these flags itself (he
+  // says goodbye and leaves when he is uninstalled or removed).
+  const commitBonzi = useCallback((bonzi: BonziState, fs?: FsState) => {
+    const current = stateRef.current
+    stateRef.current = { ...current, bonzi, fs: fs ?? current.fs }
+    dispatch({ type: 'SET_BONZI', bonzi, fs })
+  }, [])
+
+  const bonziOps = useMemo<OsContextValue['bonziOps']>(
+    () => ({
+      install() {
+        commitBonzi(BONZI_FULLY_INSTALLED, withBonziUpdater(stateRef.current.fs))
+      },
+      uninstall() {
+        // Add/Remove Programs removes the program and its Run entry, but not the
+        // updater or the hijacked home page. That is the lesson.
+        commitBonzi({ ...stateRef.current.bonzi, installed: false, runAtStartup: false })
+      },
+      removeAll() {
+        commitBonzi(BONZI_CLEAN, withoutBonziUpdater(stateRef.current.fs))
+      },
+      setStartupEntries(entries) {
+        commitBonzi({ ...stateRef.current.bonzi, ...entries })
+      },
+      setLeak(mb) {
+        stateRef.current = { ...stateRef.current, bonziLeakMb: mb }
+        dispatch({ type: 'SET_BONZI_LEAK', mb })
+      },
+    }),
+    [commitBonzi],
+  )
 
   const resetEverything = useCallback(() => {
     clearPersistedState()
@@ -1768,6 +1850,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     state.network,
     state.desktopIcons,
     state.bios,
+    state.bonzi,
   ])
 
   const value = useMemo<OsContextValue>(
@@ -1815,6 +1898,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       finishBoot,
       resetEverything,
       runWorm,
+      bonziOps,
     }),
     [
       state,
@@ -1860,6 +1944,7 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
       finishBoot,
       resetEverything,
       runWorm,
+      bonziOps,
     ],
   )
 

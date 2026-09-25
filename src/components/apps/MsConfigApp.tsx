@@ -7,6 +7,11 @@ import {
   type StartupSelection,
 } from '../../data/systemProfile'
 import { useOs } from '../../os/useOs'
+import { getNode } from '../../os/filesystem'
+import { BONZI_STARTUP_ENTRIES, BONZI_UPDATER_PATH } from '../../data/bonziAdware'
+
+type BonziEntryKey = 'runAtStartup' | 'updater'
+type BonziEntries = Record<BonziEntryKey, boolean>
 
 type TabId = 'general' | 'Config.sys' | 'Autoexec.bat' | 'System.ini' | 'Win.ini' | 'startup'
 
@@ -20,7 +25,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
 ]
 
 export function MsConfigApp() {
-  const { restart, showMessageBox } = useOs()
+  const { state, restart, showMessageBox, bonziOps } = useOs()
   const [tab, setTab] = useState<TabId>('general')
   const [selection, setSelection] = useState<StartupSelection>('normal')
   const [selective, setSelective] = useState<boolean[]>(() => selectiveStartupOptions.map(() => true))
@@ -28,6 +33,20 @@ export function MsConfigApp() {
     Object.fromEntries(startupItems.map((item) => [item.name, item.enabledByDefault])),
   )
   const [dirty, setDirty] = useState(false)
+  // BonziBUDDY's entries (data/bonziAdware.ts) are listed while he or his updater
+  // is on the machine. Unlike the demo rows, these really change what starts:
+  // unchecking one and pressing Apply disables it. Pending edits sit in the draft.
+  const [bonziDraft, setBonziDraft] = useState<Partial<BonziEntries>>({})
+  const bonziEntries: BonziEntries = {
+    runAtStartup: bonziDraft.runAtStartup ?? state.bonzi.runAtStartup,
+    updater: bonziDraft.updater ?? state.bonzi.updater,
+  }
+  const bonziRows: Array<(typeof BONZI_STARTUP_ENTRIES)[keyof typeof BONZI_STARTUP_ENTRIES] & { key: BonziEntryKey }> = [
+    ...(state.bonzi.installed ? [{ ...BONZI_STARTUP_ENTRIES.program, key: 'runAtStartup' as const }] : []),
+    ...(state.bonzi.updater || getNode(state.fs, BONZI_UPDATER_PATH)
+      ? [{ ...BONZI_STARTUP_ENTRIES.updater, key: 'updater' as const }]
+      : []),
+  ]
 
   function chooseSelection(next: StartupSelection) {
     setSelection(next)
@@ -35,9 +54,11 @@ export function MsConfigApp() {
     if (next === 'normal') {
       setSelective(selectiveStartupOptions.map(() => true))
       setStartupChecks(Object.fromEntries(startupItems.map((item) => [item.name, true])))
+      if (bonziRows.length) setBonziDraft({ runAtStartup: true, updater: true })
     } else if (next === 'diagnostic') {
       setSelective(selectiveStartupOptions.map(() => false))
       setStartupChecks(Object.fromEntries(startupItems.map((item) => [item.name, false])))
+      if (bonziRows.length) setBonziDraft({ runAtStartup: false, updater: false })
     }
   }
 
@@ -54,8 +75,23 @@ export function MsConfigApp() {
     setStartupChecks((checks) => ({ ...checks, [name]: !checks[name] }))
   }
 
+  function toggleBonziEntry(key: BonziEntryKey) {
+    setSelection('selective')
+    setDirty(true)
+    setBonziDraft((draft) => ({ ...draft, [key]: !bonziEntries[key] }))
+  }
+
+  function cancel() {
+    setDirty(false)
+    setBonziDraft({})
+  }
+
   function apply(closeAfter: boolean) {
     setDirty(false)
+    if (Object.keys(bonziDraft).length) {
+      bonziOps.setStartupEntries(bonziEntries)
+      setBonziDraft({})
+    }
     showMessageBox({
       title: 'System Configuration Utility',
       message:
@@ -137,8 +173,9 @@ export function MsConfigApp() {
               </div>
             </fieldset>
             <p className="msconfig-note">
-              Simulated System Configuration Utility. Choices here are not persisted — they demonstrate the classic Win98
-              boot/startup flow. Apply prompts a restart that replays the boot sequence.
+              Simulated System Configuration Utility. Most choices here are not persisted: they demonstrate the classic
+              Win98 boot/startup flow. Third-party entries on the Startup tab are real, though: disable one and it stops
+              loading with Windows. Apply prompts a restart that replays the boot sequence.
             </p>
           </div>
         )}
@@ -160,6 +197,14 @@ export function MsConfigApp() {
                     checked={Boolean(startupChecks[item.name])}
                     onChange={() => toggleStartupItem(item.name)}
                   />
+                  <span className="msconfig-startup-name">{item.name}</span>
+                  <span className="msconfig-startup-cmd">{item.command}</span>
+                  <span className="msconfig-startup-loc">{item.location}</span>
+                </label>
+              ))}
+              {bonziRows.map((item) => (
+                <label className="msconfig-startup-row" key={item.name}>
+                  <input type="checkbox" checked={bonziEntries[item.key]} onChange={() => toggleBonziEntry(item.key)} />
                   <span className="msconfig-startup-name">{item.name}</span>
                   <span className="msconfig-startup-cmd">{item.command}</span>
                   <span className="msconfig-startup-loc">{item.location}</span>
@@ -188,7 +233,7 @@ export function MsConfigApp() {
         <button type="button" onClick={() => apply(true)}>
           OK
         </button>
-        <button type="button" onClick={() => setDirty(false)}>
+        <button type="button" onClick={cancel}>
           Cancel
         </button>
         <button type="button" disabled={!dirty} onClick={() => apply(false)}>

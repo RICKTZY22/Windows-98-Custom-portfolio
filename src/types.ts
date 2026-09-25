@@ -135,7 +135,12 @@ export type WindowPayload = {
   command?: string // terminal: a command to run on open (Run dialog routes commands here)
   projectId?: string
   controlPanelSection?: ControlPanelSectionId
+  bonziEntrance?: BonziEntrance // bonzi: why he (re)appeared, for his opening line
 }
+
+/** Why Bonzi's window opened on its own: at boot, back from the tray, or
+ *  reinstalled by his updater. Absent when the visitor launched him. */
+export type BonziEntrance = 'startup' | 'respawn' | 'reinstalled'
 
 export type AppProps = { windowId: string; payload?: WindowPayload }
 
@@ -362,6 +367,15 @@ export type SoundId =
   | 'ding'
   | 'tada'
 
+/** BonziBUDDY's hooks into the simulated machine. Every flag is virtual state;
+ *  data/bonziAdware.ts explains how each one is set and removed. */
+export type BonziState = {
+  installed: boolean // in the tray: comes back when closed, listed in Add/Remove Programs
+  runAtStartup: boolean // Run-key startup entry: launches with Windows
+  updater: boolean // BonziUPDATE startup entry: reinstalls him at boot after an uninstall
+  homepage: boolean // Internet Explorer's home page hijacked to bonzi.com
+}
+
 export type OsState = {
   phase: OsPhase
   bootMode: BootMode
@@ -385,6 +399,12 @@ export type OsState = {
   // reversible via BIOS Setup > Restore System (Factory Reset). No crash — the
   // desktop stays usable so the visitor can always reach the cure.
   infected: boolean
+  // BonziBUDDY's footprint on the simulated PC (the 1999 adware lifecycle, all
+  // virtual). See data/bonziAdware.ts.
+  bonzi: BonziState
+  // Simulated RAM Bonzi has "leaked" while his window is open (MB). Not persisted:
+  // a fresh boot starts him small again.
+  bonziLeakMb: number
   pendingSafetyTraining: boolean
   pendingStartupScan: boolean // true after an improper exit -> shows the startup ScanDisk screen
   pendingSystemRestore: boolean // SFC/SCANREG scheduled a protected-file restore; applied on next restart

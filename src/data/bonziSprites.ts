@@ -23,16 +23,53 @@ export const BONZI_EXPLAIN_POSE = 33
 export const BONZI_HALF_BLINK = 26
 export const BONZI_BLINK = 27
 
+const REST_STEP: SpriteStep = { frame: BONZI_REST, ms: 0 }
+
 export const BONZI_ANIMS = {
   // Drops in on a vine from far away, lands, settles to rest.
-  show: [...run(1141, 1157, 60), ...run(1158, 1160, 120), { frame: BONZI_REST, ms: 0 }],
+  show: [...run(1141, 1157, 60), ...run(1158, 1160, 120), REST_STEP],
   // Turns, grabs the vine and swings off until he is gone.
   hide: [...run(1168, 1173, 110), ...run(1174, 1188, 60)],
-  wave: [...run(346, 364, 90), { frame: BONZI_REST, ms: 0 }],
+  wave: [...run(346, 364, 90), REST_STEP],
   // Opens his arms to talk, and closes them again afterwards.
   explainIn: run(29, BONZI_EXPLAIN_POSE, 80),
-  explainOut: [...run(32, 29, 80), { frame: 41, ms: 90 }, { frame: 42, ms: 90 }, { frame: BONZI_REST, ms: 0 }],
+  explainOut: [...run(32, 29, 80), { frame: 41, ms: 90 }, { frame: 42, ms: 90 }, REST_STEP],
+  // Pulls a banana from behind his back, peels it, eats it, tosses the peel.
+  eat: [...run(826, 879, 85), REST_STEP],
 } satisfies Record<string, SpriteStep[]>
+
+/** Poses he strikes and holds until told otherwise: the way in (ending on the
+ *  held frame) and the way back to rest. */
+export type SpriteHold = { in: SpriteStep[]; out: SpriteStep[] }
+
+export const BONZI_HOLDS = {
+  explain: { in: BONZI_ANIMS.explainIn, out: BONZI_ANIMS.explainOut },
+  // Scratches his head while he "thinks" about a reply.
+  think: { in: [...run(55, 59, 80), { frame: 65, ms: 90 }, { frame: 66, ms: 0 }], out: [{ frame: 65, ms: 80 }, ...run(59, 55, 70), REST_STEP] },
+  // Cups a hand to his ear while the microphone is open.
+  listen: { in: run(87, 92, 70), out: [...run(91, 87, 70), REST_STEP] },
+  // Crosses his arms and turns away: "I am not leaving."
+  huff: { in: run(495, 505, 80), out: [...run(504, 495, 55), REST_STEP] },
+  // Clasps his hands and makes big eyes: "please don't uninstall me".
+  plead: { in: run(1110, 1114, 90), out: [...run(1113, 1110, 80), REST_STEP] },
+  // Hangs his head.
+  sad: { in: run(1117, 1120, 120), out: [{ frame: 1121, ms: 120 }, REST_STEP] },
+} satisfies Record<string, SpriteHold>
+
+export type BonziHold = keyof typeof BONZI_HOLDS
+
+/** The steps that take him from `frame` back to rest: the rest of a hold's way
+ *  out when he is in, entering, or leaving a held pose. Null when he is already
+ *  at rest or in a one-shot animation (which ends at rest by itself). */
+export function stepsToRest(frame: number): SpriteStep[] | null {
+  if (frame === BONZI_REST) return null
+  for (const hold of Object.values(BONZI_HOLDS)) {
+    const at = hold.out.findIndex((step) => step.frame === frame)
+    if (at >= 0) return hold.out.slice(at)
+    if (hold.in.some((step) => step.frame === frame)) return hold.out
+  }
+  return null
+}
 
 /** Lip-sync mouth overlays for each pose that can talk (other frames have none),
  *  ordered from nearly shut to wide open (measured from the frames). */
@@ -55,6 +92,7 @@ export function mouthFor(frame: number, level: number, variant: number): number 
 export function bonziFramesInUse(): number[] {
   const frames = new Set<number>([BONZI_REST, BONZI_EXPLAIN_POSE, BONZI_HALF_BLINK, BONZI_BLINK])
   for (const steps of Object.values(BONZI_ANIMS)) for (const step of steps) frames.add(step.frame)
+  for (const hold of Object.values(BONZI_HOLDS)) for (const step of [...hold.in, ...hold.out]) frames.add(step.frame)
   for (const mouths of Object.values(BONZI_MOUTHS)) for (const frame of mouths ?? []) frames.add(frame)
   return [...frames].sort((a, b) => a - b)
 }

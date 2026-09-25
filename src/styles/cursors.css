@@ -78,3 +78,15 @@ html[data-cursor="win98"] .paint-canvas,
 html[data-cursor="win98"] .paint-canvas * {
   cursor: var(--w98-cursor-precision) !important;
 }
+
+/* A program is starting while the machine is bogged down (Bonzi hogging the
+   simulated RAM): the hourglass shows until the window appears. */
+html.os-busy,
+html.os-busy * {
+  cursor: progress !important;
+}
+
+html[data-cursor="win98"].os-busy,
+html[data-cursor="win98"].os-busy * {
+  cursor: var(--w98-cursor-busy) !important;
+}

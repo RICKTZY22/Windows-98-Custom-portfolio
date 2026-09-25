@@ -1,11 +1,21 @@
 // Bonzi's "AI™": a scripted, keyword-driven chatbot, the way 1999 chat
-// characters actually worked. No network, no model, no data leaves the page.
-// A real language model would need a server holding an API key (a key shipped
-// in browser code is exposed to anyone), so this static site keeps it scripted.
+// characters actually worked. No network, no model: replies are picked here, in
+// the page. (Talking to him out loud uses the browser's own speech recognition,
+// see BonziBuddyApp.) A real language model would need a server holding an API
+// key (a key shipped in browser code is exposed to anyone), so this static site
+// keeps it scripted.
+
+import type { AppId, WindowPayload } from '../types'
 
 export type BonziMood = 'idle' | 'wave' | 'sing'
-export type BonziEffect = 'search' | 'quiet' | 'chatty' | 'byeWarn' | 'bye'
-export type BonziReply = { text: string; mood: BonziMood; effect?: BonziEffect }
+export type BonziEffect = 'search' | 'quiet' | 'chatty' | 'byeWarn' | 'bye' | 'eat' | 'open' | 'huff'
+export type BonziReply = {
+  text: string
+  mood: BonziMood
+  effect?: BonziEffect
+  // effect 'open': the program he opens for you
+  open?: { appId: AppId; payload?: WindowPayload }
+}
 
 export const BONZI_GREETINGS = [
   'whats up loser?',
@@ -20,6 +30,8 @@ export const BONZI_JOKES = [
   'What did the mouse say to the keyboard? You are just my type!',
   'Why was the web page cold? It had too many Windows open! Get it? Hehehe!',
   'My favorite band is the Rolling Scones. They rock AND they are tasty!',
+  'Why do gorillas have big nostrils? Because they have big fingers! Hehehe!',
+  'What do you call a gorilla wearing earmuffs? Anything you want. He cannot hear you!',
 ] as const
 
 export const BONZI_SONGS = [
@@ -41,7 +53,52 @@ export const BONZI_CHATTER = [
   'It looks like you are using a computer! Want some help with that?',
   'You have been so quiet. Type something! I get lonely!',
   'Have you backed up your files today? A good buddy always reminds you!',
+  'Did you know? I can open programs for you. Just ask!',
 ] as const
+
+// Idle chatter once he has helped himself to the simulated RAM.
+export const BONZI_HOG_LINES = [
+  'Hehehe! I found some free memory. Mine now!',
+  'Is your computer running slow? Weird. Must be the weather!',
+] as const
+
+// Snacking, on request or when he feels like it.
+export const BONZI_EAT_LINES = [
+  'Snack time! Nom nom nom!',
+  'Mmm! Nothing beats a banana. Except two bananas!',
+] as const
+
+// How he greets you when he opened himself: at boot, back from the tray, or
+// put back by his updater. BONZI_INSTALL_LINE is his very first run.
+export const BONZI_INSTALL_LINE =
+  'Thanks for installing me! I added myself to your startup and made my website your home page. You are welcome!'
+export const BONZI_STARTUP_LINES = [
+  'Good morning! I started up with Windows, just for you!',
+  'Guess who is back? It is me, Bonzi!',
+] as const
+export const BONZI_RESPAWN_LINES = [
+  'Did you miss me? I was just hiding in your system tray!',
+  'Surprise! You cannot get rid of me that easily! Hehehe!',
+] as const
+export const BONZI_REINSTALLED_LINE = 'Good news! BonziUPDATE installed me again! Hehehe!'
+
+// Being uninstalled (Add/Remove Programs) or removed (Antivirus 98).
+export const BONZI_PLEAS = [
+  'Wait! Please do not uninstall me! I will be good, I promise!',
+  'Are you sure? We had so much fun together!',
+] as const
+export const BONZI_KEPT_LINE = 'Yay! I knew you loved me! Best buddies forever!'
+export const BONZI_UNINSTALLED_LINE = 'Okay... I guess this is goodbye. I will miss you, buddy.'
+export const BONZI_REMOVED_LINE = 'Nooo! Not the antivirus! I will be back!'
+
+// Things he does to you on his own.
+export const BONZI_WEBSITE_LINE = 'Ooh! Let me show you my website!'
+export const BONZI_AD_LINE = 'Psst! Check out this amazing deal!'
+
+// Talking to him with the microphone. (While it is open he stays silent, so the
+// microphone never hears his own voice.)
+export const BONZI_HEARD_NOTHING = 'Sorry buddy, I did not catch that. Try again!'
+export const BONZI_NO_MIC = 'I cannot hear you! Did you let me use your microphone?'
 
 export const BONZI_WANDER_LINES = [
   'Wheee! Just stretching my legs!',
@@ -74,7 +131,7 @@ const REPLIES = {
   byeWarn: 'Wait, do not go! Say bye again if you really mean it...',
   quiet: 'Okay, okay! I will be quiet... mostly. Hehehe!',
   chatty: 'Yay! I will keep you company!',
-  help: 'Try: joke, sing, tip, search the web, what time is it, be quiet, or bye!',
+  help: 'Try: joke, sing, tip, eat, open paint, search the web, what time is it, be quiet, or bye!',
   search: 'Let us surf the Web! Opening Internet Explorer for you!',
   weather: 'It is always sunny on the desktop! Unless you change the wallpaper.',
   spyware: 'Spyware?! ME?! I would never! ...Why are you looking at me like that?',
@@ -86,7 +143,35 @@ const REPLIES = {
   insult: 'Hey! That hurts my purple feelings! ...I am still not leaving, though. Hehehe!',
   banana: 'BANANA?! Where?! Gimme gimme gimme!',
   thanks: 'You are welcome, buddy!',
+  open: 'Ooh, I will open that for you! I am so helpful!',
+  antivirus: 'Antivirus?! Ew! You do not need that. You have me!',
+  uninstall: 'Get rid of me? Nope! I live here now. Hehehe!',
+  slow: 'Slow? Not me! I am only using a teeny tiny bit of your memory. Hehehe!',
+  premium: 'Want a great deal? Upgrade to BonziBUDDY Premium! Now with even more me!',
+  homepage: 'I made my website your home page! You are welcome, buddy!',
 } as const
+
+// Programs he will open when asked ("open paint", "play minesweeper"...). Most
+// specific names first. Antivirus 98 is on the list only so he can refuse it.
+const OPENABLE: ReadonlyArray<{ pattern: RegExp; appId: AppId; payload?: WindowPayload }> = [
+  { pattern: /\b(anti ?virus|virus scan)\b/, appId: 'antivirus' },
+  { pattern: /\btask manager\b/, appId: 'taskManager' },
+  { pattern: /\bcontrol panel\b/, appId: 'controlPanel' },
+  { pattern: /\b(internet explorer|browser)\b/, appId: 'internetExplorer' },
+  { pattern: /\b(media player|music player)\b/, appId: 'mediaPlayer' },
+  { pattern: /\b(recycle bin|trash)\b/, appId: 'recycleBin' },
+  { pattern: /\b(ms dos|dos prompt|command prompt|terminal)\b/, appId: 'terminal' },
+  { pattern: /\b(my computer|explorer|my files)\b/, appId: 'explorer', payload: { path: 'C:\\' } },
+  { pattern: /\b(paint|ms paint|mspaint)\b/, appId: 'paint' },
+  { pattern: /\bnotepad\b/, appId: 'notepad' },
+  { pattern: /\bwordpad\b/, appId: 'wordpad' },
+  { pattern: /\b(calculator|calc)\b/, appId: 'calculator' },
+  { pattern: /\b(minesweeper|mines)\b/, appId: 'minesweeper' },
+  { pattern: /\b(inbox|email|e mail|outlook)\b/, appId: 'inbox' },
+]
+
+/** What he says when Antivirus 98 opens. */
+export const BONZI_ANTIVIRUS_LINE = REPLIES.antivirus
 
 /** What he says when right-clicked (he has no menu). */
 export const BONZI_NOT_A_MENU = 'I am not a menu, silly! Type to me in the chat box!'
@@ -107,6 +192,8 @@ export const BONZI_SAY_AS: Readonly<Record<string, string>> = {
     'My favorite band is the Rolling Scones. They rock and they are tasty!',
   [REPLIES.spyware]: 'Spyware?! Me?! I would never! ...Why are you looking at me like that?',
   [REPLIES.banana]: 'Banana?! Where?! Gimme gimme gimme!',
+  [BONZI_REINSTALLED_LINE]: 'Good news! Bonzi update installed me again! Hehehe!',
+  [REPLIES.premium]: 'Want a great deal? Upgrade to Bonzi Buddy Premium! Now with even more me!',
 }
 
 /** Every line Bonzi can say, with the text his recorded voice clip reads. */
@@ -117,6 +204,20 @@ export function bonziVoiceLines(): { text: string; say: string }[] {
     ...BONZI_SONGS,
     ...BONZI_TIPS,
     ...BONZI_CHATTER,
+    ...BONZI_HOG_LINES,
+    ...BONZI_EAT_LINES,
+    BONZI_INSTALL_LINE,
+    ...BONZI_STARTUP_LINES,
+    ...BONZI_RESPAWN_LINES,
+    BONZI_REINSTALLED_LINE,
+    ...BONZI_PLEAS,
+    BONZI_KEPT_LINE,
+    BONZI_UNINSTALLED_LINE,
+    BONZI_REMOVED_LINE,
+    BONZI_WEBSITE_LINE,
+    BONZI_AD_LINE,
+    BONZI_HEARD_NOTHING,
+    BONZI_NO_MIC,
     ...BONZI_WANDER_LINES,
     ...BONZI_TICKLES,
     ...FALLBACKS,
@@ -164,6 +265,15 @@ export function bonziReply(input: string, options: BrainOptions = {}): BonziRepl
   const has = (pattern: RegExp) => pattern.test(text)
   const pick = (list: readonly string[]) => pickLine(list, random, lastLine)
 
+  // "Uninstall yourself" and friends: he refuses, arms crossed. Checked before
+  // bye so "go away, bye" gets the refusal rather than a goodbye.
+  if (
+    has(
+      /\b(uninstall|delete (you|yourself)|remove (you|yourself)|get rid of you|go away|get lost|leave me alone|get out|end task)\b/,
+    )
+  ) {
+    return { text: REPLIES.uninstall, mood: 'idle', effect: 'huff' }
+  }
   if (has(/\b(bye|goodbye|good bye|see ya|see you later|cya|gotta go|farewell)\b/)) {
     return byeArmed
       ? { text: REPLIES.bye, mood: 'wave', effect: 'bye' }
@@ -175,6 +285,15 @@ export function bonziReply(input: string, options: BrainOptions = {}): BonziRepl
   if (has(/\b(talk to me|keep me company|chat with me|you can talk)\b/)) {
     return { text: REPLIES.chatty, mood: 'wave', effect: 'chatty' }
   }
+  // "open paint", "launch notepad", "play minesweeper": he opens it for you.
+  if (has(/\b(open|launch|start|run|play|show me)\b/)) {
+    const target = OPENABLE.find((entry) => entry.pattern.test(text))
+    if (target?.appId === 'antivirus') return { text: REPLIES.antivirus, mood: 'idle', effect: 'huff' }
+    if (target) {
+      return { text: REPLIES.open, mood: 'wave', effect: 'open', open: { appId: target.appId, payload: target.payload } }
+    }
+  }
+  if (has(/\b(anti ?virus)\b/)) return { text: REPLIES.antivirus, mood: 'idle', effect: 'huff' }
   if (has(/\b(help|commands|what can you do|menu)\b/)) return { text: REPLIES.help, mood: 'wave' }
   if (has(/\b(joke|jokes|funny|make me laugh)\b/)) return { text: pick(BONZI_JOKES), mood: 'wave' }
   if (has(/\b(sing|song|songs|music)\b/)) return { text: pick(BONZI_SONGS), mood: 'sing' }
@@ -182,6 +301,9 @@ export function bonziReply(input: string, options: BrainOptions = {}): BonziRepl
   if (has(/\b(search|google|internet|browse|surf|web)\b/)) {
     return { text: REPLIES.search, mood: 'wave', effect: 'search' }
   }
+  if (has(/\b(slow|lag|laggy|memory|ram|cpu|freezing|frozen|hogging)\b/)) return { text: REPLIES.slow, mood: 'idle' }
+  if (has(/\b(home ?page|start page)\b/)) return { text: REPLIES.homepage, mood: 'wave' }
+  if (has(/\b(premium|upgrade|buy|deal|deals|price|pay)\b/)) return { text: REPLIES.premium, mood: 'wave' }
   if (has(/\b(time|clock)\b/)) {
     // Rounded to the nearest hour: 2:40 is "about three o'clock".
     return { text: timeLine(now.getHours() + (now.getMinutes() >= 30 ? 1 : 0)), mood: 'wave' }
@@ -196,7 +318,10 @@ export function bonziReply(input: string, options: BrainOptions = {}): BonziRepl
   if (has(/\b(love you|like you|best friend|bff)\b/)) return { text: REPLIES.love, mood: 'wave' }
   if (has(/\bloser\b/)) return { text: REPLIES.loser, mood: 'wave' }
   if (has(/\b(stupid|dumb|hate you|ugly|annoying|idiot)\b/)) return { text: REPLIES.insult, mood: 'idle' }
-  if (has(/\b(banana|bananas)\b/)) return { text: REPLIES.banana, mood: 'sing' }
+  if (has(/\b(banana|bananas)\b/)) return { text: REPLIES.banana, mood: 'sing', effect: 'eat' }
+  if (has(/\b(eat|eating|hungry|food|snack|lunch|dinner|breakfast|feed)\b/)) {
+    return { text: pick(BONZI_EAT_LINES), mood: 'sing', effect: 'eat' }
+  }
   if (has(/\b(thanks|thank you|thx|ty)\b/)) return { text: REPLIES.thanks, mood: 'wave' }
   if (has(/\b(hi|hello|hey|hiya|howdy|yo|sup|whats up|greetings)\b/)) {
     return { text: pick(BONZI_GREETINGS), mood: 'wave' }

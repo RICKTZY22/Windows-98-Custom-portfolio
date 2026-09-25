@@ -91,6 +91,14 @@ export type OsContextValue = {
   finishBoot(): void
   resetEverything(): void
   runWorm(): void
+  // BonziBUDDY's adware lifecycle (virtual flags only; see data/bonziAdware.ts)
+  bonziOps: {
+    install(): void // first run of BONZI.EXE: startup entries, updater, home page
+    uninstall(): void // Add/Remove Programs: leaves the updater and home page behind
+    removeAll(): void // Antivirus 98: removes every trace
+    setStartupEntries(entries: { runAtStartup: boolean; updater: boolean }): void // System Configuration
+    setLeak(mb: number): void // simulated RAM he holds beyond his normal footprint
+  }
 }
 
 export const OsContext = createContext<OsContextValue | null>(null)

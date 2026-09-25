@@ -3,11 +3,13 @@ import { BONZI_ATLAS } from '../bonziAtlas'
 import {
   BONZI_ANIMS,
   BONZI_EXPLAIN_POSE,
+  BONZI_HOLDS,
   BONZI_MOUTHS,
   BONZI_REST,
   bonziFramesInUse,
   mouthFor,
   spriteCell,
+  stepsToRest,
   type SpriteStep,
 } from '../bonziSprites'
 
@@ -37,6 +39,24 @@ describe('bonzi sprite atlas', () => {
     expect(lastFrame(BONZI_ANIMS.wave)).toBe(BONZI_REST)
     expect(lastFrame(BONZI_ANIMS.explainIn)).toBe(BONZI_EXPLAIN_POSE)
     expect(lastFrame(BONZI_ANIMS.explainOut)).toBe(BONZI_REST)
+    expect(lastFrame(BONZI_ANIMS.eat)).toBe(BONZI_REST)
+    for (const hold of Object.values(BONZI_HOLDS)) expect(lastFrame(hold.out)).toBe(BONZI_REST)
+  })
+
+  it('finds the way back to rest from any held pose, or from partway in or out', () => {
+    expect(stepsToRest(BONZI_REST)).toBeNull()
+    expect(stepsToRest(846)).toBeNull() // mid-snack: that animation ends at rest by itself
+    for (const hold of Object.values(BONZI_HOLDS)) {
+      const pose = lastFrame(hold.in)
+      expect(stepsToRest(pose)).toEqual(hold.out)
+      for (const step of [...hold.in, ...hold.out]) {
+        if (step.frame === BONZI_REST) continue
+        expect(lastFrame(stepsToRest(step.frame) ?? [])).toBe(BONZI_REST)
+      }
+    }
+    // Partway out, it carries on from there instead of starting over.
+    const out = BONZI_HOLDS.explain.out
+    expect(stepsToRest(out[2].frame)).toEqual(out.slice(2))
   })
 
   it('has lip-sync mouths for the poses he talks in', () => {

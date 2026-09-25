@@ -464,6 +464,34 @@ describe('window reducer', () => {
     expect(getNode(before.fs, 'C:\\My Documents\\Diary.txt')?.content).toBe('my secret plans')
   })
 
+  it('SET_BONZI records his install state (and his updater file) and SET_BONZI_LEAK his RAM', () => {
+    const before = {
+      phase: 'desktop',
+      fs: createInitialFsState(),
+      bonzi: { installed: false, runAtStartup: false, updater: false, homepage: false },
+      bonziLeakMb: 0,
+    } as unknown as OsState
+    const updaterPath = 'C:\\Windows\\System32\\BONZIUPD.EXE'
+    const fs = createFile(before.fs, 'C:\\My Documents', 'marker.txt', { content: 'x' }).fs
+    expect(fs).not.toBe(before.fs)
+    const installed = reducer(before, {
+      type: 'SET_BONZI',
+      bonzi: { installed: true, runAtStartup: true, updater: true, homepage: true },
+      fs,
+    })
+    expect(installed.bonzi.installed).toBe(true)
+    expect(installed.fs).toBe(fs)
+    // Without an fs the disk is left alone.
+    const uninstalled = reducer(installed, { type: 'SET_BONZI', bonzi: { ...installed.bonzi, installed: false } })
+    expect(uninstalled.fs).toBe(fs)
+    expect(getNode(uninstalled.fs, updaterPath)).toBeUndefined()
+
+    const leaking = reducer(installed, { type: 'SET_BONZI_LEAK', mb: 8 })
+    expect(leaking.bonziLeakMb).toBe(8)
+    // Same value: same state object, so nothing re-renders.
+    expect(reducer(leaking, { type: 'SET_BONZI_LEAK', mb: 8 })).toBe(leaking)
+  })
+
   it('dedupes tray notifications and keeps a bounded system log history', () => {
     const note = {
       id: 'note-1',

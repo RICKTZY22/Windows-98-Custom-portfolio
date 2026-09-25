@@ -260,6 +260,9 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
     // A small chat box; Bonzi himself stands on the desktop just below it.
     defaultRect: { x: 180, y: 110, width: 380, height: 230 },
     singleton: true,
+    // Microsoft Agent characters were heavy on a 64MB machine; he also leaks more
+    // while he runs (data/bonziAdware.ts).
+    memoryCost: 14,
   },
   cascade: {
     id: 'cascade',

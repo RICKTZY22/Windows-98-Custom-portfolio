@@ -2,6 +2,8 @@ import './TaskManagerApp.css'
 import { useEffect, useRef, useState } from 'react'
 import { win98Icons } from '../../data/icons'
 import { useOs } from '../../os/useOs'
+import { memoryInUseMb, SIMULATED_RAM_MB, windowMemoryMb } from '../../os/memory'
+import { bonziCpuPercent } from '../../data/bonziAdware'
 
 type TabId = 'applications' | 'processes' | 'performance'
 
@@ -30,7 +32,7 @@ const systemProcesses: Array<Omit<ProcessRow, 'windowId'>> = [
   { id: 'rundll', name: 'RUNDLL32.EXE', pid: 187, memKb: 740, kind: 'system' },
 ]
 
-const TOTAL_MEM_KB = 65536
+const TOTAL_MEM_KB = SIMULATED_RAM_MB * 1024
 
 export function TaskManagerApp() {
   const { state, closeWindow, focusWindow, openApp, showMessageBox, crashSystem } = useOs()
@@ -41,15 +43,17 @@ export function TaskManagerApp() {
   const memCanvasRef = useRef<HTMLCanvasElement>(null)
   const cpuHistoryRef = useRef<number[]>([])
   const memHistoryRef = useRef<number[]>([])
-  const windowCountRef = useRef(state.windows.length)
   const [cpuNow, setCpuNow] = useState(6)
+  // Memory comes from the same model the OS uses to refuse launches (os/memory),
+  // including whatever BonziBUDDY has leaked, so a hog shows up here.
+  const usedMemKb = memoryInUseMb(state.windows, state.bonziLeakMb) * 1024
+  const memPercent = Math.min(100, Math.round((usedMemKb / TOTAL_MEM_KB) * 100))
+  const bonziRunning = state.windows.some((win) => win.appId === 'bonzi')
+  const loadRef = useRef({ windowCount: state.windows.length, memPercent, bonziRunning, bonziLeakMb: state.bonziLeakMb })
 
   useEffect(() => {
-    windowCountRef.current = state.windows.length
-  }, [state.windows.length])
-
-  const usedMemKb = 18432 + state.windows.length * 4096
-  const memPercent = Math.min(98, Math.round((usedMemKb / TOTAL_MEM_KB) * 100))
+    loadRef.current = { windowCount: state.windows.length, memPercent, bonziRunning, bonziLeakMb: state.bonziLeakMb }
+  }, [state.windows.length, memPercent, bonziRunning, state.bonziLeakMb])
 
   const processes: ProcessRow[] = [
     ...systemProcesses,
@@ -57,7 +61,7 @@ export function TaskManagerApp() {
       id: win.instanceId,
       name: `${win.appId.toUpperCase().slice(0, 12)}.EXE`,
       pid: pseudoPid(win.instanceId),
-      memKb: 1024 + win.title.length * 96,
+      memKb: windowMemoryMb(win.appId, state.bonziLeakMb) * 1024 + (win.title.length % 8) * 64,
       kind: 'app' as const,
       windowId: win.instanceId,
     })),
@@ -99,9 +103,11 @@ export function TaskManagerApp() {
     }
 
     const interval = window.setInterval(() => {
-      const base = 4 + windowCountRef.current * 5
-      const cpu = Math.min(98, Math.max(2, base + Math.round(Math.random() * 18 - 6)))
-      const mem = Math.min(98, Math.round(((18432 + windowCountRef.current * 4096) / TOTAL_MEM_KB) * 100))
+      const load = loadRef.current
+      // BonziBUDDY keeps the processor busy on top of everything else.
+      const base = 4 + load.windowCount * 5 + (load.bonziRunning ? bonziCpuPercent(load.bonziLeakMb) : 0)
+      const cpu = Math.min(99, Math.max(2, base + Math.round(Math.random() * 18 - 6)))
+      const mem = load.memPercent
       const cpuHistory = cpuHistoryRef.current
       const memHistory = memHistoryRef.current
       cpuHistory.push(cpu)

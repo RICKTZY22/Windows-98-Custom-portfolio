@@ -17,6 +17,7 @@ import type {
   WindowPayload,
 } from '../../types'
 import { controlPanelSections } from '../../data/system'
+import { BONZI_UNINSTALL_STEPS, cueBonzi } from '../../data/bonziAdware'
 import { getTheme, getWallpaper, selectableThemes, wallpapers } from '../../data/themes'
 import { soundCatalog } from '../../os/audio'
 import { useOs } from '../../os/useOs'
@@ -181,6 +182,10 @@ export const INSTALLED_PROGRAMS: readonly InstalledProgram[] = [
   { name: 'Windows 98 Web Edition', icon: 'windows', size: '198 MB', required: true },
 ]
 
+// Listed only while BonziBUDDY is installed (data/bonziAdware.ts). Removing him
+// runs his own guilt-trip uninstaller.
+const BONZI_PROGRAM: InstalledProgram = { name: 'BonziBUDDY', appId: 'bonzi', icon: 'execFile', size: '8.3 MB' }
+
 const sections = controlPanelSections as readonly ControlPanelSection[]
 const soundOptions = soundCatalog as readonly ControlPanelSoundOption[]
 
@@ -335,6 +340,7 @@ export function useControlPanelModel(payload?: AppProps['payload']): ControlPane
     setAudioVolume,
     playSound,
     showMessageBox,
+    bonziOps,
   } = useOs()
   const [selectedSectionId, setSelectedSectionId] = useState<ControlPanelSectionId>(
     payload?.controlPanelSection ?? 'display',
@@ -358,15 +364,58 @@ export function useControlPanelModel(payload?: AppProps['payload']): ControlPane
     draftTheme.id !== state.themeId ||
     draftWallpaper.id !== state.wallpaperId ||
     effectiveDraft.wallpaperMode !== state.wallpaperMode
-  const visiblePrograms = INSTALLED_PROGRAMS.filter((program) => !removedPrograms.includes(program.name))
+  const installedPrograms = state.bonzi.installed
+    ? [INSTALLED_PROGRAMS[0], BONZI_PROGRAM, ...INSTALLED_PROGRAMS.slice(1)]
+    : INSTALLED_PROGRAMS
+  const visiblePrograms = installedPrograms.filter((program) => !removedPrograms.includes(program.name))
   const selectedProgram = visiblePrograms.find((program) => program.name === selectedProgramName) ?? null
 
   function openProgram(program: InstalledProgram) {
     if (program.appId) openApp(program.appId, program.payload)
   }
 
+  // BonziBUDDY's uninstaller: a "really?" for every step, with Bonzi pleading on
+  // screen if he is there. Saying yes all the way removes the program and its
+  // startup entry, but (like the real thing) not his updater or home page.
+  function confirmBonziUninstall(step: number) {
+    if (step >= BONZI_UNINSTALL_STEPS.length) {
+      bonziOps.uninstall()
+      setSelectedProgramName(null)
+      showMessageBox({
+        title: 'Add/Remove Programs',
+        message: 'BonziBUDDY was removed successfully.',
+        icon: 'info',
+        buttons: ['ok'],
+      })
+      return
+    }
+    cueBonzi({ kind: 'plead', step })
+    showMessageBox({
+      title: 'BonziBUDDY Uninstall',
+      message: BONZI_UNINSTALL_STEPS[step],
+      icon: 'question',
+      buttons: ['yes', 'no'],
+      onResult: (button) => {
+        if (button === 'yes') confirmBonziUninstall(step + 1)
+        else cueBonzi({ kind: 'kept' })
+      },
+    })
+  }
+
   function addRemoveProgram() {
     if (!selectedProgram) return
+    if (selectedProgram === BONZI_PROGRAM) {
+      showMessageBox({
+        title: 'Confirm File Deletion',
+        message: 'Are you sure you want to remove BonziBUDDY and all of its components?',
+        icon: 'question',
+        buttons: ['yes', 'no'],
+        onResult: (button) => {
+          if (button === 'yes') confirmBonziUninstall(0)
+        },
+      })
+      return
+    }
     if (selectedProgram.required) {
       showMessageBox({
         title: 'Add/Remove Programs',

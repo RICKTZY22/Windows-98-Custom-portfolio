@@ -24,9 +24,27 @@
   font: inherit;
 }
 
-.bonzi-chat-send {
-  width: 100%;
+.bonzi-chat-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.bonzi-chat-send,
+.bonzi-chat-talk {
+  flex: 1;
+  min-width: 0;
   min-height: 24px;
+}
+
+/* Held down while the microphone is open. */
+.bonzi-chat-talk {
+  touch-action: none;
+  user-select: none;
+}
+
+.bonzi-chat-talk.is-listening {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+  font-weight: bold;
 }
 
 /* Bonzi on the desktop: a box that fits one 200x160 sprite frame, or the 132x165

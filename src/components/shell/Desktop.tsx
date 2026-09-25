@@ -20,6 +20,7 @@ import {
 } from './desktopModel'
 import { useDesktopIconModel } from './useDesktopIconModel'
 import { useDesktopSelectionBox } from './useDesktopSelectionBox'
+import { useBonziAgent } from './useBonziAgent'
 
 export function Desktop() {
   const {
@@ -50,6 +51,7 @@ export function Desktop() {
   const [refreshingDesktop, setRefreshingDesktop] = useState(false)
   const [shellIntroActive, setShellIntroActive] = useState(true)
   const desktopRef = useRef<HTMLDivElement>(null)
+  const bonziAgent = useBonziAgent()
   const { allIconDefs, iconPositions } = useDesktopIconModel(state.fs, state.desktopIcons)
   const { selectionBox, startSelectionBox } = useDesktopSelectionBox({
     desktopRef,
@@ -438,6 +440,8 @@ export function Desktop() {
         onOpenTaskManager={() => openApp('taskManager')}
         onOpenSystemLog={() => openApp('systemLog')}
         onOpenTaskbarProperties={() => openApp('controlPanel', { controlPanelSection: 'display' })}
+        bonziInTray={bonziAgent.inTray}
+        onOpenBonzi={() => openApp('bonzi')}
       />
       {state.appearanceEffects.mouseTrails && <MouseTrails />}
     </main>
