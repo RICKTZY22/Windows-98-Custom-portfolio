@@ -6,6 +6,7 @@ import {
   BONZI_MOUTHS,
   BONZI_REST,
   bonziFramesInUse,
+  mouthFor,
   spriteCell,
   type SpriteStep,
 } from '../bonziSprites'
@@ -41,5 +42,18 @@ describe('bonzi sprite atlas', () => {
   it('has lip-sync mouths for the poses he talks in', () => {
     expect(BONZI_MOUTHS[BONZI_REST]?.length).toBeGreaterThan(1)
     expect(BONZI_MOUTHS[BONZI_EXPLAIN_POSE]?.length).toBeGreaterThan(1)
+  })
+
+  it('opens his mouth wider the louder he talks', () => {
+    const rest = BONZI_MOUTHS[BONZI_REST] ?? []
+    expect(mouthFor(BONZI_REST, 0, 0)).toBeNull()
+    expect(mouthFor(1141, 3, 0)).toBeNull() // no mouths mid-animation
+    expect(mouthFor(BONZI_REST, 1, 0)).toBe(rest[0])
+    expect(mouthFor(BONZI_REST, 3, 1)).toBe(rest[rest.length - 1])
+    for (let level = 1; level < 3; level += 1) {
+      expect(rest.indexOf(mouthFor(BONZI_REST, level + 1, 0) ?? -1)).toBeGreaterThan(
+        rest.indexOf(mouthFor(BONZI_REST, level, 0) ?? -1),
+      )
+    }
   })
 })

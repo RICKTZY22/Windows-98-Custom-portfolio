@@ -29,10 +29,11 @@ import {
   BONZI_BLINK,
   BONZI_EXPLAIN_POSE,
   BONZI_HALF_BLINK,
-  BONZI_MOUTHS,
   BONZI_REST,
+  mouthFor,
   type SpriteStep,
 } from '../../data/bonziSprites'
+import { BONZI_VOICE } from '../../data/bonziVoice'
 import { BonziFigure } from './BonziFigure'
 import { BonziSprite } from './BonziSprite'
 
@@ -40,10 +41,11 @@ import { BonziSprite } from './BonziSprite'
 // portaled out onto the desktop surface so he stands on the simulated OS (not
 // clipped by the window) with his balloon above his head. He leaves when this
 // window closes, and reboots, crashes and the worm close him like any program.
-// Inert parody of the 1999 adware companion: a synthetic Web Speech voice and a
-// scripted keyword chatbot (see data/bonziBrain.ts). He is drawn with the original
-// character frames when the optional atlas in public/bonzi/ is installed (see
-// data/bonziSprites.ts), and as an original SVG figure when it is not.
+// Inert parody of the 1999 adware companion with a scripted keyword chatbot (see
+// data/bonziBrain.ts). He speaks with recorded SAPI4 voice clips when they are
+// installed (see data/bonziVoice.ts), else a synthetic Web Speech voice. He is
+// drawn with the original character frames when the optional atlas in
+// public/bonzi/ is installed (see data/bonziSprites.ts), else an original SVG.
 
 // His box on the desktop: one 200x160 sprite frame (he stands in the middle of
 // it), or the 132x165 SVG figure centered in it.
@@ -61,6 +63,10 @@ type Rect = { x: number; y: number; width: number; height: number }
 type Look = 'pending' | 'sprite' | 'svg'
 /** Eyelids: open, half shut, shut. */
 type Blink = 0 | 1 | 2
+/** How open his mouth is (0 shut to 3 wide) and which shape of that size. */
+type Mouth = { level: number; variant: number }
+/** A recorded clip playing, with its loudness track. */
+type Voice = { audio: HTMLAudioElement; env: string }
 
 // One blink: half shut, shut, half shut, open (stage, then how long it holds).
 const BLINK_STEPS: ReadonlyArray<readonly [Blink, number]> = [
@@ -95,13 +101,20 @@ function clampActor(point: Point, host: HTMLElement | null): Point {
   }
 }
 
-// The overlay stacked on a sprite frame: a mouth shape while he talks (in the
-// poses that have them), otherwise his eyelids mid-blink when he stands at rest.
-function spriteOverlay(frame: number, talking: boolean, mouthSeed: number, blink: Blink): number | null {
-  const mouths = BONZI_MOUTHS[frame]
-  if (talking && mouths) return mouths[mouthSeed % mouths.length]
+// The overlay stacked on a sprite frame: a mouth shape while his mouth is open
+// (in the poses that have them), otherwise his eyelids mid-blink at rest.
+function spriteOverlay(frame: number, mouth: Mouth | null, blink: Blink): number | null {
+  const shape = mouth ? mouthFor(frame, mouth.level, mouth.variant) : null
+  if (shape !== null) return shape
   if (frame !== BONZI_REST || blink === 0) return null
   return blink === 1 ? BONZI_HALF_BLINK : BONZI_BLINK
+}
+
+const voiceUrl = (file: string) => `${import.meta.env.BASE_URL}${BONZI_VOICE.dir}/${file}`
+
+// How loud a playing clip is right now, 0 (a pause) to 3.
+function voiceLevel({ audio, env }: Voice): number {
+  return Number(env[Math.floor((audio.currentTime * 1000) / BONZI_VOICE.stepMs)] ?? 0)
 }
 
 export function BonziBuddyApp({ windowId }: AppProps) {
@@ -127,7 +140,7 @@ export function BonziBuddyApp({ windowId }: AppProps) {
   const [thinking, setThinking] = useState(false)
   const [mood, setMood] = useState<BonziMood>('wave')
   const [talking, setTalking] = useState(false)
-  const [mouthSeed, setMouthSeed] = useState(0)
+  const [mouth, setMouth] = useState<Mouth>({ level: 0, variant: 0 })
   const [blink, setBlink] = useState<Blink>(0)
   const [walking, setWalking] = useState(false)
   const [chatter, setChatter] = useState(true)
@@ -142,9 +155,15 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     null,
   )
   const timersRef = useRef({ hide: 0, reply: 0, walk: 0, effect: 0, close: 0, talk: 0, seq: 0 })
-  // The utterance currently speaking. Events from a line that was cut off by a
-  // newer one are ignored, so they can't stop the new line's animation.
+  // The clip or utterance currently speaking. Events from a line that was cut off
+  // by a newer one are ignored, so they can't stop the new line's animation.
+  const voiceRef = useRef<Voice | null>(null)
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null)
+  // The OS sound settings (mute, volume), which his voice follows.
+  const osAudioRef = useRef(state.audio)
+  useEffect(() => {
+    osAudioRef.current = state.audio
+  }, [state.audio])
   // Sprite playback, mirrored for timers and callbacks: how he is drawn, the frame
   // on screen, and whether an animation still has frames left to play.
   const lookRef = useRef<Look>('pending')
@@ -164,58 +183,125 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     setWindowTitle(windowId, 'Chat with Bonzi Buddy')
   }, [setWindowTitle, windowId])
 
-  // A high, quick synthetic voice: squeaky and childish. No recorded audio is used.
-  // If the browser has no speech (or blocks it), he still mouths the line.
-  const speak = useCallback((text: string) => {
-    const timers = timersRef.current
-    window.clearTimeout(timers.talk)
-    const mouthItSilently = () => {
-      // Deferred so talking never flips synchronously inside an effect.
-      timers.talk = window.setTimeout(() => {
-        setTalking(true)
-        timers.talk = window.setTimeout(() => setTalking(false), Math.min(9000, 700 + text.length * 55))
-      }, 0)
-    }
-    const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
-    if (!synth) {
-      mouthItSilently()
-      return
+  // Stop whatever he is saying, recorded clip or synthetic voice. Late events
+  // from the old line are ignored (the refs no longer point at it).
+  const hushVoice = useCallback(() => {
+    const voice = voiceRef.current
+    voiceRef.current = null
+    utterRef.current = null
+    if (voice) {
+      voice.audio.onplaying = null
+      voice.audio.onended = null
+      voice.audio.onerror = null
+      voice.audio.pause()
     }
     try {
-      synth.cancel()
-      const utter = new SpeechSynthesisUtterance(text)
-      utterRef.current = utter
-      const voices = synth.getVoices()
-      const preferred =
-        voices.find((v) => /^en/i.test(v.lang) && /zira|samantha|karen|tessa|victoria|female|google us english/i.test(v.name)) ??
-        voices.find((v) => /^en/i.test(v.lang)) ??
-        voices[0]
-      if (preferred) utter.voice = preferred
-      utter.pitch = 1.9
-      utter.rate = 1.12
-      utter.onstart = () => {
-        if (utterRef.current !== utter) return
-        window.clearTimeout(timers.talk)
-        setTalking(true)
-        // Safety net: some speech engines occasionally drop the end event, which
-        // would leave him mouthing forever. Stop after a generous estimate.
-        timers.talk = window.setTimeout(() => {
-          if (utterRef.current === utter) setTalking(false)
-        }, Math.min(15000, 2000 + text.length * 90))
-      }
-      utter.onend = () => {
-        if (utterRef.current === utter) setTalking(false)
-      }
-      utter.onerror = (event) => {
-        if (utterRef.current !== utter) return
-        if (event.error === 'interrupted' || event.error === 'canceled') setTalking(false)
-        else mouthItSilently()
-      }
-      synth.speak(utter)
+      window.speechSynthesis?.cancel()
     } catch {
-      mouthItSilently()
+      // ignore
     }
   }, [])
+
+  // His voice: the recorded clip for the line when there is one, otherwise a
+  // high, quick synthetic voice (squeaky and childish). With the OS muted, or no
+  // way to make sound, he still mouths the line.
+  const speak = useCallback(
+    (text: string) => {
+      const timers = timersRef.current
+      window.clearTimeout(timers.talk)
+      hushVoice()
+      const mouthItSilently = () => {
+        // Deferred so talking never flips synchronously inside an effect.
+        timers.talk = window.setTimeout(() => {
+          setTalking(true)
+          timers.talk = window.setTimeout(() => setTalking(false), Math.min(9000, 700 + text.length * 55))
+        }, 0)
+      }
+      const { enabled, muted, volume } = osAudioRef.current
+      if (!enabled || muted || volume <= 0) {
+        mouthItSilently()
+        return
+      }
+
+      const speakSynthetic = () => {
+        const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
+        if (!synth) {
+          mouthItSilently()
+          return
+        }
+        try {
+          synth.cancel()
+          const utter = new SpeechSynthesisUtterance(text)
+          utterRef.current = utter
+          const voices = synth.getVoices()
+          const preferred =
+            voices.find((v) => /^en/i.test(v.lang) && /zira|samantha|karen|tessa|victoria|female|google us english/i.test(v.name)) ??
+            voices.find((v) => /^en/i.test(v.lang)) ??
+            voices[0]
+          if (preferred) utter.voice = preferred
+          utter.volume = volume
+          utter.pitch = 1.9
+          utter.rate = 1.12
+          utter.onstart = () => {
+            if (utterRef.current !== utter) return
+            window.clearTimeout(timers.talk)
+            setTalking(true)
+            // Safety net: some speech engines occasionally drop the end event, which
+            // would leave him mouthing forever. Stop after a generous estimate.
+            timers.talk = window.setTimeout(() => {
+              if (utterRef.current === utter) setTalking(false)
+            }, Math.min(15000, 2000 + text.length * 90))
+          }
+          utter.onend = () => {
+            if (utterRef.current === utter) setTalking(false)
+          }
+          utter.onerror = (event) => {
+            if (utterRef.current !== utter) return
+            if (event.error === 'interrupted' || event.error === 'canceled') setTalking(false)
+            else mouthItSilently()
+          }
+          synth.speak(utter)
+        } catch {
+          mouthItSilently()
+        }
+      }
+
+      const clip = BONZI_VOICE.clips[text]
+      if (!clip) {
+        speakSynthetic()
+        return
+      }
+      const audio = new Audio(voiceUrl(clip.file))
+      audio.volume = volume
+      voiceRef.current = { audio, env: clip.env }
+      const isCurrent = () => voiceRef.current?.audio === audio
+      // A clip that can't load or play (not installed, autoplay blocked) falls
+      // back to the synthetic voice.
+      const fallBack = () => {
+        if (!isCurrent()) return
+        voiceRef.current = null
+        speakSynthetic()
+      }
+      audio.onplaying = () => {
+        if (!isCurrent()) return
+        window.clearTimeout(timers.talk)
+        setTalking(true)
+        // Safety net in case the end event never arrives.
+        timers.talk = window.setTimeout(() => {
+          if (isCurrent()) setTalking(false)
+        }, clip.env.length * BONZI_VOICE.stepMs + 4000)
+      }
+      audio.onended = () => {
+        if (!isCurrent()) return
+        voiceRef.current = null
+        window.clearTimeout(timers.talk)
+        setTalking(false)
+      }
+      audio.onerror = fallBack
+      audio.play().catch(fallBack)
+    },
+    [hushVoice],
+  )
 
   // Hide the balloon a while after a line, like the old agent balloons did.
   const scheduleHide = useCallback((text: string) => {
@@ -370,14 +456,18 @@ export function BonziBuddyApp({ windowId }: AppProps) {
     }
   }, [begin])
 
-  // Lip-sync: jump to a different mouth shape every few frames while he speaks.
-  // When he stops, the mouth closes on its own (no overlay, or the SVG smile).
+  // Lip-sync while he speaks. With a recorded clip his mouth opens as wide as the
+  // voice is loud at that moment and shuts in the pauses; the synthetic voice
+  // gives no such timing, so he just flaps. When he stops, the mouth closes on
+  // its own (no overlay, or the SVG smile).
   useEffect(() => {
     if (!talking) return
     const timer = window.setInterval(() => {
+      const voice = voiceRef.current
+      const level = voice ? voiceLevel(voice) : 1 + Math.floor(Math.random() * 3)
       const roll = Math.floor(Math.random() * 6)
-      setMouthSeed((seed) => (roll === seed ? (roll + 1) % 6 : roll))
-    }, 130)
+      setMouth((current) => ({ level, variant: roll === current.variant ? (roll + 1) % 6 : roll }))
+    }, 100)
     return () => window.clearInterval(timer)
   }, [talking])
 
@@ -467,13 +557,9 @@ export function BonziBuddyApp({ windowId }: AppProps) {
       window.clearTimeout(timers.close)
       window.clearTimeout(timers.talk)
       window.clearTimeout(timers.seq)
-      try {
-        window.speechSynthesis?.cancel()
-      } catch {
-        // ignore
-      }
+      hushVoice()
     }
-  }, [])
+  }, [hushVoice])
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return
@@ -584,9 +670,9 @@ export function BonziBuddyApp({ windowId }: AppProps) {
         onContextMenu={onBonziContextMenu}
       >
         {sprite ? (
-          <BonziSprite base={baseFrame} overlay={spriteOverlay(baseFrame, talking, mouthSeed, blink)} />
+          <BonziSprite base={baseFrame} overlay={spriteOverlay(baseFrame, talking ? mouth : null, blink)} />
         ) : (
-          <BonziFigure blinking={blink > 0} mouthFrame={talking ? (mouthSeed % 3) + 1 : 0} />
+          <BonziFigure blinking={blink > 0} mouthFrame={talking ? mouth.level : 0} />
         )}
       </div>
     </div>

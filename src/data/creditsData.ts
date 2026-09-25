@@ -120,6 +120,12 @@ export const creditsData = {
       href: 'https://www.spriters-resource.com/',
       note: "Archive of the original BonziBUDDY character frames that Bonzi's animations are built from.",
     },
+    {
+      section: 'Characters',
+      label: 'SAM TTS',
+      href: 'https://samtts.com/bonzi-buddy-voice',
+      note: "Bonzi's spoken lines were generated with its BonziBUDDY Voice tool, which recreates the SAPI4 TruVoice \"Adult Male #2\" voice the original character used.",
+    },
   ],
   creditsStack: {
     tools: [

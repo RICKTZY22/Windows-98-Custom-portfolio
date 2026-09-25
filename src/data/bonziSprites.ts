@@ -34,10 +34,21 @@ export const BONZI_ANIMS = {
   explainOut: [...run(32, 29, 80), { frame: 41, ms: 90 }, { frame: 42, ms: 90 }, { frame: BONZI_REST, ms: 0 }],
 } satisfies Record<string, SpriteStep[]>
 
-/** Lip-sync mouth overlays for each pose that can talk (other frames have none). */
+/** Lip-sync mouth overlays for each pose that can talk (other frames have none),
+ *  ordered from nearly shut to wide open (measured from the frames). */
 export const BONZI_MOUTHS: Readonly<Partial<Record<number, readonly number[]>>> = {
-  [BONZI_REST]: [2, 3, 4, 5, 6, 7],
-  [BONZI_EXPLAIN_POSE]: [34, 35, 36, 37, 38, 39],
+  [BONZI_REST]: [7, 6, 2, 3, 4, 5],
+  [BONZI_EXPLAIN_POSE]: [34, 35, 39, 36, 37, 38],
+}
+
+/** The mouth overlay for a pose at a loudness level (1 quiet to 3 loud), or null
+ *  when the pose has no mouths or he is silent. `variant` alternates within a level. */
+export function mouthFor(frame: number, level: number, variant: number): number | null {
+  const mouths = BONZI_MOUTHS[frame]
+  if (!mouths || level <= 0) return null
+  const band = Math.max(1, Math.floor(mouths.length / 3))
+  const index = (Math.min(level, 3) - 1) * band + (variant % band)
+  return mouths[Math.min(index, mouths.length - 1)]
 }
 
 /** Every frame the animations above reference (for the atlas consistency test). */
