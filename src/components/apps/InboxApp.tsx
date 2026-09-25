@@ -166,12 +166,7 @@ function seedFolders(): Record<FolderName, Message[]> {
     priority: true,
     attachmentName: 'LOVE-LETTER-FOR-YOU.TXT.vbs',
     attachmentAppId: 'iloveyou',
-    body:
-      'kindly check the attached LOVELETTER coming from me.\n\n' +
-      '--------------------------------------------------\n' +
-      'HISTORICAL WORM SIMULATION (May 2000):\n' +
-      'This is where ILOVEYOU began, an email exactly like this one. It infected over ten million Windows PCs because the attachment looked like a harmless text file: Windows hid the real .vbs extension, so LOVE-LETTER-FOR-YOU.TXT.vbs appeared as LOVE-LETTER-FOR-YOU.TXT.\n\n' +
-      'Open the attachment below to see the trap and, if you choose, run the simulated worm. Everything stays inside this browser sandbox, and the simulated PC can be restored from BIOS Setup.',
+    body: 'kindly check the attached LOVELETTER coming from me.',
   }
 
   const happy99Mail: Message = {
@@ -260,7 +255,7 @@ function ReleaseView({ release }: Readonly<{ release: ReleaseNote }>) {
 }
 
 export function InboxApp() {
-  const { openApp, state } = useOs()
+  const { openApp, state, runWorm } = useOs()
   const [folder, setFolder] = useState<FolderName>('Inbox')
   const [selected, setSelected] = useState<number | null>(null)
   const [reading, setReading] = useState<number | null>(null)
@@ -293,6 +288,12 @@ export function InboxApp() {
     }))
     setReading(id)
     setSelected(id)
+
+    const target = list.find((m) => m.id === id)
+    if (target?.attachmentAppId === 'iloveyou') {
+      runWorm()
+      openApp('iloveyou')
+    }
   }
 
   function deleteMsg(id: number | null) {
@@ -569,9 +570,9 @@ export function InboxApp() {
                       type="button"
                       className="inbox-attachment-btn"
                       onClick={() => {
-                        // Opening the attachment launches its handler app. For the
-                        // ILOVEYOU letter this is the worm run-flow (attachmentAppId
-                        // 'iloveyou'); the phishing demo routes to Setup Safety.
+                        if (reader.attachmentAppId === 'iloveyou') {
+                          runWorm()
+                        }
                         openApp(reader.attachmentAppId ?? 'setupSafety')
                       }}
                       title="Launch attachment"

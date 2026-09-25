@@ -1,38 +1,226 @@
-.bonzi-app {
+/* Chat with Bonzi Buddy. Layout only: visual polish is left for a design pass.
+   The chat box is the app window; Bonzi himself (.bonzi-actor) is portaled onto
+   the desktop surface and positioned in desktop coordinates like a window. */
+
+.bonzi-chat {
   display: flex;
   flex-direction: column;
+  gap: 8px;
   height: 100%;
-  background: #c0c0c0;
-  padding: 10px;
   box-sizing: border-box;
+  padding: 10px 12px;
+  background: #c0c0c0;
   font-size: 12px;
 }
 
-.bonzi-stage {
+.bonzi-chat-tagline {
+  margin: 0;
+}
+
+.bonzi-chat-input {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  background: linear-gradient(180deg, #5780a4 0%, #c0d8f0 100%);
-  border: 2px inset #808080;
-  padding: 12px;
-  margin-bottom: 8px;
+  min-height: 42px;
+  resize: none;
+  font: inherit;
+}
+
+.bonzi-chat-send {
+  width: 100%;
+  min-height: 24px;
+}
+
+/* Bonzi on the desktop: a box that fits one 200x160 sprite frame, or the 132x165
+   SVG figure centered in it. */
+.bonzi-actor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 200px;
+  height: 165px;
+  pointer-events: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.bonzi-actor.is-walking {
+  transition: transform 2.5s ease-in-out;
+}
+
+.bonzi-gorilla {
+  width: fit-content;
+  margin: 0 auto;
+  pointer-events: auto;
+  cursor: grab;
+  animation: bonzi-sway 2.4s infinite ease-in-out alternate;
+}
+
+.bonzi-gorilla.is-wave {
+  animation: bonzi-bounce 0.8s 3 ease-in-out;
+}
+
+.bonzi-gorilla.is-sing,
+.bonzi-actor.is-walking .bonzi-gorilla {
+  animation: bonzi-bob 0.35s infinite ease-in-out alternate;
+}
+
+/* Original character frames (BonziSprite.tsx): a body frame with a mouth or blink
+   overlay stacked on it. The frames animate themselves, and only his body (not the
+   empty margins of the frame) takes the mouse. */
+.bonzi-actor.is-sprite .bonzi-gorilla {
+  pointer-events: none;
+  animation: none;
+}
+
+.bonzi-sprite {
   position: relative;
 }
 
+.bonzi-sprite-layer {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.bonzi-sprite-hit {
+  position: absolute; /* his body in the rest pose */
+  left: 58px;
+  top: 38px;
+  width: 84px;
+  height: 114px;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+/* Figure parts (BonziFigure.tsx). Each part pivots around its own joint, given in
+   the SVG's viewBox coordinates (0 0 120 150). */
+.bonzi-svg {
+  display: block;
+  overflow: visible;
+}
+
+.bonzi-svg .bz-head,
+.bonzi-svg .bz-arm,
+.bonzi-svg .bz-brows,
+.bonzi-svg .bz-leg {
+  transform-box: view-box;
+}
+
+.bonzi-svg .bz-head {
+  transform-origin: 60px 72px; /* neck */
+}
+
+.bonzi-svg .bz-arm-l {
+  transform-origin: 37px 79px; /* left shoulder (clasped for now) */
+}
+
+.bonzi-svg .bz-arm-r {
+  transform-origin: 83px 79px; /* right shoulder */
+}
+
+.bonzi-svg .bz-leg-l {
+  transform-origin: 47px 112px; /* hips */
+}
+
+.bonzi-svg .bz-leg-r {
+  transform-origin: 73px 112px;
+}
+
+/* While talking: nod, raise the brows, and gesture out to the side with one hand. */
+.bonzi-gorilla.is-talking .bz-head {
+  animation: bz-nod 0.9s ease-in-out infinite alternate;
+}
+
+.bonzi-gorilla.is-talking .bz-brows {
+  animation: bz-brows 0.45s ease-in-out infinite alternate;
+}
+
+.bonzi-gorilla.is-talking .bz-arm-r {
+  animation: bz-gesture 0.55s ease-in-out infinite alternate;
+}
+
+/* Singing: a bigger side-to-side head sway. */
+.bonzi-gorilla.is-sing .bz-head {
+  animation: bz-sing 0.5s ease-in-out infinite alternate;
+}
+
+/* Walking: legs swing out of step. */
+.bonzi-actor.is-walking .bz-leg-l {
+  animation: bz-step 0.3s ease-in-out infinite alternate;
+}
+
+.bonzi-actor.is-walking .bz-leg-r {
+  animation: bz-step 0.3s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes bz-nod {
+  from {
+    transform: rotate(-3deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes bz-brows {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes bz-gesture {
+  from {
+    transform: rotate(-60deg);
+  }
+  to {
+    transform: rotate(-130deg);
+  }
+}
+
+@keyframes bz-sing {
+  from {
+    transform: rotate(-8deg);
+  }
+  to {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes bz-step {
+  from {
+    transform: rotate(-14deg);
+  }
+  to {
+    transform: rotate(14deg);
+  }
+}
+
+/* Balloon above his head */
 .bonzi-bubble {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 220px;
+  padding: 8px 12px;
   background: #ffffe1;
   border: 1px solid #000;
   border-radius: 8px;
-  padding: 8px 12px;
-  max-width: 260px;
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  position: relative;
-  margin-bottom: 8px;
+  color: #000;
   font-size: 12px;
   line-height: 1.4;
-  color: #000;
+  pointer-events: auto;
+}
+
+/* In a sprite frame his head starts about 40px down, so the balloon comes down
+   to meet it. */
+.bonzi-actor.is-sprite .bonzi-bubble {
+  bottom: calc(100% - 26px);
 }
 
 .bonzi-bubble p {
@@ -51,18 +239,6 @@
   border-top: 8px solid #ffffe1;
 }
 
-.bonzi-gorilla {
-  animation: bonzi-sway 2.4s infinite ease-in-out alternate;
-}
-
-.bonzi-gorilla.is-wave {
-  animation: bonzi-bounce 0.8s 3 ease-in-out;
-}
-
-.bonzi-gorilla.is-sing {
-  animation: bonzi-bob 0.5s infinite ease-in-out alternate;
-}
-
 @keyframes bonzi-sway {
   from {
     transform: rotate(-3deg);
@@ -73,7 +249,8 @@
 }
 
 @keyframes bonzi-bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -88,24 +265,4 @@
   to {
     transform: scale(1.04);
   }
-}
-
-.bonzi-controls {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.bonzi-controls button {
-  padding: 4px 8px;
-  font-weight: 700;
-  font-size: 11px;
-}
-
-.bonzi-footer {
-  text-align: center;
-  font-size: 10px;
-  color: #555;
-  font-style: italic;
 }

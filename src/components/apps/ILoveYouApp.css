@@ -1,109 +1,74 @@
 .iloveyou-app {
   height: 100%;
   overflow: auto;
-  padding: 14px 16px;
-  background: #fff;
-  color: #111;
+  padding: 16px 20px;
+  background: #330000;
+  color: #ffffff;
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
   font-size: 13px;
   line-height: 1.45;
+  box-sizing: border-box;
 }
 
 .iloveyou-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .iloveyou-header h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: bold;
   letter-spacing: 1px;
-  color: #b30000;
+  color: #ff5555;
 }
 
 .iloveyou-heart {
-  font-size: 22px;
-  font-weight: 700;
-  color: #d4006a;
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff66a3;
 }
 
 .iloveyou-lead {
   font-style: italic;
-  margin: 0 0 12px;
+  margin: 0 0 16px;
+  color: #ffffff;
 }
 
-.iloveyou-trap {
-  border: 1px solid #b5b5b5;
-  background: #f7f7f7;
-  padding: 10px 12px;
-  margin: 0 0 14px;
-}
-
-.iloveyou-trap-title {
-  font-weight: 700;
-  color: #003399;
-  margin-bottom: 4px;
-}
-
-.iloveyou-trap p {
-  margin: 0 0 8px;
-}
-
-.iloveyou-trap code {
-  font-family: 'Courier New', monospace;
-  background: #ffffcc;
-  padding: 0 3px;
-}
-
-.iloveyou-run {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  font-weight: 700;
-  cursor: pointer;
-  margin: 0 0 12px;
-}
-
-.iloveyou-note {
-  font-size: 11px;
-  color: #555;
-  border-top: 1px solid #ddd;
-  padding-top: 8px;
-  margin: 0;
-}
-
-/* Infected state */
-.iloveyou-app.is-infected {
-  background: #300;
-  color: #ffdada;
-}
-
-.iloveyou-app.is-infected .iloveyou-header h2 {
-  color: #ff5a5a;
-}
-
-.iloveyou-app.is-infected .iloveyou-heart {
-  color: #ff9ecb;
+.iloveyou-desc {
+  margin: 0 0 18px;
+  color: #ffffff;
+  line-height: 1.5;
 }
 
 .iloveyou-cure {
-  border: 1px solid #a33;
-  background: rgba(0, 0, 0, 0.25);
-  padding: 10px 12px;
-  margin: 12px 0;
+  border: 1px solid #aa0000;
+  background: transparent;
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+
+.iloveyou-cure strong {
+  display: block;
+  color: #ffffff;
+  font-weight: bold;
+  margin-bottom: 8px;
 }
 
 .iloveyou-cure ol {
-  margin: 6px 0 0 18px;
+  margin: 0 0 0 22px;
   padding: 0;
+  color: #ffffff;
 }
 
 .iloveyou-cure li {
-  margin: 3px 0;
+  margin: 6px 0;
+  line-height: 1.4;
 }
 
-.iloveyou-app.is-infected .iloveyou-note {
-  color: #e6b3b3;
-  border-top-color: #a33;
+.iloveyou-cure em {
+  font-style: italic;
 }
+

@@ -108,6 +108,18 @@ export const creditsData = {
       href: 'https://dos.zone/',
       note: 'Community MS-DOS games portal (built on js-dos) referenced while sourcing and configuring the games.',
     },
+    {
+      section: 'Characters',
+      label: 'BONZI Software (BonziBUDDY)',
+      href: 'https://en.wikipedia.org/wiki/BonziBuddy',
+      note: 'Bonzi the purple gorilla and his original character art belong to BONZI Software (1999). The Bonzi here is an inert parody for nostalgia: it is not the original program and it collects nothing.',
+    },
+    {
+      section: 'Characters',
+      label: 'The Spriters Resource',
+      href: 'https://www.spriters-resource.com/',
+      note: "Archive of the original BonziBUDDY character frames that Bonzi's animations are built from.",
+    },
   ],
   creditsStack: {
     tools: [

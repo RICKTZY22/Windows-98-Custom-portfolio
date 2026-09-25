@@ -1261,8 +1261,8 @@ export function OsProvider({ children }: { children: ReactNode }): ReactNode {
     playSound('error')
     dispatch({ type: 'INFECT_WORM' })
     notify(
-      'System infected (simulated)',
-      'LOVE-LETTER-FOR-YOU.TXT.vbs has overwritten your files. To restore the PC, restart and open BIOS Setup, then choose Restore System (Factory Reset).',
+      'System infected',
+      'LOVE-LETTER-FOR-YOU.TXT.vbs has executed and overwritten files on C:\\. To restore system, restart and open BIOS Setup, then choose Restore System (Factory Reset).',
       { kind: 'error' },
     )
   }, [notify, playSound])

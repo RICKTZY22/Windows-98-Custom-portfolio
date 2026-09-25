@@ -314,7 +314,9 @@ export function Desktop() {
           const target = event.target as HTMLElement
           setStartMenuOpen(false)
           setContextMenu(null)
-          if (event.button !== 0 || target.closest('.desktop-icon, .window, .desktop-context-menu')) {
+          // .desktop-companion: characters like Bonzi that stand on the desktop
+          // itself; grabbing one must not start a rubber-band selection.
+          if (event.button !== 0 || target.closest('.desktop-icon, .window, .desktop-context-menu, .desktop-companion')) {
             return
           }
           startSelectionBox(event)
