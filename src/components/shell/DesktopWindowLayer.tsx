@@ -26,24 +26,25 @@ export function DesktopWindowLayer({
 }: DesktopWindowLayerProps) {
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.zIndex - b.zIndex), [windows])
 
+  // Minimized windows stay mounted (WindowFrame hides them with display:none), so a
+  // running app keeps its state and its work: minimizing the antivirus scan, Defrag,
+  // a download, etc. no longer unmounts and restarts it.
   return (
     <>
-      {orderedWindows.map((windowState) =>
-        windowState.minimized ? null : (
-          <WindowFrame
-            key={windowState.instanceId}
-            window={windowState}
-            active={activeWindowId === windowState.instanceId}
-            onFocus={onFocus}
-            onClose={onClose}
-            onMinimize={onMinimize}
-            onToggleMaximize={onToggleMaximize}
-            onMove={onMove}
-          >
-            <AppWindowContent windowState={windowState} openApp={openApp} />
-          </WindowFrame>
-        ),
-      )}
+      {orderedWindows.map((windowState) => (
+        <WindowFrame
+          key={windowState.instanceId}
+          window={windowState}
+          active={activeWindowId === windowState.instanceId}
+          onFocus={onFocus}
+          onClose={onClose}
+          onMinimize={onMinimize}
+          onToggleMaximize={onToggleMaximize}
+          onMove={onMove}
+        >
+          <AppWindowContent windowState={windowState} openApp={openApp} />
+        </WindowFrame>
+      ))}
     </>
   )
 }

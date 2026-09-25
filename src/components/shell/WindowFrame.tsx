@@ -154,7 +154,7 @@ export function WindowFrame({
     }
   }, [onMove, windowState])
 
-  const style = windowState.maximized
+  const baseStyle = windowState.maximized
     ? { zIndex: windowState.zIndex }
     : {
         width: windowState.width,
@@ -162,12 +162,17 @@ export function WindowFrame({
         zIndex: windowState.zIndex,
         transform: `translate3d(${windowState.x}px, ${windowState.y}px, 0)`,
       }
+  // Minimized: kept mounted (so the app keeps its state) but hidden. Inline
+  // display:none beats the stylesheet's display:flex and takes it out of layout,
+  // the a11y tree and the tab order.
+  const style = windowState.minimized ? { ...baseStyle, display: 'none' } : baseStyle
 
   const className = [
     'window',
     'win-window',
     active ? 'is-active' : '',
     windowState.maximized ? 'is-maximized' : '',
+    windowState.minimized ? 'is-minimized' : '',
     isDragging ? 'is-dragging' : '',
     isResizing ? 'is-resizing' : '',
   ]
@@ -217,6 +222,7 @@ export function WindowFrame({
       className={className}
       style={style}
       aria-label={title}
+      aria-hidden={windowState.minimized || undefined}
       onPointerDown={() => onFocus(windowState.instanceId)}
     >
       <div
