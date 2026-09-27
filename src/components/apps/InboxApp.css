@@ -199,6 +199,19 @@
   text-align: center;
 }
 
+.inbox-cell-mail img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0 auto;
+  image-rendering: pixelated;
+}
+
+/* The header cell keeps its bevel; only the icon inside is centered. */
+.inbox-list-head .inbox-cell-mail {
+  padding: 2px 0;
+}
+
 .inbox-cell-text {
   padding: 0 6px;
   overflow: hidden;

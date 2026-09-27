@@ -133,7 +133,7 @@ function seedFolders(): Record<FolderName, Message[]> {
     from: 'Roblox Rewards Claim',
     addr: 'rewards-claim@freerobux-official.net',
     to: ME,
-    subject: '🔥 URGENT: Claim Your 10,000 Free Robux Code - Attachment Included!',
+    subject: 'URGENT: Claim Your 10,000 Free Robux Code - Attachment Included!',
     received: '8/13/2026',
     read: false,
     priority: true,
@@ -143,7 +143,7 @@ function seedFolders(): Record<FolderName, Message[]> {
       'CONGRATULATIONS! You have been randomly selected to receive a FREE 10,000 Robux Gift Code!\n\n' +
       'To claim your reward, open and run the attached installer (testdontouch.exe).\n\n' +
       '--------------------------------------------------\n' +
-      '⚠️ EDUCATIONAL SAFETY DEMO:\n' +
+      'EDUCATIONAL SAFETY DEMO:\n' +
       'This simulated message emulates real-world phishing bait ("Free Rewards / Free Robux"). ' +
       'Executable files (.exe) sent via email promising free currency are frequently malicious.\n\n' +
       'Click the attachment icon below to test simulated safety handling.',
@@ -204,7 +204,7 @@ function seedFolders(): Record<FolderName, Message[]> {
       'Happy New Year 1999 !!\n\n' +
       'Wishing you a very wonderful new year! Run the attached greeting program to enjoy our celebratory fireworks display!\n\n' +
       '--------------------------------------------------\n' +
-      '⚠️ HISTORICAL WORM SIMULATION (Jan 1999):\n' +
+      'HISTORICAL WORM SIMULATION (Jan 1999):\n' +
       'Ska / Happy99 was the first modern worm spread via email. When run, it displayed a window with colorful fireworks saying "Happy New Year 1999 !!".\n\n' +
       'Click the attachment to launch the fireworks simulation.',
   }
@@ -542,7 +542,9 @@ function formatAttachmentInfo(name: string): { label: string; size: string; icon
         <div className="sunken-panel inbox-list">
           <div className="inbox-list-head">
             <span>!</span>
-            <span>✉</span>
+            <span className="inbox-cell-mail">
+              <img src={win98Icons.mailUnread} alt="Read status" title="Read status" />
+            </span>
             <span>From</span>
             <span>Subject</span>
             <span>Received ▾</span>
@@ -561,7 +563,7 @@ function formatAttachmentInfo(name: string): { label: string; size: string; icon
                 >
                   <span className="inbox-cell-bang">{m.priority ? '!' : ''}</span>
                   <span className="inbox-cell-mail" aria-hidden="true">
-                    {m.read ? '◇' : '✉'}
+                    <img src={m.read ? win98Icons.mailRead : win98Icons.mailUnread} alt="" />
                   </span>
                   <span className="inbox-cell-text">{m.from}</span>
                   <span className="inbox-cell-text">{m.subject}</span>

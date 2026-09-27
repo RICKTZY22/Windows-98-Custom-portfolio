@@ -72,6 +72,8 @@ export type IconKey =
   | 'wolfenstein'
   | 'doom'
   | 'inbox'
+  | 'mailUnread'
+  | 'mailRead'
   | 'vbsFile'
 
 export type AppId =
