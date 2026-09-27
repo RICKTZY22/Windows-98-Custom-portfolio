@@ -110,6 +110,44 @@
   cursor: grab;
 }
 
+/* Carried with the mouse. The sprite frames do their own swinging (a mirrored
+   frame when he is carried rightwards); the SVG figure hangs from its raised hand,
+   tilts with the motion and kicks its legs. */
+.bonzi-actor.is-carried .bonzi-gorilla,
+.bonzi-actor.is-carried .bonzi-sprite-hit {
+  cursor: grabbing;
+}
+
+.bonzi-gorilla.is-mirrored .bonzi-sprite {
+  transform: scaleX(-1);
+}
+
+.bonzi-actor.is-carried:not(.is-sprite) .bonzi-gorilla {
+  animation: none;
+  transform: rotate(var(--bonzi-swing, 0deg));
+  transform-origin: 50% 6%;
+  transition: transform 0.18s ease-out;
+}
+
+.bonzi-actor.is-carried .bonzi-gorilla .bz-arm-r {
+  animation: none;
+  transform: rotate(-155deg);
+}
+
+.bonzi-actor.is-carried .bonzi-gorilla .bz-leg-l {
+  animation: bz-kick 0.22s ease-in-out infinite alternate;
+}
+
+.bonzi-actor.is-carried .bonzi-gorilla .bz-leg-r {
+  animation: bz-kick 0.22s ease-in-out infinite alternate-reverse;
+}
+
+/* Put down: the SVG figure drops the last few pixels and squashes as it lands. */
+.bonzi-actor.is-landing:not(.is-sprite) .bonzi-gorilla {
+  animation: bonzi-land 0.45s ease-out;
+  transform-origin: 50% 100%;
+}
+
 /* Figure parts (BonziFigure.tsx). Each part pivots around its own joint, given in
    the SVG's viewBox coordinates (0 0 120 150). */
 .bonzi-svg {
@@ -241,6 +279,11 @@
   bottom: calc(100% - 26px);
 }
 
+/* Hanging from his vine, his hands (and the vine) reach the top of the frame. */
+.bonzi-actor.is-sprite.is-carried .bonzi-bubble {
+  bottom: calc(100% + 6px);
+}
+
 .bonzi-bubble p {
   margin: 0;
 }
@@ -273,6 +316,30 @@
   }
   50% {
     transform: translateY(-8px);
+  }
+}
+
+@keyframes bz-kick {
+  from {
+    transform: rotate(-22deg);
+  }
+  to {
+    transform: rotate(22deg);
+  }
+}
+
+@keyframes bonzi-land {
+  0% {
+    transform: translateY(-16px);
+  }
+  55% {
+    transform: translateY(0) scale(1.1, 0.86);
+  }
+  80% {
+    transform: scale(0.97, 1.04);
+  }
+  100% {
+    transform: none;
   }
 }
 

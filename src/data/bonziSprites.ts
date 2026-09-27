@@ -25,6 +25,19 @@ export const BONZI_BLINK = 27
 
 const REST_STEP: SpriteStep = { frame: BONZI_REST, ms: 0 }
 
+/** Hanging from a vine while he is dragged: straight down, and swung out a little
+ *  or a lot. In the swung frames his body trails to the right of the vine, the way
+ *  he hangs when carried leftwards (mirrored for rightwards). */
+export const BONZI_HANG = { still: 1193, swing: 1194, swingFar: 1195 } as const
+
+/** The hanging frame for a horizontal drag speed (px per ms), and whether to
+ *  mirror it (carried rightwards). */
+export function hangFrame(speed: number): { frame: number; mirrored: boolean } {
+  const pace = Math.abs(speed)
+  const frame = pace < 0.15 ? BONZI_HANG.still : pace < 0.7 ? BONZI_HANG.swing : BONZI_HANG.swingFar
+  return { frame, mirrored: frame !== BONZI_HANG.still && speed > 0 }
+}
+
 export const BONZI_ANIMS = {
   // Drops in on a vine from far away, lands, settles to rest.
   show: [...run(1141, 1157, 60), ...run(1158, 1160, 120), REST_STEP],
@@ -36,6 +49,11 @@ export const BONZI_ANIMS = {
   explainOut: [...run(32, 29, 80), { frame: 41, ms: 90 }, { frame: 42, ms: 90 }, REST_STEP],
   // Pulls a banana from behind his back, peels it, eats it, tosses the peel.
   eat: [...run(826, 879, 85), REST_STEP],
+  // Picked up with the mouse: reaches up, catches a vine and hangs on (the last
+  // frame is held while you carry him).
+  grab: [{ frame: 1192, ms: 70 }, { frame: BONZI_HANG.still, ms: 0 }],
+  // Let go: drops, lands in a puff of dust, and stands back up.
+  land: [...run(1196, 1198, 70), ...run(1199, 1202, 90), REST_STEP],
 } satisfies Record<string, SpriteStep[]>
 
 /** Poses he strikes and holds until told otherwise: the way in (ending on the
@@ -90,7 +108,7 @@ export function mouthFor(frame: number, level: number, variant: number): number 
 
 /** Every frame the animations above reference (for the atlas consistency test). */
 export function bonziFramesInUse(): number[] {
-  const frames = new Set<number>([BONZI_REST, BONZI_EXPLAIN_POSE, BONZI_HALF_BLINK, BONZI_BLINK])
+  const frames = new Set<number>([BONZI_REST, BONZI_EXPLAIN_POSE, BONZI_HALF_BLINK, BONZI_BLINK, ...Object.values(BONZI_HANG)])
   for (const steps of Object.values(BONZI_ANIMS)) for (const step of steps) frames.add(step.frame)
   for (const hold of Object.values(BONZI_HOLDS)) for (const step of [...hold.in, ...hold.out]) frames.add(step.frame)
   for (const mouths of Object.values(BONZI_MOUTHS)) for (const frame of mouths ?? []) frames.add(frame)

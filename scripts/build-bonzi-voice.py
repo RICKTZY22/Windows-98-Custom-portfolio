@@ -45,7 +45,13 @@ TRIM = (
 
 
 def voice_lines() -> list[dict]:
+    # Node runs the TypeScript directly; the resolve hook lets the brain's
+    # extensionless imports ('./bonziContent') find their .ts files, as Vite does.
     script = (
+        "import { register } from 'node:module';"
+        "register('data:text/javascript,' + encodeURIComponent("
+        '"export async function resolve(s, c, n) { try { return await n(s, c) } catch (e) {'
+        " if (/^[.][.]?[/]/.test(s) && !/[.][a-z]+$/.test(s)) return n(s + '.ts', c); throw e } }\"));"
         "const { bonziVoiceLines } = await import('./src/data/bonziBrain.ts');"
         'console.log(JSON.stringify(bonziVoiceLines()))'
     )

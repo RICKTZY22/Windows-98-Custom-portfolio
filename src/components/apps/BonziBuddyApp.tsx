@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -31,22 +32,31 @@ import {
   BONZI_RESPAWN_LINES,
   BONZI_STARTUP_LINES,
   BONZI_TICKLES,
+  BONZI_DRAG_LINES,
+  BONZI_DROP_LINES,
   BONZI_UNINSTALLED_LINE,
   BONZI_WANDER_LINES,
   BONZI_WEBSITE_LINE,
+  BONZI_FRESH_MEMORY,
   bonziReply,
   pickLine,
+  type BonziMemory,
   type BonziMood,
   type BonziReply,
 } from '../../data/bonziBrain'
+import { BONZI_LOOKUP_OFFLINE, BONZI_LOOKUP_VAGUE } from '../../data/bonziContent'
+import { lookUp, lookupLine } from '../../data/bonziLookup'
+import { driverHealthy } from '../../os/systemHealth'
 import {
   BONZI_ANIMS,
   BONZI_ATLAS_URL,
   BONZI_BLINK,
   BONZI_EXPLAIN_POSE,
   BONZI_HALF_BLINK,
+  BONZI_HANG,
   BONZI_HOLDS,
   BONZI_REST,
+  hangFrame,
   mouthFor,
   stepsToRest,
   type BonziHold,
@@ -61,9 +71,11 @@ import { BonziSprite } from './BonziSprite'
 // portaled out onto the desktop surface so he stands on the simulated OS (not
 // clipped by the window) with his balloon above his head. He leaves when this
 // window closes, and reboots, crashes and the worm close him like any program.
-// Inert parody of the 1999 adware companion with a scripted keyword chatbot (see
-// data/bonziBrain.ts). He speaks with recorded SAPI4 voice clips when they are
-// installed (see data/bonziVoice.ts), else a synthetic Web Speech voice. He is
+// Inert parody of the 1999 adware companion with a scripted chatbot (see
+// data/bonziBrain.ts) that remembers a little of the chat and looks "who is..."
+// questions up on Wikipedia (data/bonziLookup.ts). He speaks with recorded SAPI4
+// voice clips when they are installed (see data/bonziVoice.ts), else a synthetic
+// Web Speech voice (lines made up on the spot, like math answers, always are). He is
 // drawn with the original character frames when the optional atlas in
 // public/bonzi/ is installed (see data/bonziSprites.ts), else an original SVG.
 //
@@ -80,9 +92,22 @@ const IDLE_MS = 20000 // silence before he chatters or wanders off
 const THINK_MS = 650 // the "..." pause before a reply
 const EXPLAIN_HOLD_MS = 700 // he keeps his arms open this long after a line
 const HUFF_HOLD_MS = 3200 // arms crossed this long before he turns back
+const LAND_MS = 450 // the SVG figure's landing squash, after being carried
+const HANG_FRAMES: ReadonlySet<number> = new Set(Object.values(BONZI_HANG))
 const ACTION_DELAY_MS = 1400 // between announcing something and doing it
 const ATLAS_TIMEOUT_MS = 8000 // stop waiting for the sprite atlas and draw the SVG figure
+const LOOKUP_TIMEOUT_MS = 8000 // give up on a Web lookup after this long
 const LISTENING_TEXT = '(listening...)'
+const LOOKING_TEXT = '(looking it up...)'
+
+// What he remembers of the chat (your name, what he just asked you). Kept outside
+// the component so it survives him closing and popping back up; reloading the
+// page is a reboot, and he forgets.
+let chatMemory: BonziMemory = BONZI_FRESH_MEMORY
+const recallChat = () => chatMemory
+const rememberChat = (memory: BonziMemory) => {
+  chatMemory = memory
+}
 
 type Point = { x: number; y: number }
 type Rect = { x: number; y: number; width: number; height: number }
@@ -212,6 +237,10 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
   const [mouth, setMouth] = useState<Mouth>({ level: 0, variant: 0 })
   const [blink, setBlink] = useState<Blink>(0)
   const [walking, setWalking] = useState(false)
+  // Carried around with the mouse: how far the SVG figure swings (degrees), and
+  // whether the sprite's hanging frame is mirrored. Then the landing.
+  const [carried, setCarried] = useState<{ swing: number; mirrored: boolean } | null>(null)
+  const [landing, setLanding] = useState(false)
   const [chatter, setChatter] = useState(true)
   const [listening, setListening] = useState(false)
 
@@ -226,14 +255,26 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
   const suppressClickRef = useRef(false)
   // True once he is on his way out (uninstalled, removed): he stops reacting.
   const leavingRef = useRef(false)
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; base: Point; moved: boolean } | null>(
-    null,
-  )
-  const timersRef = useRef({ hide: 0, reply: 0, walk: 0, effect: 0, close: 0, talk: 0, seq: 0, pose: 0 })
+  // A drag under way: where it started, and (once he is picked up) when, and how
+  // fast the mouse moves him sideways.
+  const dragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    base: Point
+    moved: boolean
+    startedAt: number
+    lastX: number
+    lastT: number
+    speed: number
+  } | null>(null)
+  const timersRef = useRef({ hide: 0, reply: 0, walk: 0, effect: 0, close: 0, talk: 0, seq: 0, pose: 0, swing: 0, land: 0 })
   // The clip or utterance currently speaking. Events from a line that was cut off
   // by a newer one are ignored, so they can't stop the new line's animation.
   const voiceRef = useRef<Voice | null>(null)
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null)
+  // A Web lookup under way ("who is..."); aborted when a newer message comes in.
+  const lookupRef = useRef<AbortController | null>(null)
   // The microphone while it is open, and what it has heard so far.
   const recognitionRef = useRef<Recognition | null>(null)
   const heardRef = useRef({ text: '', error: '' })
@@ -242,11 +283,13 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
   useEffect(() => {
     osAudioRef.current = state.audio
   }, [state.audio])
-  // The machine as timers see it: open windows, his leak, his install state.
-  const machineRef = useRef({ windows: state.windows, leakMb: state.bonziLeakMb, installed: state.bonzi.installed })
+  // The machine as timers see it: open windows, his leak, his install state, and
+  // whether the simulated network is up (his Web lookups need it, like Internet Explorer).
+  const online = state.network.connected && driverHealthy(state.fs, 'network')
+  const machineRef = useRef({ windows: state.windows, leakMb: state.bonziLeakMb, installed: state.bonzi.installed, online })
   useEffect(() => {
-    machineRef.current = { windows: state.windows, leakMb: state.bonziLeakMb, installed: state.bonzi.installed }
-  }, [state.windows, state.bonziLeakMb, state.bonzi.installed])
+    machineRef.current = { windows: state.windows, leakMb: state.bonziLeakMb, installed: state.bonzi.installed, online }
+  }, [state.windows, state.bonziLeakMb, state.bonzi.installed, online])
   // Sprite playback, mirrored for timers and callbacks: how he is drawn, the frame
   // on screen, and whether an animation still has frames left to play.
   const lookRef = useRef<Look>('pending')
@@ -569,6 +612,10 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
       if (leavingRef.current) return
       leavingRef.current = true
       abortListening()
+      lookupRef.current?.abort()
+      lookupRef.current = null
+      dragRef.current = null
+      setCarried(null)
       setListening(false)
       setDraft('')
       const timers = timersRef.current
@@ -770,6 +817,63 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
     [say, settle, strike],
   )
 
+  // Picked up with the mouse: the sprite Bonzi reaches up and catches a vine; the
+  // SVG one dangles from a raised hand. He squeals about it, unless he was just busy.
+  const pickUp = useCallback(() => {
+    const timers = timersRef.current
+    window.clearTimeout(timers.pose)
+    window.clearTimeout(timers.land)
+    setLanding(false)
+    setCarried({ swing: 0, mirrored: false })
+    const wasQuiet = Date.now() - lastActivityRef.current > 3000
+    if (lookRef.current === 'sprite') play(BONZI_ANIMS.grab)
+    if (wasQuiet && Math.random() < 0.7) say(pickLine(BONZI_DRAG_LINES, Math.random, lastLineRef.current), 'wave')
+  }, [play, say])
+
+  // Swinging as he is carried: further out the faster he is moved sideways, trailing
+  // behind. `speed` is in px per ms; 0 hangs him straight down again.
+  const dangle = useCallback((speed: number) => {
+    if (lookRef.current !== 'sprite') {
+      const swing = Math.round(Math.max(-18, Math.min(18, speed * 30)))
+      setCarried((current) => (current && current.swing !== swing ? { ...current, swing } : current))
+      return
+    }
+    // Not until he has caught the vine.
+    if (busyRef.current || !HANG_FRAMES.has(frameRef.current)) return
+    const { frame, mirrored } = hangFrame(speed)
+    if (frame !== frameRef.current) {
+      frameRef.current = frame
+      setBaseFrame(frame)
+    }
+    setCarried((current) => (current && current.mirrored !== mirrored ? { ...current, mirrored } : current))
+  }, [])
+
+  // Let go: he drops and lands in a puff of dust (the SVG one squashes), and after
+  // a long trip he sometimes remarks on it.
+  const putDown = useCallback(
+    (carriedMs: number) => {
+      const timers = timersRef.current
+      window.clearTimeout(timers.swing)
+      setCarried(null)
+      lastActivityRef.current = Date.now()
+      const remark = () => {
+        if (carriedMs > 1500 && !leavingRef.current && Math.random() < 0.5) {
+          say(pickLine(BONZI_DROP_LINES, Math.random, lastLineRef.current), 'wave')
+        }
+      }
+      if (lookRef.current === 'sprite') {
+        play(BONZI_ANIMS.land, remark)
+        return
+      }
+      setLanding(true)
+      timers.land = window.setTimeout(() => {
+        setLanding(false)
+        remark()
+      }, LAND_MS)
+    },
+    [play, say],
+  )
+
   // Dragging him around the desktop.
   useEffect(() => {
     function onMove(event: PointerEvent) {
@@ -778,15 +882,35 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
       const dx = event.clientX - drag.startX
       const dy = event.clientY - drag.startY
       if (!drag.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return
-      drag.moved = true
+      if (!drag.moved) {
+        drag.moved = true
+        drag.startedAt = Date.now()
+        pickUp()
+      }
+      // Sideways speed, smoothed, for how far he swings out.
+      const now = performance.now()
+      drag.speed = drag.speed * 0.6 + ((event.clientX - drag.lastX) / Math.max(8, now - drag.lastT)) * 0.4
+      drag.lastX = event.clientX
+      drag.lastT = now
+      dangle(drag.speed)
+      // When the mouse stops, he swings back to hanging straight down.
+      const timers = timersRef.current
+      window.clearTimeout(timers.swing)
+      timers.swing = window.setTimeout(() => {
+        if (dragRef.current !== drag) return
+        drag.speed = 0
+        dangle(0)
+      }, 140)
       lastActivityRef.current = Date.now()
       setActorPos(clampActor({ x: drag.base.x + dx, y: drag.base.y + dy }, host))
     }
     function onUp(event: PointerEvent) {
       const drag = dragRef.current
       if (!drag || drag.pointerId !== event.pointerId) return
-      if (drag.moved) suppressClickRef.current = true
       dragRef.current = null
+      if (!drag.moved) return
+      suppressClickRef.current = true
+      putDown(Date.now() - drag.startedAt)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -796,7 +920,7 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
     }
-  }, [host])
+  }, [dangle, host, pickUp, putDown])
 
   // Keep him on screen if the browser window shrinks (the desktop clips overflow).
   useEffect(() => {
@@ -807,20 +931,32 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
     return () => window.removeEventListener('resize', onResize)
   }, [host])
 
-  // Leaving: stop every timer, the microphone, and any speech in progress.
+  // Leaving: stop every timer, the microphone, any lookup, and any speech in progress.
   useEffect(() => {
     const timers = timersRef.current
     return () => {
       for (const id of Object.values(timers)) window.clearTimeout(id)
       abortListening()
+      lookupRef.current?.abort()
+      lookupRef.current = null
       hushVoice()
     }
   }, [abortListening, hushVoice])
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return
+    if (event.button !== 0 || leavingRef.current) return
     setWalking(false)
-    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, base: actorPos, moved: false }
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      base: actorPos,
+      moved: false,
+      startedAt: 0,
+      lastX: event.clientX,
+      lastT: event.timeStamp,
+      speed: 0,
+    }
   }
 
   function tickle() {
@@ -844,14 +980,36 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
   function applyEffect(reply: BonziReply) {
     const timers = timersRef.current
     switch (reply.effect) {
-      case 'search':
-        timers.effect = window.setTimeout(() => openApp('internetExplorer'), 1200)
+      case 'search': {
+        // Internet Explorer: its home page, a site, or a search for what you asked.
+        const payload = reply.open?.payload
+        timers.effect = window.setTimeout(() => openApp('internetExplorer', payload), 1200)
+        break
+      }
+      case 'website':
+        timers.effect = window.setTimeout(() => openApp('internetExplorer', { url: BONZI_HOME_URL }), ACTION_DELAY_MS)
         break
       case 'open': {
         const target = reply.open
         if (target) timers.effect = window.setTimeout(() => openApp(target.appId, target.payload), 1200)
         break
       }
+      case 'close': {
+        const target = reply.close
+        timers.effect = window.setTimeout(() => {
+          for (const win of machineRef.current.windows) if (win.appId === target) closeWindow(win.instanceId)
+        }, 900)
+        break
+      }
+      case 'closeAll':
+        // Every window but his own chat box.
+        timers.effect = window.setTimeout(() => {
+          for (const win of machineRef.current.windows) if (win.instanceId !== windowId) closeWindow(win.instanceId)
+        }, 900)
+        break
+      case 'dance':
+        if (lookRef.current === 'sprite') play([...BONZI_ANIMS.wave, ...BONZI_ANIMS.wave])
+        break
       case 'eat':
         if (lookRef.current === 'sprite') play(BONZI_ANIMS.eat)
         break
@@ -874,7 +1032,11 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
             closeWindow(windowId)
             return
           }
-          // The sprite Bonzi swings off on his vine, then the program exits.
+          // The sprite Bonzi swings off on his vine, then the program exits. (He
+          // can no longer be picked up, which would stop him halfway.)
+          leavingRef.current = true
+          dragRef.current = null
+          setCarried(null)
           window.clearTimeout(timers.hide)
           setShowBalloon(false)
           settle(() => play(BONZI_ANIMS.hide, () => closeWindow(windowId)))
@@ -885,28 +1047,73 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
     }
   }
 
+  // Stop waiting on a Web lookup; its answer, if it still comes, is ignored.
+  function cancelLookup() {
+    lookupRef.current?.abort()
+    lookupRef.current = null
+  }
+
+  // "Who is...": he keeps scratching his head while Wikipedia answers. Offline
+  // (the simulated network is down) he says so; if nothing useful comes back, he
+  // says `fallback`.
+  function lookItUp(query: string, fallback: string, networkUp: boolean, answer: (text: string) => void) {
+    const timers = timersRef.current
+    if (!networkUp) {
+      timers.reply = window.setTimeout(() => answer(BONZI_LOOKUP_OFFLINE), THINK_MS)
+      return
+    }
+    const controller = new AbortController()
+    lookupRef.current = controller
+    const started = Date.now()
+    const giveUp = window.setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS)
+    setThinking(false)
+    setBalloonText(LOOKING_TEXT)
+    lookUp(query, controller.signal)
+      .then((found) => {
+        if (found.kind === 'found') return lookupLine(found.summary)
+        return found.kind === 'vague' ? BONZI_LOOKUP_VAGUE : fallback
+      })
+      .catch(() => fallback)
+      .then((line) => {
+        window.clearTimeout(giveUp)
+        // A newer message took over, or he is gone.
+        if (lookupRef.current !== controller) return
+        lookupRef.current = null
+        timers.reply = window.setTimeout(() => answer(line), Math.max(0, THINK_MS - (Date.now() - started)))
+      })
+  }
+
   // Answer a message, typed or spoken: scratch his head over it, then reply.
   function respond(message: string) {
     if (leavingRef.current) return
+    const { windows, online: networkUp } = machineRef.current
     const reply = bonziReply(message, {
       byeArmed: Date.now() < byeArmedUntilRef.current,
       lastLine: lastLineRef.current,
+      memory: recallChat(),
+      openApps: windows.map((win) => win.appId),
     })
     if (!reply) return
+    rememberChat(reply.memory)
     const timers = timersRef.current
     window.clearTimeout(timers.hide)
     window.clearTimeout(timers.reply)
     window.clearTimeout(timers.pose)
+    cancelLookup()
     lastActivityRef.current = Date.now()
     setThinking(true)
     setShowBalloon(true)
     if (lookRef.current === 'sprite') strike('think')
-    timers.reply = window.setTimeout(() => {
+    const answer = (text: string) =>
       settle(() => {
-        say(reply.text, reply.mood)
+        say(text, reply.mood)
         applyEffect(reply)
       })
-    }, THINK_MS)
+    if (reply.effect === 'lookup' && reply.lookup) {
+      lookItUp(reply.lookup, reply.text, networkUp, answer)
+      return
+    }
+    timers.reply = window.setTimeout(() => answer(reply.text), THINK_MS)
   }
 
   function send(event: FormEvent<HTMLFormElement>) {
@@ -935,6 +1142,7 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
     window.clearTimeout(timers.reply)
     window.clearTimeout(timers.hide)
     window.clearTimeout(timers.pose)
+    cancelLookup()
     hushVoice()
     setTalking(false)
     const recognition = new Ctor()
@@ -1028,8 +1236,14 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
 
   const actor = (
     <div
-      className={`bonzi-actor desktop-companion ${sprite ? 'is-sprite' : ''} ${walking ? 'is-walking' : ''}`}
-      style={{ transform: `translate(${actorPos.x}px, ${actorPos.y}px)`, zIndex: actorZ }}
+      className={`bonzi-actor desktop-companion ${sprite ? 'is-sprite' : ''} ${walking ? 'is-walking' : ''} ${carried ? 'is-carried' : ''} ${landing ? 'is-landing' : ''}`}
+      style={
+        {
+          transform: `translate(${actorPos.x}px, ${actorPos.y}px)`,
+          zIndex: actorZ,
+          '--bonzi-swing': `${carried?.swing ?? 0}deg`,
+        } as CSSProperties
+      }
     >
       {showBalloon && (
         <div className="bonzi-bubble" role="status" aria-live="polite">
@@ -1038,7 +1252,11 @@ export function BonziBuddyApp({ windowId, payload }: AppProps) {
         </div>
       )}
       <div
-        className={sprite ? 'bonzi-gorilla' : `bonzi-gorilla is-${mood} ${talking ? 'is-talking' : ''}`}
+        className={
+          sprite
+            ? `bonzi-gorilla ${carried?.mirrored ? 'is-mirrored' : ''}`
+            : `bonzi-gorilla is-${mood} ${talking ? 'is-talking' : ''}`
+        }
         title="Bonzi: drag me around, or type to me in the chat box"
         onPointerDown={startDrag}
         onClick={tickle}

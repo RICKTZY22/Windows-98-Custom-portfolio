@@ -47,6 +47,7 @@ RANGES = [
     (346, 364),  # wave
     (1141, 1160),  # show: drops in on a vine
     (1168, 1188),  # hide: swings away on a vine
+    (1192, 1202),  # dragged: catches a vine and hangs on, then drops and lands in a puff of dust
 ]
 
 ROOT = Path(__file__).resolve().parent.parent
