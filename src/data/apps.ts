@@ -256,7 +256,7 @@ export const appDefinitions: Record<AppId, AppDefinition> = {
   bonzi: {
     id: 'bonzi',
     title: 'Chat with Bonzi Buddy',
-    icon: 'execFile',
+    icon: 'bonzi',
     // A small chat box; Bonzi himself stands on the desktop just below it.
     defaultRect: { x: 180, y: 110, width: 380, height: 230 },
     singleton: true,

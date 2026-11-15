@@ -54,6 +54,9 @@ export const win98Icons: Record<IconKey, string> = {
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23c0c0c0'/%3E%3Cpath d='M0 0h32v2H0zM0 0h2v32H0z' fill='%23fff'/%3E%3Cpath d='M0 30h32v2H0zM30 0h2v32h-2z' fill='%23808080'/%3E%3Ccircle cx='15' cy='18' r='8' fill='%23000'/%3E%3Crect x='4' y='17' width='22' height='2' fill='%23000'/%3E%3Crect x='14' y='7' width='2' height='22' fill='%23000'/%3E%3Ccircle cx='12' cy='15' r='2.2' fill='%23fff'/%3E%3Ccircle cx='19' cy='6' r='2.6' fill='%23ff2d2d'/%3E%3C/svg%3E",
   wolfenstein: `${iconBase}/woldenstein.png`,
   doom: `${iconBase}/doom.png`,
+  // Original artwork (a purple chat bubble) for the BonziBUDDY program entries.
+  bonzi:
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 21l-2 8 9-8z' fill='%237b3fbf' stroke='%23000' stroke-width='1.2' stroke-linejoin='round'/%3E%3Crect x='2.5' y='4.5' width='27' height='18' rx='6' fill='%237b3fbf' stroke='%23000' stroke-width='1.2'/%3E%3Cpath d='M6.5 9a4 4 0 0 1 4-2.5h12' fill='none' stroke='%23c3a1ee' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='10' cy='14' r='2' fill='%23fff'/%3E%3Ccircle cx='16' cy='14' r='2' fill='%23fff'/%3E%3Ccircle cx='22' cy='14' r='2' fill='%23fff'/%3E%3C/svg%3E",
   audioFile: `${iconBase}/loudspeaker_rays-0.png`,
   audioDriverFile: `${iconBase}/loudspeaker_rays-0.png`,
   videoPlayer: `${iconBase}/windows_movie-0.png`,

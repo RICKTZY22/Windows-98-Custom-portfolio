@@ -71,6 +71,7 @@ export type IconKey =
   | 'minesweeper'
   | 'wolfenstein'
   | 'doom'
+  | 'bonzi'
   | 'inbox'
   | 'mailUnread'
   | 'mailRead'

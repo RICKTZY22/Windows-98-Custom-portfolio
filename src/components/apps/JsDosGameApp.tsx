@@ -25,6 +25,7 @@ type JsDosCommandInterface = {
 
 type JsDosInstance = {
   stop: () => Promise<void>
+  setMouseCapture?: (capture: boolean) => void
 }
 
 const dosKey = {
@@ -186,7 +187,8 @@ export function JsDosGameApp({ payload }: AppProps) {
     loadJsDos()
       .then(() => {
         if (cancelled || !containerRef.current || !window.Dos) return
-        const ci = window.Dos(containerRef.current, {
+        let dos: JsDosInstance | null = null
+        dos = window.Dos(containerRef.current, {
           url: bundleUrl,
           pathPrefix: '/js-dos/emulators/',
           autoStart: true,
@@ -197,10 +199,14 @@ export function JsDosGameApp({ payload }: AppProps) {
           onEvent: (eventName, eventPayload) => {
             if (eventName === 'ci-ready' && isCommandInterface(eventPayload)) {
               ciRef.current = eventPayload
+              // Mouse look: a click locks the pointer and moving the mouse turns the
+              // view (Esc releases it). Set now, because loading the bundle resets
+              // capture from its dosbox.conf, which has no autolock.
+              dos?.setMouseCapture?.(true)
             }
           },
         })
-        stopRef.current = ci.stop.bind(ci)
+        stopRef.current = dos.stop.bind(dos)
       })
       .catch((err: unknown) => {
         console.error('[JsDosGameApp] failed to start:', err)
@@ -219,7 +225,7 @@ export function JsDosGameApp({ payload }: AppProps) {
     <div className="jsdos-game-wrapper">
       <div ref={containerRef} className="jsdos-game-container" />
       <div className="jsdos-controls-hint" aria-label="Game controls">
-        <strong>WASD</strong> move · <strong>Q/E</strong> turn · arrows classic
+        <strong>Click</strong> to steer with the mouse · <strong>WASD</strong> move · <strong>Esc</strong> frees the mouse
       </div>
     </div>
   )

@@ -870,7 +870,7 @@ export function createInitialFsState(): FsState {
   file('C:\\Program Files\\Bonzi\\BONZI.EXE', {
     size: 4194304,
     content: '[WIP] BonziBuddy 1999 Desktop Companion (WIP Easter Egg)',
-    icon: 'execFile',
+    icon: 'bonzi',
     fileType: 'Application',
     appId: 'bonzi',
     modified: '09/01/1999 04:15 PM',
@@ -976,6 +976,10 @@ const PORTFOLIO_SEEDED_PATHS = [
 // remove them: the demo images that used to fill My Pictures, the old duplicate
 // Resume.txt, and the flat C:\Projects files now organized into per-project folders.
 const LEGACY_ARTIFACT_PATHS = [
+  // Counter-Strike was briefly installed here before moving to the Windows 7
+  // edition only. File first, then its folder (each path removes one node).
+  'C:\\Program Files\\Games\\Counter-Strike\\cstrike.exe',
+  'C:\\Program Files\\Games\\Counter-Strike',
   'C:\\My Pictures\\Welcome.bmp',
   'C:\\My Pictures\\desktop-clouds.bmp',
   'C:\\My Pictures\\portfolio-sketch.bmp',
@@ -1187,7 +1191,9 @@ export function ensurePortfolioSeedFiles(fs: FsState): FsState {
   // The fs is restored wholesale, so a changed icon on a system folder would only
   // reach fresh boots. Re-apply the current seed icon for these paths (children and
   // everything else preserved) so icon updates also land on existing persisted disks.
-  const systemIconPaths = Array.from(new Set(['C:\\Windows\\Desktop', ...SYSTEM_FILE_CATALOG]))
+  const systemIconPaths = Array.from(
+    new Set(['C:\\Windows\\Desktop', 'C:\\Program Files\\Bonzi\\BONZI.EXE', ...SYSTEM_FILE_CATALOG]),
+  )
   const iconNodes = { ...next.nodes }
   let iconChanged = false
   for (const path of systemIconPaths) {

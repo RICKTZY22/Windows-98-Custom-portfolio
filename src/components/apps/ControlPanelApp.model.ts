@@ -184,7 +184,7 @@ export const INSTALLED_PROGRAMS: readonly InstalledProgram[] = [
 
 // Listed only while BonziBUDDY is installed (data/bonziAdware.ts). Removing him
 // runs his own guilt-trip uninstaller.
-const BONZI_PROGRAM: InstalledProgram = { name: 'BonziBUDDY', appId: 'bonzi', icon: 'execFile', size: '8.3 MB' }
+const BONZI_PROGRAM: InstalledProgram = { name: 'BonziBUDDY', appId: 'bonzi', icon: 'bonzi', size: '8.3 MB' }
 
 const sections = controlPanelSections as readonly ControlPanelSection[]
 const soundOptions = soundCatalog as readonly ControlPanelSoundOption[]
